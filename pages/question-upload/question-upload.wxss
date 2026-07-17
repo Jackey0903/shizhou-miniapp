@@ -1,0 +1,92 @@
+.qu-page {
+  min-height: 100vh;
+  background: var(--bg-page);
+  padding: 24rpx;
+  box-sizing: border-box;
+}
+
+.qu-card {
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+}
+
+.qu-head {
+  margin-bottom: 24rpx;
+}
+
+.qu-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.qu-sub {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.qu-field {
+  margin-bottom: 22rpx;
+}
+
+.qu-label {
+  display: block;
+  margin-bottom: 10rpx;
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.qu-input,
+.qu-textarea,
+.qu-picker {
+  width: 100%;
+  box-sizing: border-box;
+  border: 2rpx solid var(--border);
+  border-radius: var(--radius-md);
+  background: #fff;
+  min-height: 96rpx;
+  padding: 24rpx 24rpx;
+  font-size: 30rpx;
+  line-height: 1.5;
+}
+
+.qu-textarea {
+  min-height: 220rpx;
+}
+
+.qu-import-box {
+  margin-top: 18rpx;
+  padding: 24rpx;
+  border-radius: var(--radius-md);
+  background: #F8FAFC;
+  border: 2rpx dashed #CBD5E1;
+}
+
+.qu-import-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.qu-import-meta {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.qu-import-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 22rpx;
+}
+
+.qu-import-btn {
+  flex: 1;
+}

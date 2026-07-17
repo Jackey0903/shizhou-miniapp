@@ -1,0 +1,36 @@
+<view class="checkin-page">
+  <view class="checkin-intro card">
+    <text class="checkin-intro-title">分享朋友圈获取舟币</text>
+    <text class="checkin-intro-desc">完成当天学习目标后会自动打卡。点击下方按钮分享完整图片到朋友圈，每次获得 10 舟币，每天最多 20 舟币。</text>
+  </view>
+
+  <view class="checkin-card-wrap" id="shareCanvas">
+    <image class="checkin-bg" src="{{currentWallpaper}}" mode="aspectFill"/>
+    <view class="checkin-overlay">
+      <text class="checkin-tag">{{backgroundTitle}}</text>
+      <text class="checkin-time">{{currentTime}}</text>
+      <text class="checkin-date">{{currentDate}}</text>
+      <view class="checkin-stats">
+        <view class="checkin-stat">
+          <text class="checkin-stat-num">{{streak}}</text>
+          <text class="checkin-stat-label">连续打卡</text>
+        </view>
+        <view class="checkin-stat">
+          <text class="checkin-stat-num">{{totalDays}}</text>
+          <text class="checkin-stat-label">累计打卡</text>
+        </view>
+      </view>
+      <view class="checkin-quote-box">
+        <text class="checkin-quote">{{quote}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="checkin-share-tip">
+    <button class="checkin-share-btn" bindtap="shareFullImage" loading="{{loading}}">分享图片获取10舟币</button>
+    <text class="checkin-share-title">完整图片分享</text>
+    <text class="checkin-share-desc">会生成朋友圈适配的正方形图片，壁纸完整显示不裁切；如果当前微信版本不支持，会自动保存到相册。</text>
+  </view>
+
+  <canvas class="checkin-share-canvas" canvas-id="checkinShareCanvas"></canvas>
+</view>

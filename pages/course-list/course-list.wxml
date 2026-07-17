@@ -1,0 +1,68 @@
+<view class="cl-page">
+  <view class="cl-header">
+    <text class="cl-title">{{title}}</text>
+    <text class="cl-subtitle">{{subtitle}}</text>
+  </view>
+
+  <view class="cl-category-grid" wx:if="{{showCategories}}">
+    <view
+      class="cl-category-card"
+      wx:for="{{categoryCards}}"
+      wx:key="id"
+      wx:for-item="category"
+      bindtap="openCategory"
+      data-category="{{category.category}}"
+      data-courseid="{{category.directCourseId}}"
+      data-coursename="{{category.directCourseName}}"
+      style="background: {{category.color.bg}}; border-color: {{category.color.border}};"
+    >
+      <view class="cl-category-main">
+        <view class="cl-category-title-row">
+          <text class="cl-category-name">{{category.name}}</text>
+          <text class="cl-category-total" style="color: {{category.color.accent}};">{{category.totalCount}}题</text>
+        </view>
+        <view class="cl-category-preview">
+          <view
+            class="cl-category-preview-row"
+            wx:for="{{category.previews}}"
+            wx:key="_id"
+            wx:for-item="preview"
+            catchtap="openCourse"
+            data-courseid="{{preview._id}}"
+            data-coursename="{{preview.rawName}}"
+          >
+            <text class="cl-category-preview-item">{{preview.name}}</text>
+            <text class="cl-category-preview-count" style="color: {{category.color.accent}};">{{preview.count}}题</text>
+          </view>
+        </view>
+      </view>
+      <view class="cl-category-footer">
+        <text class="cl-category-bank-count">{{category.bankCount}}个题库</text>
+        <view class="cl-category-more-pill" style="background: {{category.color.border}}; color: {{category.color.accent}};">{{category.actionText}} ›</view>
+      </view>
+      <view class="cl-category-dots">
+        <text class="cl-category-dot" style="background: {{category.color.accent}};"></text>
+        <text class="cl-category-dot" style="background: {{category.color.accent}};"></text>
+        <text class="cl-category-dot" style="background: {{category.color.accent}};"></text>
+      </view>
+    </view>
+  </view>
+
+  <view class="cl-grid" wx:else>
+    <navigator class="cl-card" url="/pages/study-plan/study-plan?courseId={{item._id}}&courseName={{item.name}}" wx:for="{{courses}}" wx:key="_id">
+      <image class="cl-cover" src="{{item.cover || '/assets/icons/default-cover.png'}}" mode="aspectFill"/>
+      <view class="cl-info">
+        <view class="cl-badges">
+          <text class="cl-badge">{{item.category || '综合'}}</text>
+          <text class="cl-badge cl-badge-light">{{item.series || '题库'}}</text>
+        </view>
+        <text class="cl-name">{{item.displayName || item.name}}</text>
+        <text class="cl-desc" wx:if="{{item.description}}">{{item.description}}</text>
+        <view class="cl-meta">
+          <text class="cl-count">{{item.totalCount}}题</text>
+          <text class="cl-action">进入题库 ›</text>
+        </view>
+      </view>
+    </navigator>
+  </view>
+</view>

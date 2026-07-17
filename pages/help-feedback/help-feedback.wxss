@@ -1,0 +1,12 @@
+.hf-page { min-height: 100vh; background: var(--bg-page); padding: 24rpx; box-sizing: border-box; }
+.hf-hero, .hf-section, .hf-service { margin-top: 20rpx; }
+.hf-title { display: block; font-size: 34rpx; font-weight: 800; color: var(--text-primary); }
+.hf-desc, .hf-service-tip { display: block; margin-top: 12rpx; font-size: 24rpx; color: var(--text-secondary); line-height: 1.7; }
+.hf-section-title { display: block; font-size: 28rpx; font-weight: 700; color: var(--text-primary); }
+.hf-faq-item { padding: 24rpx 0; border-bottom: 1rpx solid var(--border); }
+.hf-faq-item:last-child { border-bottom: none; padding-bottom: 0; }
+.hf-faq-q { display: block; font-size: 26rpx; font-weight: 700; color: #0f172a; }
+.hf-faq-a { display: block; margin-top: 10rpx; font-size: 24rpx; color: #475569; line-height: 1.7; }
+.hf-qrcode { width: 320rpx; height: 320rpx; margin: 28rpx auto 0; display: block; border-radius: 24rpx; background: #fff; }
+.hf-actions { display: flex; gap: 16rpx; margin-top: 24rpx; }
+.hf-actions .btn { flex: 1; }

@@ -1,0 +1,10 @@
+.cfg-page { min-height: 100vh; background: var(--bg-page); padding: 24rpx; box-sizing: border-box; }
+.cfg-title { display: block; font-size: 32rpx; font-weight: 800; margin-bottom: 16rpx; }
+.cfg-input, .cfg-textarea { width: 100%; min-height: 92rpx; background: #f8fafc; border-radius: 24rpx; padding: 0 24rpx; box-sizing: border-box; font-size: 28rpx; margin-bottom: 16rpx; }
+.cfg-textarea { min-height: 180rpx; padding: 24rpx; }
+.cfg-item { display: flex; gap: 20rpx; align-items: center; padding: 24rpx; background: #fff; border-radius: var(--radius-lg); margin-top: 16rpx; }
+.cfg-main { flex: 1; }
+.cfg-item-title { display: block; font-size: 28rpx; font-weight: 700; }
+.cfg-item-content { display: block; margin-top: 8rpx; font-size: 24rpx; line-height: 1.6; color: var(--text-secondary); }
+.cfg-item-meta { display: block; margin-top: 8rpx; font-size: 22rpx; color: var(--text-muted); }
+.cfg-toggle { border-radius: 999rpx; background: #eff6ff; color: var(--primary); }

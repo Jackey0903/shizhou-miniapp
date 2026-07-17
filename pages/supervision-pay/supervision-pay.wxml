@@ -1,0 +1,29 @@
+<view class="pay-page">
+  <view class="card guide-card">
+    <text class="section-title">督学开通</text>
+    <text class="section-sub">督学服务分为试用、包月和包年三档，统一通过官方小程序虚拟支付开通。支付成功后自动进入学习计划与提醒页面。</text>
+    <text class="guide-step">① 督学试用：8元，含1天督学体验 + 1年免广告</text>
+    <text class="guide-step">② 督学包月：198元，含1个月督学服务 + 1年免广告</text>
+    <text class="guide-step">③ 督学包年：988元，含1年督学服务 + 1年免广告</text>
+  </view>
+
+  <view class="access-card card" wx:if="{{hasAccess}}">
+    <text class="access-title">当前已开通督学</text>
+    <text class="access-text">督学有效期至：{{supervisionExpireText}}</text>
+    <button class="btn btn-primary btn-full" bindtap="goPlan">继续填写学习计划</button>
+  </view>
+
+  <view class="plan-list" wx:if="{{!hasAccess}}">
+    <view class="plan-card card {{sel===index?'selected':''}}" wx:for="{{plans}}" wx:key="code" bindtap="select" data-i="{{index}}">
+      <view class="plan-head">
+        <text class="plan-tag">{{item.tag || item.title}}</text>
+        <text class="plan-price">{{item.priceLabel}}</text>
+      </view>
+      <text class="plan-name">{{item.title}}</text>
+      <text class="plan-benefit" wx:for="{{item.benefits}}" wx:key="*this">· {{item}}</text>
+    </view>
+  </view>
+
+  <button class="btn btn-primary btn-full pay-btn" bindtap="buyPlan" wx:if="{{!hasAccess}}">立即开通督学</button>
+  <button class="btn btn-outline btn-full test-btn" bindtap="grantTestAccess" loading="{{grantingTestAccess}}" wx:if="{{!hasAccess && isTestEnv}}">开发环境一键开通督学测试</button>
+</view>

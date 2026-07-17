@@ -1,0 +1,23 @@
+<view class="cfg-page">
+  <view class="cfg-card card">
+    <text class="cfg-title">学习提醒配置</text>
+    <text class="cfg-tip">请填写微信订阅消息模板ID，并在云函数里按周期执行 `dispatchStudyReminders`。</text>
+
+    <input class="cfg-input" placeholder="模板ID" value="{{templateId}}" data-field="templateId" bindinput="onInput"/>
+    <input class="cfg-input" placeholder="跳转页面，如 pages/supervision-plan/supervision-plan" value="{{pagePath}}" data-field="pagePath" bindinput="onInput"/>
+    <input class="cfg-input" placeholder="标题字段 key，如 thing1" value="{{thingKey}}" data-field="thingKey" bindinput="onInput"/>
+    <input class="cfg-input" placeholder="时间字段 key，如 time2" value="{{timeKey}}" data-field="timeKey" bindinput="onInput"/>
+    <input class="cfg-input" placeholder="备注字段 key，如 thing3" value="{{remarkKey}}" data-field="remarkKey" bindinput="onInput"/>
+    <input class="cfg-input" placeholder="标题前缀，如 学习提醒" value="{{titlePrefix}}" data-field="titlePrefix" bindinput="onInput"/>
+    <input class="cfg-input" placeholder="小程序状态 formal / trial / developer" value="{{miniprogramState}}" data-field="miniprogramState" bindinput="onInput"/>
+    <input class="cfg-input" placeholder="备注" value="{{remark}}" data-field="remark" bindinput="onInput"/>
+
+    <view class="switch-row">
+      <text class="switch-label">启用提醒模板</text>
+      <switch checked="{{enabled}}" bindchange="onSwitch" color="#2563eb"/>
+    </view>
+
+    <button class="cfg-btn" bindtap="submit" loading="{{loading}}">保存提醒配置</button>
+    <button class="cfg-btn cfg-btn--secondary" bindtap="dispatchNow" loading="{{dispatching}}">立即派发一次提醒</button>
+  </view>
+</view>

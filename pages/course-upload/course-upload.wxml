@@ -1,0 +1,49 @@
+<view class="cu-page">
+  <view class="card empty" wx:if="{{loading}}">
+    <text class="empty-text">加载中...</text>
+  </view>
+
+  <view class="card empty" wx:elif="{{!hasAccess}}">
+    <text class="empty-icon">🔒</text>
+    <text class="empty-text">当前账号没有题库管理权限，请在 users 集合中给该账号加上 isAdmin: true。</text>
+  </view>
+
+  <view class="card cu-card" wx:else>
+    <view class="cu-head">
+      <text class="cu-title">新增科目 / 题库</text>
+      <text class="cu-sub">首页固定显示前 8 个科目，新增后会自动进入课程列表与查看更多。</text>
+    </view>
+
+    <view class="cu-field">
+      <text class="cu-label">科目名称</text>
+      <input class="cu-input" placeholder="例如：常识、判断推理、时事政治" value="{{form.category}}" data-field="category" bindinput="onInput"/>
+    </view>
+
+    <view class="cu-field">
+      <text class="cu-label">题库名称</text>
+      <input class="cu-input" placeholder="例如：题库A、真题卷一、专项训练" value="{{form.name}}" data-field="name" bindinput="onInput"/>
+    </view>
+
+    <view class="cu-field">
+      <text class="cu-label">题库标签</text>
+      <input class="cu-input" placeholder="例如：基础题库 / 高频真题" value="{{form.series}}" data-field="series" bindinput="onInput"/>
+    </view>
+
+    <view class="cu-field">
+      <text class="cu-label">题库说明</text>
+      <textarea class="cu-textarea" placeholder="简单说明这个题库适合刷什么内容" value="{{form.description}}" data-field="description" bindinput="onInput" maxlength="300" auto-height></textarea>
+    </view>
+
+    <view class="cu-field">
+      <text class="cu-label">VIP 题库</text>
+      <checkbox-group bindchange="onLockChange">
+        <label class="cu-check">
+          <checkbox value="1" checked="{{form.isLocked}}" color="#2563EB"/>
+          <text>勾选后仅 VIP 用户可见</text>
+        </label>
+      </checkbox-group>
+    </view>
+
+    <button class="btn btn-primary btn-full" loading="{{saving}}" bindtap="submitCourse">创建题库</button>
+  </view>
+</view>

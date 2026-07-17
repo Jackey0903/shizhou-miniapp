@@ -1,0 +1,10 @@
+{
+    "name": "dbInit",
+    "version": "1.0.0",
+    "description": "一键初始化所有数据库集合",
+    "main": "index.js",
+    "dependencies": {
+        "ws": "^8.21.0",
+        "wx-server-sdk": "^4.0.2"
+    }
+}

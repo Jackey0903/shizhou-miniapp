@@ -1,0 +1,131 @@
+.order-page {
+  min-height: 100vh;
+  background: var(--bg-page);
+  padding: 24rpx;
+  box-sizing: border-box;
+}
+
+.order-header {
+  background: #fff;
+  border-radius: var(--radius-lg);
+  padding: 32rpx;
+  box-shadow: var(--shadow);
+}
+
+.order-title {
+  display: block;
+  font-size: 38rpx;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.order-sub {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.order-list {
+  margin-top: 24rpx;
+}
+
+.order-card {
+  background: #fff;
+  border-radius: var(--radius-lg);
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  box-shadow: var(--shadow);
+}
+
+.order-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 20rpx;
+  align-items: flex-start;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid #eef2f7;
+}
+
+.order-name {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.order-no {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.order-status {
+  flex-shrink: 0;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  color: #475569;
+  background: #f1f5f9;
+}
+
+.order-status--paid {
+  color: #047857;
+  background: #dcfce7;
+}
+
+.order-status--pending {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.order-status--create_failed,
+.order-status--closed,
+.order-status--refunded {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.order-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 24rpx;
+  margin-top: 18rpx;
+}
+
+.order-label {
+  font-size: 24rpx;
+  color: var(--text-muted);
+}
+
+.order-value {
+  text-align: right;
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.order-price {
+  font-size: 30rpx;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.order-empty {
+  padding: 150rpx 32rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--text-muted);
+}
+
+.order-empty-icon {
+  font-size: 76rpx;
+  margin-bottom: 24rpx;
+}
+
+.order-empty-text {
+  font-size: 28rpx;
+}

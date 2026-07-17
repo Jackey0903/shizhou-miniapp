@@ -1,0 +1,52 @@
+<view class="upload-page">
+  <view class="card upload-card">
+    <text class="upload-title">上传学习资料</text>
+    <text class="upload-sub">支持文档、音频、图片三类资料，可配置免费、VIP免费或舟币兑换规则。</text>
+
+    <view class="form-item">
+      <text class="form-label">资料类型</text>
+      <picker range="{{types}}" range-key="label" value="{{typeIndex}}" bindchange="onTypeChange">
+        <view class="form-picker">{{types[typeIndex].label}}</view>
+      </picker>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">资料标题</text>
+      <input class="form-input" placeholder="不填则默认取文件名" value="{{name}}" data-field="name" bindinput="onInput"/>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">资料说明</text>
+      <textarea class="form-textarea" placeholder="可选，展示在资料列表里" value="{{description}}" data-field="description" bindinput="onInput"/>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">领取规则</text>
+      <picker range="{{accessTypes}}" range-key="label" value="{{accessTypeIndex}}" bindchange="onAccessTypeChange">
+        <view class="form-picker">{{accessTypes[accessTypeIndex].label}}</view>
+      </picker>
+    </view>
+
+    <view class="form-item" wx:if="{{selectedAccessType === 'coin'}}">
+      <text class="form-label">兑换所需舟币</text>
+      <input class="form-input" type="number" value="{{coinCost}}" data-field="coinCost" bindinput="onInput"/>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">资料链接</text>
+      <input class="form-input" placeholder="可填文件外链或跳转链接；有文件时可不填" value="{{linkUrl}}" data-field="linkUrl" bindinput="onInput"/>
+    </view>
+
+    <button class="btn btn-secondary btn-full" bindtap="chooseFile">选择资料文件</button>
+    <view class="file-box" wx:if="{{selectedFile}}">
+      <text class="file-name">{{selectedFile.name}}</text>
+    </view>
+
+    <button class="btn btn-secondary btn-full upload-cover-btn" bindtap="chooseCover">选择资料封面</button>
+    <view class="file-box" wx:if="{{coverFile}}">
+      <text class="file-name">{{coverFile.name}}</text>
+    </view>
+
+    <button class="btn btn-primary btn-full" bindtap="submit" loading="{{uploading}}">上传资料</button>
+  </view>
+</view>

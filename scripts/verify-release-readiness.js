@@ -1,0 +1,173 @@
+const fs = require('fs')
+const path = require('path')
+const { spawnSync } = require('child_process')
+
+const root = path.resolve(__dirname, '..')
+const maxMiniProgramSize = 2 * 1024 * 1024
+
+function read(rel) {
+  return fs.readFileSync(path.join(root, rel), 'utf8')
+}
+
+function exists(rel) {
+  return fs.existsSync(path.join(root, rel))
+}
+
+function assert(condition, message) {
+  if (!condition) throw new Error(message)
+}
+
+function run(command, args, options = {}) {
+  const res = spawnSync(command, args, {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: options.stdio || 'pipe'
+  })
+  if (res.status !== 0) {
+    throw new Error(`${command} ${args.join(' ')} failed\n${res.stdout || ''}${res.stderr || ''}`)
+  }
+  return res.stdout
+}
+
+function listFiles(dir, predicate, out = []) {
+  for (const name of fs.readdirSync(dir)) {
+    const full = path.join(dir, name)
+    const rel = path.relative(root, full)
+    if (rel.includes(`${path.sep}node_modules${path.sep}`) || rel.startsWith(`tmp${path.sep}node-tools${path.sep}`)) continue
+    const stat = fs.statSync(full)
+    if (stat.isDirectory()) listFiles(full, predicate, out)
+    else if (predicate(full)) out.push(full)
+  }
+  return out
+}
+
+function checkSyntax() {
+  const files = listFiles(root, (file) => file.endsWith('.js'))
+  for (const file of files) {
+    run(process.execPath, ['--check', file])
+  }
+  return files.length
+}
+
+function checkNoLegacyRuntimePayment() {
+  const targets = ['pages', 'utils', 'cloudfunctions', 'app.js', 'app.json']
+  const banned = [
+    /open-type="getUserInfo"/,
+    /bindgetuserinfo/,
+    /wx\.getUserProfile/,
+    /getUserInfo\(/,
+    /wx\.requestPayment/,
+    /requestPayment\(/,
+    /cloudPay/,
+    /unifiedOrder/,
+    /prepay_id/,
+    /mchId/,
+    /subMch/,
+    /paySign/,
+    /signType/
+  ]
+  const files = []
+  for (const target of targets) {
+    const full = path.join(root, target)
+    if (!fs.existsSync(full)) continue
+    if (fs.statSync(full).isDirectory()) {
+      listFiles(full, (file) => /\.(js|wxml|json)$/.test(file), files)
+    } else {
+      files.push(full)
+    }
+  }
+  const offenders = []
+  for (const file of files) {
+    const text = fs.readFileSync(file, 'utf8')
+    for (const pattern of banned) {
+      if (pattern.test(text)) offenders.push(`${path.relative(root, file)}: ${pattern}`)
+    }
+  }
+  assert(!offenders.length, `Legacy login/payment patterns found:\n${offenders.join('\n')}`)
+}
+
+function checkLoginAndPaymentFixes() {
+  const loginWxml = read('pages/login/login.wxml')
+  const loginJs = read('pages/login/login.js')
+  const userLogin = read('cloudfunctions/userLogin/index.js')
+  const vipJs = read('pages/vip/vip.js')
+  const supervisionPayJs = read('pages/supervision-pay/supervision-pay.js')
+  const createVipOrder = read('cloudfunctions/createVipOrder/index.js')
+  const projectConfig = JSON.parse(read('project.config.json'))
+  const appJson = JSON.parse(read('app.json'))
+
+  assert(!loginWxml.includes('open-type="getUserInfo"'), 'login page still uses deprecated getUserInfo')
+  assert(loginJs.includes('cloudApi.userLogin({})'), 'wechat login should use openid-based userLogin')
+  assert(loginJs.includes('phoneCode'), 'phone login should pass modern getPhoneNumber code')
+  assert(userLogin.includes('getPhoneNumber'), 'userLogin cloud function should support phone code API')
+  assert(vipJs.includes('auth.requireLogin'), 'VIP purchase should require login before payment')
+  assert(supervisionPayJs.includes('auth.requireLogin'), 'supervision purchase should require login before payment')
+  assert(createVipOrder.includes('ensureCurrentUser'), 'createVipOrder should create missing user defensively')
+  assert(createVipOrder.includes('requestVirtualPayment'), 'createVipOrder should generate virtual payment signatures')
+  assert(appJson.pages.includes('pages/order-center/order-center'), 'order center page must be registered')
+
+  const ignored = ((projectConfig.packOptions || {}).ignore || []).map((item) => `${item.type}:${item.value}`)
+  assert(ignored.includes('folder:cloudfunctions'), 'cloudfunctions must be ignored from mini program frontend upload')
+  assert(ignored.includes('folder:tmp'), 'tmp must be ignored from mini program frontend upload')
+}
+
+function checkCloudFunctionDeps() {
+  const cloudRoot = path.join(root, 'cloudfunctions')
+  const missing = []
+  for (const name of fs.readdirSync(cloudRoot).sort()) {
+    const pkgPath = path.join(cloudRoot, name, 'package.json')
+    if (!fs.existsSync(pkgPath)) continue
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'))
+    for (const dep of Object.keys(pkg.dependencies || {})) {
+      if (!fs.existsSync(path.join(cloudRoot, name, 'node_modules', dep, 'package.json'))) {
+        missing.push(`${name}:${dep}`)
+      }
+    }
+  }
+  assert(!missing.length, `Missing cloud function dependencies:\n${missing.join('\n')}`)
+}
+
+function checkUploadInfo() {
+  const infoPath = 'tmp/upload-1.0.13.json'
+  assert(exists(infoPath), `${infoPath} is missing`)
+  const info = JSON.parse(read(infoPath))
+  const total = info && info.size && Number(info.size.total)
+  assert(total > 0, 'upload info has no package size')
+  assert(total < maxMiniProgramSize, `mini program package too large: ${total}`)
+  return total
+}
+
+function main() {
+  const checkedFiles = checkSyntax()
+  checkNoLegacyRuntimePayment()
+  checkLoginAndPaymentFixes()
+  checkCloudFunctionDeps()
+  const uploadSize = checkUploadInfo()
+  run(process.execPath, ['scripts/regression-login-payment.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-customer-reported-issues.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-plan-separation.js'], { stdio: 'pipe' })
+
+  console.log(JSON.stringify({
+    ok: true,
+    checkedJsFiles: checkedFiles,
+    uploadVersion: '1.0.13',
+    uploadSize,
+    checks: [
+      'syntax',
+      'legacy-login-payment-scan',
+      'login-payment-fix-invariants',
+      'cloud-function-dependencies',
+      'upload-size',
+      'login-payment-regression',
+      'customer-reported-issue-regression',
+      'VIP-supervision-plan-separation'
+    ]
+  }, null, 2))
+}
+
+try {
+  main()
+} catch (err) {
+  console.error(err.stack || err.message || err)
+  process.exit(1)
+}

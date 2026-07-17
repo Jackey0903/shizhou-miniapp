@@ -1,0 +1,101 @@
+<view class="qu-page">
+  <view class="card empty" wx:if="{{loading}}">
+    <text class="empty-text">加载中...</text>
+  </view>
+
+  <view class="card empty" wx:elif="{{!hasAccess}}">
+    <text class="empty-icon">🔒</text>
+    <text class="empty-text">当前账号没有录题权限，请在 users 集合中给该账号加上 isAdmin: true。</text>
+  </view>
+
+  <view wx:else>
+    <view class="qu-card card">
+      <view class="qu-head">
+        <text class="qu-title">批量导入 JSON</text>
+        <text class="qu-sub">支持按题库名称导入。客户直接填写“题库名称 + 题目列表”即可，不需要记题库ID，序号也可不填，系统会自动排序。</text>
+      </view>
+
+      <view class="qu-field">
+        <text class="qu-label">当前默认题库</text>
+        <picker mode="selector" range="{{courseNames}}" value="{{form.courseIndex}}" bindchange="onCourseChange">
+          <view class="qu-picker">{{courseNames[form.courseIndex] || '请选择课程'}}</view>
+        </picker>
+      </view>
+
+      <button class="btn btn-secondary btn-full" bindtap="chooseJsonFile">选择 JSON 文件</button>
+
+      <view class="qu-import-box" wx:if="{{importSummary}}">
+        <text class="qu-import-title">{{importFileName}}</text>
+        <text class="qu-import-meta">共 {{importSummary.total}} 题，选择题 {{importSummary.choiceCount}} 题，填空题 {{importSummary.fillCount}} 题</text>
+        <text class="qu-import-meta">默认导入题库：{{importSummary.courseName}}</text>
+        <view class="qu-import-actions">
+          <button class="btn btn-primary qu-import-btn" loading="{{importing}}" bindtap="importQuestionsFromJson">开始导入</button>
+          <button class="btn btn-outline qu-import-btn" bindtap="clearImportFile">清空文件</button>
+        </view>
+      </view>
+    </view>
+
+    <view class="qu-card card">
+      <view class="qu-head">
+        <text class="qu-title">手工录题</text>
+        <text class="qu-sub">当前录入序号：{{nextSort}}</text>
+      </view>
+
+      <view class="qu-field">
+        <text class="qu-label">课程</text>
+        <picker mode="selector" range="{{courseNames}}" value="{{form.courseIndex}}" bindchange="onCourseChange">
+          <view class="qu-picker">{{courseNames[form.courseIndex] || '请选择课程'}}</view>
+        </picker>
+      </view>
+
+      <view class="qu-field">
+        <text class="qu-label">题型</text>
+        <picker mode="selector" range="{{questionTypes}}" value="{{form.typeIndex}}" bindchange="onTypeChange">
+          <view class="qu-picker">{{questionTypes[form.typeIndex]}}</view>
+        </picker>
+      </view>
+
+      <view class="qu-field">
+        <text class="qu-label">题干</text>
+        <textarea class="qu-textarea" placeholder="请输入题目内容" value="{{form.content}}" data-field="content" bindinput="onInput" maxlength="500" auto-height></textarea>
+      </view>
+
+      <block wx:if="{{form.typeIndex === 0}}">
+        <view class="qu-field">
+          <text class="qu-label">选项 A</text>
+          <input class="qu-input" placeholder="请输入选项 A" value="{{form.optionA}}" data-field="optionA" bindinput="onInput"/>
+        </view>
+        <view class="qu-field">
+          <text class="qu-label">选项 B</text>
+          <input class="qu-input" placeholder="请输入选项 B" value="{{form.optionB}}" data-field="optionB" bindinput="onInput"/>
+        </view>
+        <view class="qu-field">
+          <text class="qu-label">选项 C</text>
+          <input class="qu-input" placeholder="请输入选项 C" value="{{form.optionC}}" data-field="optionC" bindinput="onInput"/>
+        </view>
+        <view class="qu-field">
+          <text class="qu-label">选项 D</text>
+          <input class="qu-input" placeholder="请输入选项 D" value="{{form.optionD}}" data-field="optionD" bindinput="onInput"/>
+        </view>
+        <view class="qu-field">
+          <text class="qu-label">正确答案</text>
+          <picker mode="selector" range="{{answerOptions}}" value="{{form.correctIndex}}" bindchange="onCorrectIndexChange">
+            <view class="qu-picker">{{answerOptions[form.correctIndex]}}</view>
+          </picker>
+        </view>
+      </block>
+
+      <view class="qu-field" wx:else>
+        <text class="qu-label">答案</text>
+        <input class="qu-input" placeholder="请输入填空题答案" value="{{form.answer}}" data-field="answer" bindinput="onInput"/>
+      </view>
+
+      <view class="qu-field">
+        <text class="qu-label">解析（可选）</text>
+        <textarea class="qu-textarea" placeholder="可不填" value="{{form.explanation}}" data-field="explanation" bindinput="onInput" maxlength="500" auto-height></textarea>
+      </view>
+
+      <button class="btn btn-primary btn-full" loading="{{saving}}" bindtap="submitQuestion">提交题目</button>
+    </view>
+  </view>
+</view>

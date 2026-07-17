@@ -1,0 +1,32 @@
+<view class="plan-page">
+  <view class="card guide-card">
+    <text class="section-title">订阅提醒</text>
+    <text class="section-sub">会员可通过微信服务通知接收学习提醒，到时间可点击进入小程序继续学习。</text>
+    <text class="guide-step" wx:if="{{hasSupervision}}">你当前已开通督学服务，有效期至：{{supervisionExpireText}}</text>
+  </view>
+
+  <view class="card qr-card" wx:if="{{hasSupervision}}">
+    <text class="section-title">添加督学微信</text>
+    <text class="section-sub">开通后可直接长按识别下方二维码添加督学。</text>
+    <image class="qr-image" src="{{supervisorQrCode}}" mode="widthFix" show-menu-by-longpress bindtap="previewSupervisorQr" />
+    <button class="btn btn-secondary btn-full qr-btn" bindtap="previewSupervisorQr">查看二维码</button>
+  </view>
+
+  <view class="card reminder-card">
+    <text class="section-title">订阅提醒</text>
+    <text class="section-sub">提醒通过微信服务通知发送，到时间可点击进入小程序继续学习。</text>
+    <picker mode="time" value="{{reminderTime}}" bindchange="onReminderInput" data-field="reminderTime">
+      <view class="form-picker">提醒时间：{{reminderTime}}</view>
+    </picker>
+    <input class="form-input" placeholder="提醒内容，例如 晚上8点刷常识题库A" value="{{reminderContent}}" data-field="reminderContent" bindinput="onReminderInput"/>
+    <button class="btn btn-primary btn-full" bindtap="addReminder">新增提醒并订阅</button>
+    <view class="reminder-item" wx:for="{{reminders}}" wx:key="_id">
+      <view class="reminder-main">
+        <text class="reminder-title">{{item.timeText}} · {{item.title}}</text>
+        <text class="reminder-meta">{{item.type}}</text>
+      </view>
+      <button class="reminder-delete" size="mini" plain="true" data-id="{{item._id}}" bindtap="removeReminder">删除</button>
+    </view>
+    <view class="empty-line" wx:if="{{!hasReminders}}">当前还没有提醒，新增后会自动通过微信服务通知提醒你。</view>
+  </view>
+</view>

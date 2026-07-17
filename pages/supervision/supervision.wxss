@@ -1,0 +1,26 @@
+.supervision-page { min-height: 100vh; background: var(--bg-page); padding: 24rpx; box-sizing: border-box; }
+.guide-card, .form-card { margin-top: 20rpx; }
+.guide-title, .section-title { display: block; font-size: 32rpx; font-weight: 800; }
+.guide-title { text-align: center; }
+.guide-section { margin-top: 24rpx; }
+.guide-heading { display: block; font-size: 30rpx; font-weight: 800; color: #0f172a; }
+.guide-subtitle { display: block; margin-top: 16rpx; font-size: 28rpx; font-weight: 800; color: #1d4ed8; }
+.guide-text, .section-sub { display: block; margin-top: 10rpx; font-size: 24rpx; line-height: 1.7; color: var(--text-secondary); }
+.guide-step { display: block; margin-top: 12rpx; font-size: 24rpx; line-height: 1.75; color: #334155; }
+.guide-muted { display: block; margin-top: 14rpx; padding: 18rpx 20rpx; border-radius: 18rpx; background: #f8fafc; font-size: 24rpx; line-height: 1.7; color: #475569; }
+.guide-note { display: block; margin-top: 24rpx; padding: 22rpx; border-radius: 22rpx; background: #eff6ff; color: #1d4ed8; font-size: 24rpx; line-height: 1.8; font-weight: 700; }
+.tab-bar { display: flex; gap: 16rpx; margin-top: 20rpx; }
+.tab-item { flex: 1; text-align: center; padding: 18rpx 0; border-radius: 999rpx; background: #eef2ff; color: var(--text-secondary); font-size: 28rpx; }
+.tab-item--active { background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); color: #fff; font-weight: 700; }
+.form-input, .form-picker { width: 100%; min-height: 92rpx; border-radius: 24rpx; border: 2rpx solid var(--border); background: #fff; padding: 0 24rpx; box-sizing: border-box; font-size: 28rpx; display: flex; align-items: center; margin-top: 16rpx; }
+.form-block { margin-top: 16rpx; }
+.form-label { display: block; margin-bottom: 12rpx; font-size: 26rpx; font-weight: 700; }
+.chip-wrap { display: flex; flex-wrap: wrap; gap: 14rpx; }
+.chip { padding: 14rpx 24rpx; border-radius: 999rpx; background: #f8fafc; color: var(--text-secondary); font-size: 24rpx; }
+.chip--active { background: #dbeafe; color: var(--primary); font-weight: 700; }
+.summary-box { margin-top: 20rpx; padding: 24rpx; border-radius: 24rpx; background: #eff6ff; border: 2rpx solid #bfdbfe; }
+.summary-title { display: block; font-size: 26rpx; font-weight: 700; color: #1d4ed8; }
+.summary-line { display: block; margin-top: 10rpx; font-size: 24rpx; color: #334155; line-height: 1.7; }
+.status-box { margin-top: 20rpx; padding: 20rpx 24rpx; border-radius: 24rpx; background: #f8fafc; }
+.status-label { display: block; font-size: 24rpx; color: var(--text-secondary); }
+.status-text { display: block; margin-top: 8rpx; font-size: 26rpx; color: #334155; line-height: 1.7; }

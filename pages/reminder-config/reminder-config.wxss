@@ -1,0 +1,9 @@
+.cfg-page { min-height: 100vh; background: var(--bg-page); padding: 24rpx; box-sizing: border-box; }
+.cfg-card { display: flex; flex-direction: column; gap: 18rpx; }
+.cfg-title { font-size: 34rpx; font-weight: 800; }
+.cfg-tip { font-size: 24rpx; color: var(--text-secondary); line-height: 1.7; }
+.cfg-input { width: 100%; min-height: 92rpx; border: 2rpx solid var(--border); border-radius: 24rpx; background: #fff; padding: 0 24rpx; box-sizing: border-box; font-size: 28rpx; }
+.switch-row { margin-top: 8rpx; display: flex; justify-content: space-between; align-items: center; }
+.switch-label { font-size: 28rpx; font-weight: 700; }
+.cfg-btn { margin-top: 8rpx; border-radius: 999rpx; background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); color: #fff; font-size: 30rpx; }
+.cfg-btn--secondary { background: #fff; color: var(--primary); border: 2rpx solid rgba(37, 99, 235, 0.25); }

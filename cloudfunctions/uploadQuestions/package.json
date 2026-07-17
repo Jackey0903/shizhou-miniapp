@@ -1,0 +1,15 @@
+{
+    "name": "upload-questions",
+    "version": "1.0.0",
+    "description": "管理员后台批量上传题库",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "ws": "^8.21.0",
+        "wx-server-sdk": "^4.0.2"
+    }
+}

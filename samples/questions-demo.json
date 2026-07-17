@@ -1,0 +1,38 @@
+[
+  {
+    "courseId": "COURSE_ID_GK_COMMON",
+    "type": "choice",
+    "content": "《中华人民共和国宪法》规定我国的根本制度是什么？",
+    "options": [
+      "A. 人民代表大会制度",
+      "B. 社会主义制度",
+      "C. 民主集中制",
+      "D. 中国共产党领导的多党合作制度"
+    ],
+    "answer": "B",
+    "explanation": "宪法第一条明确：社会主义制度是中华人民共和国的根本制度。",
+    "sort": 1
+  },
+  {
+    "courseId": "COURSE_ID_GK_COMMON",
+    "type": "fill",
+    "content": "我国现行义务教育实行（    ）年制，小学（    ）年，初中（    ）年。",
+    "answer": "九年；六；三",
+    "explanation": "《义务教育法》规定义务教育实行九年制，小学六年，初中三年。",
+    "sort": 2
+  },
+  {
+    "courseId": "COURSE_ID_XC_ANALYSIS",
+    "type": "choice",
+    "content": "资料分析题中，若已知现期A和增长率r1，下列哪一项公式可以求得基期A'？",
+    "options": [
+      "A. A' = A × (1 + r1)",
+      "B. A' = A ÷ (1 + r1)",
+      "C. A' = A − r1",
+      "D. A' = A + r1"
+    ],
+    "answer": "B",
+    "explanation": "现期=基期×(1+r1)，所以基期A' = A ÷ (1+r1)。",
+    "sort": 3
+  }
+]

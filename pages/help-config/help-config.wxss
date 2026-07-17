@@ -1,0 +1,8 @@
+.cfg-page { min-height: 100vh; background: var(--bg-page); padding: 24rpx; box-sizing: border-box; }
+.cfg-title { display: block; font-size: 36rpx; font-weight: 800; color: var(--text-primary); }
+.cfg-sub, .cfg-hint { display: block; margin-top: 8rpx; font-size: 24rpx; color: var(--text-secondary); line-height: 1.6; }
+.cfg-block { margin-top: 24rpx; }
+.cfg-label { display: block; margin-bottom: 12rpx; font-size: 26rpx; font-weight: 700; color: var(--text-primary); }
+.cfg-input, .cfg-textarea { width: 100%; min-height: 88rpx; background: #f8fafc; border-radius: 22rpx; padding: 0 24rpx; box-sizing: border-box; font-size: 28rpx; }
+.cfg-textarea { min-height: 160rpx; padding: 22rpx 24rpx; line-height: 1.6; }
+.cfg-textarea--faq { min-height: 320rpx; }

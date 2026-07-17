@@ -1,0 +1,98 @@
+<view class="supervision-page">
+  <view class="guide-card card">
+    <text class="guide-title">督学使用指南</text>
+
+    <view class="guide-section">
+      <text class="guide-heading">一、督学在线时间</text>
+      <text class="guide-text">每天 8:00 – 22:00</text>
+      <text class="guide-step">备考的小伙伴不提倡熬夜透支身体，考公体检也是重要的一环，请合理安排作息。</text>
+    </view>
+
+    <view class="guide-section">
+      <text class="guide-heading">二、监督方式</text>
+      <text class="guide-subtitle">方式一：视频监督（腾讯会议）</text>
+      <text class="guide-step">1. 联系客服，加入指定的腾讯会议号。</text>
+      <text class="guide-step">2. 每日发送学习计划（每段学习时长不少于1小时）。</text>
+      <text class="guide-step">3. 无需露脸，但需露出双手及书桌/学习区域。</text>
+      <text class="guide-step">4. 督学实时观察学习状态，发现溜号、玩手机等行为立即提醒。</text>
+      <text class="guide-muted">特点：提供到点开始学习等定时提醒，适合需要较强约束力的学员。</text>
+    </view>
+
+    <view class="guide-section">
+      <text class="guide-subtitle">方式二：计划监督</text>
+      <text class="guide-step">1. 学员每日发送学习计划（任务清单）。</text>
+      <text class="guide-step">2. 每完成一项任务，拍照打卡证明。</text>
+      <text class="guide-step">3. 督学逐一检查完成情况。</text>
+      <text class="guide-muted">特点：一对一服务，专注计划落实；不依赖视频，适合不方便开摄像头的场景。</text>
+    </view>
+
+    <text class="guide-note">两种监督方式可以灵活选择，默认按照方式一，特殊情况需要调整，至少提前一天向督学申请调整监督方式。</text>
+  </view>
+
+  <view class="tab-bar card">
+    <view class="tab-item {{activeTab === item.key ? 'tab-item--active' : ''}}" wx:for="{{tabs}}" wx:key="key" data-key="{{item.key}}" bindtap="switchTab">{{item.title}}</view>
+  </view>
+
+  <view class="card form-card">
+    <text class="section-title">填写个人信息</text>
+    <text class="section-sub">完成匹配信息填写后，先加入匹配池，再进入开通页面。</text>
+    <input class="form-input" placeholder="对外昵称" value="{{currentProfile.displayName}}" data-field="displayName" bindinput="onProfileInput"/>
+    <input class="form-input" placeholder="联系方式（微信/手机号）" value="{{currentProfile.contact}}" data-field="contact" bindinput="onProfileInput"/>
+
+    <view class="form-block">
+      <text class="form-label">考试类型</text>
+      <picker range="{{examTypes}}" value="{{examTypeIndex}}" data-field="examType" bindchange="onPickerChange">
+        <view class="form-picker">{{currentProfile.examType || '请选择考试类型'}}</view>
+      </picker>
+    </view>
+
+    <view class="form-block">
+      <text class="form-label">目标省市</text>
+      <picker mode="region" value="{{regionValue}}" bindchange="onRegionChange">
+        <view class="form-picker">{{currentProfile.targetCityLabel || '请选择目标省市（精确到市）'}}</view>
+      </picker>
+    </view>
+
+    <view class="form-block">
+      <text class="form-label">计划考试时间</text>
+      <picker mode="date" value="{{currentProfile.examDate}}" bindchange="onDateChange">
+        <view class="form-picker">{{examDateLabel}}</view>
+      </picker>
+    </view>
+
+    <view class="form-block">
+      <text class="form-label">日均备考时长</text>
+      <picker range="{{hourOptions}}" value="{{hourIndex}}" data-field="avgHours" bindchange="onPickerChange">
+        <view class="form-picker">{{currentProfile.avgHours}}</view>
+      </picker>
+    </view>
+
+    <view class="form-block">
+      <text class="form-label">每日学习时段（多选）</text>
+      <view class="chip-wrap">
+        <view class="chip {{item.active ? 'chip--active' : ''}}" wx:for="{{periodChips}}" wx:key="label" data-field="dailyPeriods" data-value="{{item.label}}" bindtap="toggleMulti">{{item.label}}</view>
+      </view>
+    </view>
+
+    <view class="form-block">
+      <text class="form-label">督学模块方向（多选）</text>
+      <view class="chip-wrap">
+        <view class="chip {{item.active ? 'chip--active' : ''}}" wx:for="{{moduleChips}}" wx:key="label" data-field="modules" data-value="{{item.label}}" bindtap="toggleMulti">{{item.label}}</view>
+      </view>
+    </view>
+
+    <view class="summary-box" wx:if="{{profileSummary.length}}">
+      <text class="summary-title">备考信息预览</text>
+      <text class="summary-line" wx:for="{{profileSummary}}" wx:key="*this">{{item}}</text>
+    </view>
+
+    <view class="status-box">
+      <text class="status-label">当前状态</text>
+      <text class="status-text">{{joinedText}}</text>
+    </view>
+
+    <button class="btn btn-secondary btn-full" bindtap="goSave" loading="{{saving}}">保存个人信息</button>
+    <button class="btn btn-primary btn-full" bindtap="joinMatch" loading="{{joining}}">匹配后进入督学开通</button>
+    <button class="btn btn-light btn-full" bindtap="leaveMatch" loading="{{leaving}}" wx:if="{{currentJoinedProfile}}">退出匹配</button>
+  </view>
+</view>

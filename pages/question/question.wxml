@@ -1,0 +1,168 @@
+<!--pages/question/question.wxml-->
+<view class="question-page">
+  <!-- 顶部导航 -->
+  <view class="q-header">
+    <view class="q-back" bindtap="goBack">‹</view>
+    <view class="q-title-area">
+      <text class="q-title">{{courseName}}</text>
+      <text class="q-progress">{{currentIndex + 1}}/{{total}}</text>
+    </view>
+    <view class="q-header-icons">
+      <view class="q-icon" bindtap="goReviewBook">📖</view>
+      <view class="q-icon" bindtap="showSettings">⚙️</view>
+    </view>
+  </view>
+
+  <!-- 进度条 -->
+  <view class="progress-wrap">
+    <view class="progress-bar">
+      <view class="progress-fill" style="width: {{progress}}%;"></view>
+    </view>
+    <text class="progress-text">已学 {{currentIndex}}/{{total}}</text>
+  </view>
+
+  <!-- 无题目 -->
+  <view class="empty" wx:if="{{!loading && questions.length === 0}}">
+    <text class="empty-icon">🎉</text>
+    <text class="empty-text">{{emptyState.title || '当前暂无题目'}}</text>
+    <text class="empty-desc" wx:if="{{emptyState.desc}}">{{emptyState.desc}}</text>
+    <button class="btn btn-primary" style="margin-top:40rpx;" bindtap="handleEmptyAction">{{emptyState.actionText || '返回课程'}}</button>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="q-loading" wx:elif="{{loading}}">
+    <view class="loading-dot"></view>
+  </view>
+
+  <!-- 题目区 -->
+  <block wx:elif="{{currentQuestion}}">
+    <!-- 填空题 / 图片题 -->
+    <block wx:if="{{currentQuestion.type !== 'choice'}}">
+      <view class="q-card">
+        <!-- 题目 -->
+        <view class="q-content">
+          <text class="q-text">{{currentIndex + 1}}、{{currentQuestion.content}}</text>
+          <!-- 图片题：图片 -->
+          <image
+            wx:if="{{currentQuestion.imageUrl}}"
+            src="{{currentQuestion.imageUrl}}"
+            mode="widthFix"
+            class="q-image"
+            show-menu-by-longpress
+          />
+        </view>
+
+        <block wx:if="{{currentQuestion.type === 'fill'}}">
+          <view class="q-fill-panel" wx:if="{{!showAnswer}}">
+            <textarea
+              class="q-fill-input"
+              value="{{fillAnswer}}"
+              maxlength="1000"
+              auto-height
+              cursor-spacing="160"
+              placeholder="请输入你的答案"
+              bindinput="onFillInput"
+            />
+            <view class="q-fill-actions">
+              <button class="q-fill-btn q-fill-btn-secondary" bindtap="revealFillAnswer">不会写，查看答案</button>
+              <button class="q-fill-btn q-fill-btn-primary" bindtap="submitFillAnswer">提交答案</button>
+            </view>
+          </view>
+
+          <view class="q-answer-reveal q-fill-result" wx:else>
+            <view class="q-fill-status is-self">
+              <text class="q-fill-status-text">请对照参考答案自评</text>
+            </view>
+            <text class="q-answer-label">你的答案</text>
+            <text class="q-fill-user-answer">{{fillAnswer || '未作答'}}</text>
+            <text class="q-answer-label">参考答案</text>
+            <text class="q-answer-text">{{currentQuestion.answer}}</text>
+            <text wx:if="{{currentQuestion.explanation}}" class="q-explanation">
+              解析：{{currentQuestion.explanation}}
+            </text>
+          </view>
+        </block>
+
+        <view class="q-answer-toggle" wx:else bindtap="toggleAnswer">
+          <text wx:if="{{!showAnswer}}" class="q-answer-hint">👇 点击显示答案</text>
+          <view wx:else class="q-answer-reveal">
+            <text class="q-answer-label">答案</text>
+            <text class="q-answer-text">{{currentQuestion.answer}}</text>
+            <text wx:if="{{currentQuestion.explanation}}" class="q-explanation">
+              解析：{{currentQuestion.explanation}}
+            </text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 广告位 -->
+      <view class="ad-banner" wx:if="{{showAnswer && bannerAdUnitId}}">
+        <ad unit-id="{{bannerAdUnitId}}" ad-type="banner" bindload="onAdLoad" binderror="onAdError"></ad>
+      </view>
+    </block>
+
+    <!-- 选择题 -->
+    <block wx:elif="{{currentQuestion.type === 'choice'}}">
+      <view class="q-card">
+        <!-- 题目 + 图片 -->
+        <view class="q-content">
+          <text class="q-text">{{currentIndex + 1}}、{{currentQuestion.content}}</text>
+          <image
+            wx:if="{{currentQuestion.imageUrl}}"
+            src="{{currentQuestion.imageUrl}}"
+            mode="widthFix"
+            class="q-image"
+          />
+        </view>
+
+        <!-- 选项 -->
+        <view class="choice-options">
+          <view
+            class="choice-option {{choiceState[index] === 'correct' ? 'correct' : choiceState[index] === 'wrong' ? 'wrong' : ''}}"
+            wx:for="{{currentQuestion.options}}"
+            wx:key="*this"
+            bindtap="onSelectOption"
+            data-index="{{index}}"
+            data-value="{{item}}"
+          >
+            <text class="option-label">{{optionLabels[index]}}</text>
+            <text class="option-text">{{item}}</text>
+            <text class="option-mark" wx:if="{{choiceState[index] === 'correct'}}">✓</text>
+            <text class="option-mark wrong-mark" wx:if="{{choiceState[index] === 'wrong'}}">✗</text>
+          </view>
+        </view>
+
+        <!-- 解析（选完后显示）-->
+        <view class="q-explanation-wrap" wx:if="{{answered && currentQuestion.explanation}}">
+          <text class="q-answer-label">解析</text>
+          <text class="q-explanation">{{currentQuestion.explanation}}</text>
+        </view>
+
+        <!-- 广告位 -->
+        <view class="ad-banner" wx:if="{{answered && bannerAdUnitId}}">
+          <ad unit-id="{{bannerAdUnitId}}" ad-type="banner"></ad>
+        </view>
+      </view>
+    </block>
+
+    <!-- 底部三按钮 -->
+    <view class="q-report-bar" wx:if="{{showAnswer || answered}}">
+      <button class="q-report-btn" bindtap="submitCorrection">提交纠错</button>
+    </view>
+
+    <view class="q-action-bar" wx:if="{{showAnswer || answered}}">
+      <view class="action-btn action-none" bindtap="onResult" data-result="none">
+        <text class="action-emoji">😟</text>
+        <text class="action-label">不会</text>
+      </view>
+      <view class="action-btn action-maybe" bindtap="onResult" data-result="maybe">
+        <text class="action-emoji">🤔</text>
+        <text class="action-label">不太会</text>
+      </view>
+      <view class="action-btn action-know" bindtap="onResult" data-result="know">
+        <text class="action-emoji">😊</text>
+        <text class="action-label">会</text>
+      </view>
+    </view>
+  </block>
+</view>

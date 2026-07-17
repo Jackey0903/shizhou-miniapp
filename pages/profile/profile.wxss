@@ -1,0 +1,163 @@
+/* pages/profile/profile.wxss */
+
+.profile-page {
+  min-height: 100vh;
+  background: var(--bg-page);
+  padding: 0 32rpx 120rpx;
+}
+
+.profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 32rpx;
+  padding: 64rpx 40rpx;
+  background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+  border-radius: var(--radius-xl);
+  margin-top: 32rpx;
+  box-shadow: 0 8rpx 32rpx rgba(37,99,235,0.08);
+  margin-bottom: 32rpx;
+}
+
+.profile-avatar {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  border: 4rpx solid var(--border);
+}
+
+.profile-name {
+  font-size: 36rpx;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 12rpx;
+}
+
+.profile-vip-tag {
+  display: inline-flex;
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+  color: #fff;
+  font-size: 22rpx;
+  padding: 6rpx 18rpx;
+  border-radius: 100rpx;
+}
+
+.profile-login-prompt {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 48rpx 0 32rpx;
+}
+
+.profile-avatar-placeholder {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: var(--border);
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.05);
+}
+
+.profile-login-text {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+/* ===== 统计 ===== */
+.profile-stats {
+  display: flex;
+  justify-content: space-around;
+  padding: 32rpx;
+  margin-top: 0;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.stat-num {
+  font-size: 48rpx;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.stat-label {
+  font-size: 22rpx;
+  color: var(--text-muted);
+}
+
+.stat-divider {
+  width: 1rpx;
+  background: var(--border);
+  align-self: stretch;
+}
+
+/* ===== 舟币 ===== */
+.coin-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 28rpx 32rpx;
+}
+
+.coin-label {
+  font-size: 28rpx;
+  color: var(--text-primary);
+}
+
+.coin-value {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.coin-num {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.coin-icon {
+  font-size: 36rpx;
+}
+
+/* ===== 菜单 ===== */
+.menu-list {
+  padding: 0;
+  overflow: hidden;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 32rpx;
+  border-bottom: 1rpx solid var(--border);
+  gap: 20rpx;
+}
+
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.menu-icon {
+  font-size: 40rpx;
+  width: 56rpx;
+  text-align: center;
+}
+
+.menu-title {
+  flex: 1;
+  font-size: 30rpx;
+  color: var(--text-primary);
+}
+
+.menu-arrow {
+  font-size: 32rpx;
+  color: var(--text-muted);
+}
+
+.logout-text {
+  color: var(--danger);
+}

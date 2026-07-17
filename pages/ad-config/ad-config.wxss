@@ -1,0 +1,14 @@
+.cfg-page { min-height: 100vh; background: var(--bg-page); padding: 24rpx; box-sizing: border-box; }
+.cfg-title { display: block; font-size: 32rpx; font-weight: 800; margin-bottom: 8rpx; }
+.cfg-sub { display: block; font-size: 24rpx; line-height: 1.7; color: var(--text-secondary); margin-bottom: 18rpx; }
+.cfg-block { margin-top: 18rpx; }
+.cfg-label { display: block; font-size: 26rpx; font-weight: 700; margin-bottom: 12rpx; }
+.cfg-picker, .cfg-input, .cfg-textarea { width: 100%; min-height: 92rpx; background: #f8fafc; border-radius: 24rpx; padding: 0 24rpx; box-sizing: border-box; font-size: 28rpx; display: flex; align-items: center; }
+.cfg-textarea { min-height: 180rpx; padding: 24rpx; }
+.cfg-hint { display: block; margin-top: 10rpx; font-size: 22rpx; color: var(--text-muted); line-height: 1.6; }
+.cfg-item { display: flex; gap: 20rpx; align-items: center; padding: 24rpx; background: #fff; border-radius: var(--radius-lg); margin-top: 16rpx; }
+.cfg-main { flex: 1; }
+.cfg-item-title { display: block; font-size: 28rpx; font-weight: 700; }
+.cfg-item-content { display: block; margin-top: 8rpx; font-size: 24rpx; line-height: 1.6; color: var(--text-secondary); }
+.cfg-item-meta { display: block; margin-top: 8rpx; font-size: 22rpx; color: var(--text-muted); }
+.cfg-toggle { border-radius: 999rpx; background: #eff6ff; color: var(--primary); }

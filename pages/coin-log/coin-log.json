@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "舟币明细",
+  "navigationBarBackgroundColor": "#FFFFFF",
+  "navigationBarTextStyle": "black",
+  "enablePullDownRefresh": true
+}

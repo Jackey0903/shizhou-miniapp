@@ -1,0 +1,51 @@
+<!--pages/login/login.wxml-->
+<view class="login-page">
+  <view class="login-hero">
+    <image class="login-logo" src="/assets/images/logo.png" mode="aspectFit"/>
+    <text class="login-app-name">仕舟公考</text>
+    <text class="login-tagline">日积月累，仕舟渡你上岸</text>
+  </view>
+
+  <view class="login-body">
+    <view class="login-card">
+      <text class="login-title">欢迎来到仕舟公考</text>
+      <text class="login-desc">新用户注册即享7天免费试用</text>
+
+      <!-- 微信登录 -->
+      <button
+        class="btn btn-primary btn-full login-btn"
+        bindtap="onWechatLogin"
+        disabled="{{loading}}"
+      >微信一键登录</button>
+
+      <!-- 手机号登录 -->
+      <button
+        class="btn btn-outline btn-full login-btn"
+        open-type="getPhoneNumber"
+        bindgetphonenumber="onPhoneLogin"
+        disabled="{{loading}}"
+      >手机号登录</button>
+
+      <text class="login-phone-tip">点击“手机号登录”并授权后，我们仅为完成账号登录、身份识别、学习服务通知而收集和使用你的手机号。</text>
+
+      <!-- 用户协议 -->
+      <view class="agreement">
+        <checkbox-group bindchange="onAgreeChange">
+          <label class="agreement-label">
+            <checkbox value="agree" checked="{{agreed}}" color="#2563EB"/>
+            <text class="agreement-text">
+              我已阅读并同意
+              <navigator url="/pages/agreement/agreement" class="agreement-link">《用户协议》</navigator>
+              和
+              <navigator url="/pages/privacy/privacy" class="agreement-link">《隐私政策》</navigator>
+            </text>
+          </label>
+        </checkbox-group>
+      </view>
+    </view>
+
+    <view class="login-skip" bindtap="skipLogin">
+      <text>暂不登录，先逛逛 ›</text>
+    </view>
+  </view>
+</view>

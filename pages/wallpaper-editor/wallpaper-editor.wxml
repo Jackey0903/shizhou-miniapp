@@ -1,0 +1,46 @@
+<view class="we-page">
+  <view class="we-preview card">
+    <view class="we-preview-wrap">
+      <image class="we-bg" src="{{imageUrl}}" mode="aspectFill"/>
+      <view class="we-overlay">
+        <text class="we-title">{{customText || '请输入记忆文字'}}</text>
+        <view class="we-question-box" wx:if="{{includeQuestion && selectedQuestionText}}">
+          <text class="we-question-label">错题记忆</text>
+          <text class="we-question-text">{{selectedQuestionText}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="we-form card">
+    <text class="we-section-title">编辑内容</text>
+    <textarea
+      class="we-textarea"
+      placeholder="输入想显示在壁纸上的文字"
+      value="{{customText}}"
+      maxlength="60"
+      bindinput="onTextInput"
+    />
+
+    <view class="we-switch-row">
+      <text class="we-switch-label">添加一条错题辅助记忆</text>
+      <switch checked="{{includeQuestion}}" bindchange="onToggleQuestion" color="#2563eb"/>
+    </view>
+
+    <picker wx:if="{{includeQuestion}}" mode="selector" range="{{questionOptions}}" range-key="label" value="{{selectedQuestionIndex}}" bindchange="onQuestionChange">
+      <view class="we-picker">
+        <text>{{selectedQuestionText || '请选择一条错题'}}</text>
+      </view>
+    </picker>
+
+    <view class="we-tip">保存壁纸会生成竖版图片；分享图片会生成朋友圈适配的正方形图片，避免发布页缩略图裁切。</view>
+
+    <view class="we-actions">
+      <button class="btn btn-primary" bindtap="savePoster" loading="{{saving}}">保存壁纸</button>
+      <button class="btn btn-secondary" bindtap="shareImage">分享图片</button>
+    </view>
+  </view>
+
+  <canvas class="we-canvas" canvas-id="posterCanvas"></canvas>
+  <canvas class="we-share-canvas" canvas-id="shareCanvas"></canvas>
+</view>

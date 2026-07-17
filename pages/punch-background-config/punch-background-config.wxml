@@ -1,0 +1,37 @@
+<view class="cfg-page">
+  <view class="card cfg-form">
+    <text class="cfg-title">打卡背景管理</text>
+    <text class="cfg-sub">每日打卡海报使用后台配置背景，用户无需手动选择。</text>
+
+    <view class="cfg-block">
+      <text class="cfg-label">背景标题</text>
+      <input class="cfg-input" placeholder="如 今日打卡海报" value="{{title}}" data-field="title" bindinput="onInput"/>
+    </view>
+
+    <view class="cfg-block">
+      <text class="cfg-label">生效日期</text>
+      <input class="cfg-input" placeholder="默认填 default；也可填 2026-03-21" value="{{activeDate}}" data-field="activeDate" bindinput="onInput"/>
+      <text class="cfg-hint">填 default 表示参与每日轮播；填具体日期则仅当天使用。</text>
+    </view>
+
+    <view class="cfg-block">
+      <text class="cfg-label">背景图片</text>
+      <button class="btn btn-secondary btn-full" bindtap="chooseImage" loading="{{uploading}}">选择并上传背景图</button>
+      <image wx:if="{{imageUrl}}" class="cfg-preview" src="{{imageUrl}}" mode="aspectFill"/>
+    </view>
+
+    <button class="btn btn-primary btn-full" bindtap="submit" loading="{{loading}}">保存背景配置</button>
+  </view>
+
+  <view class="cfg-list">
+    <view class="cfg-item" wx:for="{{list}}" wx:key="_id">
+      <image class="cfg-thumb" src="{{item.imageUrl}}" mode="aspectFill"/>
+      <view class="cfg-main">
+        <text class="cfg-item-title">{{item.title || '今日打卡海报'}}</text>
+        <text class="cfg-item-content">生效日期：{{item.activeDate || 'default'}}</text>
+        <text class="cfg-item-meta">{{item.enabled ? '启用中' : '已停用'}}</text>
+      </view>
+      <button class="cfg-toggle" size="mini" bindtap="toggle" data-id="{{item._id}}" data-enabled="{{item.enabled}}">{{item.enabled ? '停用' : '启用'}}</button>
+    </view>
+  </view>
+</view>

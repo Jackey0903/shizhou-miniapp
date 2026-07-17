@@ -1,0 +1,63 @@
+<view class="rb-page">
+  <view class="rb-search">
+    <view class="search-field">
+      <text class="search-icon">🔍</text>
+      <input
+        class="search-input"
+        placeholder="请输入关键词快速定位题目"
+        value="{{keyword}}"
+        bindinput="onSearch"
+        confirm-type="search"
+      />
+    </view>
+    <button class="search-clear" wx:if="{{keyword}}" bindtap="clearSearch">清空</button>
+  </view>
+
+  <view class="rb-tabs">
+    <view
+      class="rb-tab {{activeTab === item.key ? 'active' : ''}}"
+      wx:for="{{tabs}}"
+      wx:key="key"
+      bindtap="switchTab"
+      data-key="{{item.key}}"
+    >
+      {{item.label}}
+      <view class="tab-underline" wx:if="{{activeTab === item.key}}"></view>
+    </view>
+  </view>
+
+  <view class="rb-group-list" wx:if="{{records.length > 0}}">
+    <view class="rb-category-card" wx:for="{{recordGroups}}" wx:key="name">
+      <view class="rb-category-head">
+        <text class="rb-category-name">{{item.name}}</text>
+        <text class="rb-category-count">{{item.banks.length}}个题库</text>
+      </view>
+
+      <view class="rb-bank-card" wx:for="{{item.banks}}" wx:key="name" wx:for-item="bank">
+        <view class="rb-bank-head">
+          <view>
+            <text class="rb-bank-name">{{bank.name}}</text>
+            <text class="rb-bank-series" wx:if="{{bank.series && bank.series !== bank.name}}">{{bank.series}}</text>
+          </view>
+          <text class="rb-bank-count">{{bank.records.length}}题</text>
+        </view>
+
+        <view class="rb-list">
+          <view class="rb-item" wx:for="{{bank.records}}" wx:key="_id">
+            <view class="rb-item-text-wrap"><text class="rb-item-text {{item.missingQuestion ? 'rb-item-text--missing' : ''}}">{{index + 1}}、{{item.questionContent || '（题目加载中）'}}</text><text class="rb-item-note" wx:if="{{item.missingQuestion}}">该旧题已失效，不参与开始复习</text></view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:else>
+    <text class="empty-icon">📖</text>
+    <text class="empty-text">{{activeTab === 'none' ? '还没有不太会的题目' : activeTab === 'maybe' ? '没有不会的题目' : '暂无已掌握题目'}}</text>
+  </view>
+
+  <view class="rb-bottom-bar" wx:if="{{records.length > 0}}">
+    <button class="btn btn-outline btn-sm" bindtap="startOrdered">顺选</button>
+    <button class="btn btn-outline btn-sm" bindtap="startRandom">随机</button>
+  </view>
+</view>

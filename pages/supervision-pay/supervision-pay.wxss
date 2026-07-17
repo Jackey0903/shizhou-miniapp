@@ -1,0 +1,16 @@
+.pay-page { min-height: 100vh; background: var(--bg-page); padding: 24rpx; box-sizing: border-box; }
+.guide-card, .access-card { margin-top: 20rpx; }
+.section-title { display: block; font-size: 32rpx; font-weight: 800; }
+.section-sub { display: block; margin-top: 10rpx; font-size: 24rpx; line-height: 1.7; color: var(--text-secondary); }
+.guide-step { display: block; margin-top: 12rpx; font-size: 24rpx; line-height: 1.75; color: #334155; }
+.access-title { display: block; font-size: 30rpx; font-weight: 700; }
+.access-text { display: block; margin-top: 10rpx; font-size: 24rpx; color: var(--text-secondary); }
+.plan-list { margin-top: 20rpx; display: flex; flex-direction: column; gap: 16rpx; }
+.plan-card.selected { border: 2rpx solid var(--primary); box-shadow: 0 14rpx 36rpx rgba(37, 99, 235, 0.12); }
+.plan-head { display: flex; justify-content: space-between; align-items: center; }
+.plan-tag { font-size: 24rpx; color: #fff; background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%); padding: 10rpx 18rpx; border-radius: 999rpx; }
+.plan-price { font-size: 36rpx; font-weight: 800; color: var(--primary); }
+.plan-name { display: block; margin-top: 12rpx; font-size: 30rpx; font-weight: 700; }
+.plan-benefit { display: block; margin-top: 8rpx; font-size: 24rpx; line-height: 1.7; color: var(--text-secondary); }
+.pay-btn { margin-top: 24rpx; }
+.test-btn { margin-top: 16rpx; }

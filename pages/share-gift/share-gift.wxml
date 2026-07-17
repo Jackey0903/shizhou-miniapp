@@ -1,0 +1,38 @@
+<view class="sg-page">
+  <view class="sg-hero card">
+    <text class="sg-icon">🎁</text>
+    <text class="sg-title">推荐有礼</text>
+    <text class="sg-desc">推荐使用仕舟公考小程序</text>
+    <text class="sg-desc sg-desc-sub">审核通过可获得一周督学体验</text>
+  </view>
+
+  <view class="sg-steps">
+    <view class="sg-step"><view class="sg-step-num">1</view><text class="sg-step-text">在小红书等平台发布仕舟公考使用心得</text></view>
+    <view class="sg-step"><view class="sg-step-num">2</view><text class="sg-step-text">截图发送给客服，等待人工审核</text></view>
+    <view class="sg-step"><view class="sg-step-num">3</view><text class="sg-step-text">审核通过后获得督学体验</text></view>
+  </view>
+
+  <view class="sg-service card">
+    <text class="sg-service-label">添加客服</text>
+    <text class="sg-service-title">长按识别二维码添加客服</text>
+    <image
+      wx:if="{{!qrLoadFailed}}"
+      class="sg-qrcode"
+      src="{{qrCodePath}}"
+      mode="aspectFit"
+      show-menu-by-longpress="{{true}}"
+      bindtap="previewQr"
+      bindload="onQrLoad"
+      binderror="onQrError"
+    />
+    <view wx:else class="sg-qrcode sg-qrcode-error">
+      <text>客服二维码加载失败</text>
+      <text>请重新进入页面</text>
+    </view>
+    <text class="sg-service-tip">长按二维码可识别或保存，添加后发送截图给客服审核。</text>
+  </view>
+
+  <view class="bottom-action">
+    <button class="btn btn-primary btn-full" bindtap="previewQr">查看大图</button>
+  </view>
+</view>

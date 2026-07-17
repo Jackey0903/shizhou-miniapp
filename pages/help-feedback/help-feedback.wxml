@@ -1,0 +1,24 @@
+<view class="hf-page">
+  <view class="card hf-hero">
+    <text class="hf-title">{{title}}</text>
+    <text class="hf-desc">{{desc}}</text>
+  </view>
+
+  <view class="card hf-section">
+    <text class="hf-section-title">常见问题</text>
+    <view class="hf-faq-item" wx:for="{{faqList}}" wx:key="question">
+      <text class="hf-faq-q">{{item.question}}</text>
+      <text class="hf-faq-a">{{item.answer}}</text>
+    </view>
+  </view>
+
+  <view class="card hf-service">
+    <text class="hf-section-title">联系客服</text>
+    <text class="hf-service-tip">长按识别二维码添加客服，反馈时建议附上页面截图和操作步骤。</text>
+    <image class="hf-qrcode" src="{{qrCodePath}}" mode="aspectFit" show-menu-by-longpress="{{true}}" bindtap="previewQr"/>
+    <view class="hf-actions">
+      <button class="btn btn-secondary" bindtap="copyGuide">复制反馈说明</button>
+      <button class="btn btn-primary" bindtap="previewQr">查看二维码</button>
+    </view>
+  </view>
+</view>

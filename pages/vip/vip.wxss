@@ -1,0 +1,107 @@
+.vip-page {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #1D4ED8, #7C3AED);
+  padding: 48rpx 32rpx 160rpx;
+}
+
+.vip-title {
+  font-size: 52rpx;
+  font-weight: 800;
+  color: #fff;
+  text-align: center;
+  display: block;
+}
+
+.vip-sub {
+  font-size: 28rpx;
+  color: rgba(255,255,255,0.78);
+  text-align: center;
+  margin: 16rpx 0 40rpx;
+  display: block;
+  line-height: 1.6;
+}
+
+.plan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.plan-card {
+  background: rgba(255,255,255,0.12);
+  border-radius: var(--radius-xl);
+  padding: 28rpx 24rpx;
+  border: 2rpx solid transparent;
+}
+
+.plan-card.selected {
+  background: rgba(255,255,255,0.22);
+  border-color: #fff;
+}
+
+.plan-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.plan-tag {
+  font-size: 34rpx;
+  font-weight: 800;
+  color: #fff;
+}
+
+.plan-price {
+  font-size: 42rpx;
+  font-weight: 800;
+  color: #F59E0B;
+}
+
+.plan-name {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: rgba(255,255,255,0.85);
+}
+
+.plan-benefits {
+  margin-top: 18rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.plan-benefit {
+  font-size: 26rpx;
+  color: #fff;
+  line-height: 1.6;
+}
+
+.vip-guide {
+  margin-top: 32rpx;
+  background: rgba(255,255,255,0.12);
+  border-radius: var(--radius-xl);
+  padding: 28rpx;
+}
+
+.guide-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 10rpx;
+}
+
+.guide-text {
+  display: block;
+  font-size: 24rpx;
+  color: rgba(255,255,255,0.85);
+  line-height: 1.6;
+}
+
+.vip-buy-btn {
+  background: #F59E0B;
+  color: #fff;
+  font-size: 32rpx;
+}

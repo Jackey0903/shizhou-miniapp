@@ -1,0 +1,21 @@
+<view class="cfg-page">
+  <view class="card cfg-form">
+    <text class="cfg-title">新增推荐消息</text>
+    <input class="cfg-input" placeholder="消息标题" value="{{title}}" data-field="title" bindinput="onInput"/>
+    <textarea class="cfg-textarea" placeholder="消息内容" value="{{content}}" data-field="content" bindinput="onInput"/>
+    <input class="cfg-input" placeholder="推送范围，如 all / vip / 新用户" value="{{scope}}" data-field="scope" bindinput="onInput"/>
+    <input class="cfg-input" placeholder="图标，例如 📢" value="{{icon}}" data-field="icon" bindinput="onInput"/>
+    <button class="btn btn-primary btn-full" bindtap="submit" loading="{{loading}}">保存消息</button>
+  </view>
+
+  <view class="cfg-list">
+    <view class="cfg-item" wx:for="{{list}}" wx:key="_id">
+      <view class="cfg-main">
+        <text class="cfg-item-title">{{item.icon}} {{item.title}}</text>
+        <text class="cfg-item-content">{{item.content}}</text>
+        <text class="cfg-item-meta">范围：{{item.scope || 'all'}} · {{item.enabled ? '启用中' : '已停用'}}</text>
+      </view>
+      <button class="cfg-toggle" size="mini" bindtap="toggle" data-id="{{item._id}}" data-enabled="{{item.enabled}}">{{item.enabled ? '停用' : '启用'}}</button>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,26 @@
+<view class="vip-page">
+  <text class="vip-title">开通会员</text>
+  <text class="vip-sub">基础VIP和高级VIP通过官方小程序虚拟支付开通；高级VIP同时包含1年督学服务。支付成功后自动发放对应权益。</text>
+
+  <view class="plan-list">
+    <view class="plan-card {{sel===index?'selected':''}}" wx:for="{{plans}}" wx:key="code" bindtap="select" data-i="{{index}}">
+      <view class="plan-head">
+        <text class="plan-tag">{{item.tag || item.title}}</text>
+        <text class="plan-price">{{item.priceLabel}}</text>
+      </view>
+      <text class="plan-name">{{item.title}}</text>
+      <view class="plan-benefits">
+        <text class="plan-benefit" wx:for="{{item.benefits}}" wx:key="*this">· {{item}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="vip-guide" wx:if="{{currentPlan}}">
+    <text class="guide-title">当前选择：{{currentPlan.title}}</text>
+    <text class="guide-text">购买后将调用 wx.requestVirtualPayment 并自动发放对应权益，同步更新会员状态与到期时间。</text>
+  </view>
+
+  <view class="bottom-action">
+    <button class="btn btn-full vip-buy-btn" bindtap="buyVip">立即开通VIP</button>
+  </view>
+</view>

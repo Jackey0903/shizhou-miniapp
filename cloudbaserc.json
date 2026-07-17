@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.cloudbase.net/cli/cloudbaserc.schema.json",
+  "envId": "cloud-2ge02vrucaf8a6ab",
+  "functionRoot": "cloudfunctions",
+  "functions": [
+    {
+      "name": "createVipOrder",
+      "runtime": "Nodejs16.13",
+      "handler": "index.main",
+      "timeout": 15,
+      "memorySize": 512,
+      "installDependency": true,
+      "ignore": [
+        "node_modules",
+        "node_modules/**/*",
+        ".git"
+      ]
+    }
+  ]
+}

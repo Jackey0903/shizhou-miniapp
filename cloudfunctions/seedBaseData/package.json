@@ -1,0 +1,10 @@
+{
+    "name": "seedBaseData",
+    "version": "1.0.0",
+    "description": "快速写入基础课程与题目示例数据",
+    "main": "index.js",
+    "dependencies": {
+        "ws": "^8.21.0",
+        "wx-server-sdk": "^4.0.2"
+    }
+}

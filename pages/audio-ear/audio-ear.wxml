@@ -1,0 +1,68 @@
+<view class="ae-page">
+  <view class="ae-hero card">
+    <text class="ae-hero-title">磨耳朵</text>
+    <text class="ae-hero-sub">按八大模块分类，支持单曲循环、连续播放和定时关闭</text>
+  </view>
+
+  <scroll-view class="ae-tabs" scroll-x>
+    <view class="ae-tab-list">
+      <view class="ae-tab {{activeCategory === item ? 'ae-tab--active' : ''}}" wx:for="{{categories}}" wx:key="*this" data-category="{{item}}" bindtap="switchCategory">{{item}}</view>
+    </view>
+  </scroll-view>
+
+  <view class="ae-controls card">
+    <view class="ae-control-pill" bindtap="toggleMode">
+      <text class="ae-control-label">播放模式</text>
+      <text class="ae-control-value">{{playMode === 'single' ? '单曲循环' : '连续播放'}}</text>
+    </view>
+    <view class="ae-control-pill ae-control-pill--timer">
+      <text class="ae-control-label">定时关闭</text>
+      <picker mode="multiSelector" range="{{timerOptions}}" value="{{timerValue}}" bindchange="onTimerChange">
+        <text class="ae-control-value">{{timerLabel}}</text>
+      </picker>
+    </view>
+  </view>
+
+  <view class="ae-now card" wx:if="{{currentTitle}}">
+    <text class="ae-now-label">当前播放</text>
+    <view class="ae-now-head">
+      <view class="ae-now-text">
+        <text class="ae-now-title">{{currentTitle}}</text>
+        <text class="ae-now-sub">{{currentCategory}} · {{paused ? '已暂停' : '播放中'}}</text>
+      </view>
+      <text class="ae-now-state" bindtap="toggleCurrent">{{paused ? '▶' : 'Ⅱ'}}</text>
+    </view>
+    <slider
+      class="ae-progress"
+      value="{{progressValue}}"
+      min="0"
+      max="100"
+      activeColor="#2563eb"
+      backgroundColor="#dbeafe"
+      block-size="16"
+      bindchanging="onProgressChanging"
+      bindchange="onProgressChange"
+    />
+    <view class="ae-time-row">
+      <text>{{currentTimeText}}</text>
+      <text>{{durationText}}</text>
+    </view>
+  </view>
+
+  <view class="ae-list" wx:if="{{filteredAudios.length > 0}}">
+    <view class="ae-item {{playingId === item._id ? 'ae-item--playing' : ''}}" wx:for="{{filteredAudios}}" wx:key="_id" bindtap="playAudio" data-item="{{item}}" data-index="{{index}}">
+      <view class="ae-thumb">🎧</view>
+      <view class="ae-info">
+        <text class="ae-title">{{item.title}}</text>
+        <text class="ae-meta">{{item.category}} · {{item.duration || '时长待补充'}}</text>
+        <text class="ae-type">{{item.type || '音频'}}</text>
+      </view>
+      <text class="ae-play">{{playingId === item._id && !paused ? 'Ⅱ' : '▶'}}</text>
+    </view>
+  </view>
+
+  <view class="empty" wx:else>
+    <text class="empty-icon">🎧</text>
+    <text class="empty-text">当前分类暂无音频</text>
+  </view>
+</view>

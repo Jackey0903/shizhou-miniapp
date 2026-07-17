@@ -1,0 +1,82 @@
+<view class="mh-page">
+  <view class="mh-tabs">
+    <view
+      class="mh-tab {{activeTab === item.key ? 'active' : ''}} {{item.key === 'review' && !isAdmin ? 'hidden' : ''}}"
+      wx:for="{{tabs}}"
+      wx:key="key"
+      data-key="{{item.key}}"
+      bindtap="switchTab"
+      wx:if="{{item.key !== 'review' || isAdmin}}"
+    >
+      {{item.title}}
+    </view>
+  </view>
+
+  <view wx:if="{{activeTab === 'approved'}}">
+    <view class="mh-item" wx:for="{{approvedQuestions}}" wx:key="_id">
+      <view class="mh-head">
+        <text class="mh-title">{{item.title}}</text>
+        <text class="mh-tag" wx:if="{{item.category}}">{{item.category}}</text>
+      </view>
+      <text class="mh-q">题干：{{item.content}}</text>
+      <text class="mh-a">答案：{{item.answer}}</text>
+      <text class="mh-meta">投稿人：{{item.submitterName || '考友'}}</text>
+    </view>
+    <view class="empty" wx:if="{{!loading && approvedQuestions.length === 0}}">
+      <text class="empty-icon">❤️</text>
+      <text class="empty-text">还没有通过审核的互助题，先投稿一条。</text>
+    </view>
+  </view>
+
+  <view wx:if="{{activeTab === 'mine'}}">
+    <view class="mh-item" wx:for="{{myQuestions}}" wx:key="_id">
+      <view class="mh-head">
+        <text class="mh-title">{{item.title}}</text>
+        <text class="status status-{{item.status}}">
+          {{item.status === 'pending' ? '待审核' : item.status === 'approved' ? '已通过' : '未通过'}}
+        </text>
+      </view>
+      <text class="mh-q">题干：{{item.content}}</text>
+      <text class="mh-a">答案：{{item.answer}}</text>
+      <text class="mh-note" wx:if="{{item.reviewerNote}}">审核备注：{{item.reviewerNote}}</text>
+    </view>
+    <view class="empty" wx:if="{{!loading && myQuestions.length === 0}}">
+      <text class="empty-icon">📝</text>
+      <text class="empty-text">你还没有投稿，点右下角开始上传。</text>
+    </view>
+  </view>
+
+  <view wx:if="{{activeTab === 'review' && isAdmin}}">
+    <view class="mh-item" wx:for="{{pendingQuestions}}" wx:key="_id">
+      <view class="mh-head">
+        <text class="mh-title">{{item.title}}</text>
+        <text class="mh-meta-name">{{item.submitterName || '匿名考友'}}</text>
+      </view>
+      <text class="mh-q">题干：{{item.content}}</text>
+      <text class="mh-a">答案：{{item.answer}}</text>
+      <view class="review-actions">
+        <button class="btn btn-outline btn-sm" data-id="{{item._id}}" data-status="rejected" bindtap="reviewQuestion">驳回</button>
+        <button class="btn btn-primary btn-sm" data-id="{{item._id}}" data-status="approved" bindtap="reviewQuestion">通过</button>
+      </view>
+    </view>
+    <view class="empty" wx:if="{{!loading && pendingQuestions.length === 0}}">
+      <text class="empty-icon">✅</text>
+      <text class="empty-text">当前没有待审核投稿。</text>
+    </view>
+  </view>
+
+  <view class="mh-fab" bindtap="openComposer">＋</view>
+
+  <view class="composer-mask" wx:if="{{showComposer}}" bindtap="closeComposer"></view>
+  <view class="composer" wx:if="{{showComposer}}">
+    <view class="composer-head">
+      <text class="composer-title">投稿互助题</text>
+      <text class="composer-close" bindtap="closeComposer">关闭</text>
+    </view>
+    <input class="composer-input" placeholder="题目标题" value="{{form.title}}" data-field="title" bindinput="onFormInput"/>
+    <input class="composer-input" placeholder="分类（可选）" value="{{form.category}}" data-field="category" bindinput="onFormInput"/>
+    <textarea class="composer-textarea" placeholder="题干" value="{{form.content}}" data-field="content" bindinput="onFormInput" maxlength="500" auto-height></textarea>
+    <textarea class="composer-textarea" placeholder="参考答案" value="{{form.answer}}" data-field="answer" bindinput="onFormInput" maxlength="500" auto-height></textarea>
+    <button class="btn btn-primary btn-full" loading="{{submitting}}" bindtap="submitQuestion">提交审核</button>
+  </view>
+</view>

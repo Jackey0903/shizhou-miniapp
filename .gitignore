@@ -1,0 +1,21 @@
+.DS_Store
+.playwright-mcp/
+
+# WeChat DevTools local settings
+project.private.config.json
+
+# Dependencies and generated output
+**/node_modules/
+tmp/
+*.log
+
+# Local exports and large source assets
+database_export*.json
+*.zip
+*.tar.gz
+*.psd
+/*.mp4
+/*.pdf
+/需求*.jpg
+/先发第一批/
+

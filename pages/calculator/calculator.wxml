@@ -1,0 +1,82 @@
+<view class="calc-page">
+  <view class="calc-head">
+    <text class="calc-head-title">行测小助手</text>
+    <text class="calc-head-tip">点击前面的标签可显示计算公式，允许误差±5%</text>
+  </view>
+
+  <view class="calc-top-grid">
+    <view class="grid-label green" data-key="currentA" bindtap="showFormula">现期A</view>
+    <view class="grid-value">
+      <text wx:if="{{mode === 'random'}}" class="top-value">{{a}}</text>
+      <input wx:else class="top-input" type="digit" value="{{a}}" placeholder="输入现期A" data-field="a" bindinput="onSourceInput" />
+    </view>
+    <view class="grid-label gold" data-key="currentB" bindtap="showFormula">现期B</view>
+    <view class="grid-value">
+      <text wx:if="{{mode === 'random'}}" class="top-value">{{b}}</text>
+      <input wx:else class="top-input" type="digit" value="{{b}}" placeholder="输入现期B" data-field="b" bindinput="onSourceInput" />
+    </view>
+
+    <view class="grid-label green" data-key="rate1" bindtap="showFormula">增长率r1</view>
+    <view class="grid-value">
+      <text wx:if="{{mode === 'random'}}" class="top-value">{{r1}}%</text>
+      <input wx:else class="top-input" type="text" value="{{r1}}" placeholder="输入%" data-field="r1" bindinput="onSourceInput" />
+    </view>
+    <view class="grid-label gold" data-key="rate2" bindtap="showFormula">增长率r2</view>
+    <view class="grid-value">
+      <text wx:if="{{mode === 'random'}}" class="top-value">{{r2}}%</text>
+      <input wx:else class="top-input" type="text" value="{{r2}}" placeholder="输入%" data-field="r2" bindinput="onSourceInput" />
+    </view>
+  </view>
+
+  <view class="calc-result-table">
+    <view class="result-row" wx:for="{{rows}}" wx:key="key">
+      <view class="result-label {{item.color}}" data-key="{{item.key}}" bindtap="showFormula">{{item.label}}</view>
+      <view class="result-answer">
+        <input
+          wx:if="{{!submitted}}"
+          class="answer-input"
+          type="text"
+          placeholder="请点击输入答案"
+          value="{{item.answer}}"
+          data-key="{{item.key}}"
+          bindinput="onAnswerInput"
+        />
+        <text wx:else class="answer-text">{{item.valueText}}</text>
+      </view>
+      <view class="result-side {{submitted ? item.statusClass : 'unit'}}">
+        <text>{{submitted ? item.feedbackText : item.unitHint}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="calc-action-row">
+    <button class="action-btn action-refresh" bindtap="refreshData">刷新数据</button>
+    <button class="action-btn action-submit" bindtap="submitAnswer">提交答案</button>
+  </view>
+
+  <view wx:if="{{scoreText}}" class="calc-score">{{scoreText}}</view>
+
+  <view class="calc-mode-bar">
+    <view class="mode-item {{mode === 'random' ? 'active' : ''}}" data-mode="random" bindtap="setMode">
+      <text class="mode-icon">🎲</text>
+      <text class="mode-name">随机</text>
+    </view>
+    <view class="mode-item {{mode === 'custom' ? 'active' : ''}}" data-mode="custom" bindtap="setMode">
+      <text class="mode-icon">⚙️</text>
+      <text class="mode-name">自定义</text>
+    </view>
+  </view>
+
+  <view wx:if="{{formulaVisible}}" class="formula-mask" bindtap="hideFormula">
+    <view class="formula-sheet" catchtap="noop">
+      <view class="formula-sheet-head">
+        <text class="formula-title">{{formulaTitle}}</text>
+        <text class="formula-close" bindtap="hideFormula">关闭</text>
+      </view>
+      <view class="formula-content">
+        <text class="formula-line" wx:for="{{formulaLines}}" wx:key="*this">{{item}}</text>
+        <text wx:if="{{formulaNote}}" class="formula-note">{{formulaNote}}</text>
+      </view>
+    </view>
+  </view>
+</view>

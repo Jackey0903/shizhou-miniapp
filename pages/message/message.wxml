@@ -1,0 +1,31 @@
+<view class="msg-page">
+  <view class="msg-item {{item.unread ? 'msg-item--unread' : ''}}" wx:for="{{messages}}" wx:key="_id" bindtap="openMessage" data-index="{{index}}">
+    <view class="msg-avatar">{{item.icon}}</view>
+    <view class="msg-content">
+      <view class="msg-row">
+        <view class="msg-title-wrap">
+          <text class="msg-dot" wx:if="{{item.unread}}"></text>
+          <text class="msg-title">{{item.title}}</text>
+        </view>
+        <text class="msg-time">{{item.timeText}}</text>
+      </view>
+      <text class="msg-text">{{item.content}}</text>
+      <text class="msg-tip">点开查看完整内容</text>
+    </view>
+  </view>
+  <view class="empty" wx:if="{{messages.length === 0}}">
+    <text class="empty-icon">💬</text>
+    <text class="empty-text">暂无消息</text>
+  </view>
+
+  <view class="msg-modal-mask" wx:if="{{activeMessage}}" bindtap="closeMessage">
+    <view class="msg-modal" catchtap="noop">
+      <view class="msg-modal-head">
+        <text class="msg-modal-icon">{{activeMessage.icon}}</text>
+        <text class="msg-modal-title">{{activeMessage.title}}</text>
+      </view>
+      <text class="msg-modal-content">{{activeMessage.content}}</text>
+      <button class="btn btn-primary btn-full msg-modal-btn" bindtap="closeMessage">我知道了</button>
+    </view>
+  </view>
+</view>

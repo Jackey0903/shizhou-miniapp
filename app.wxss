@@ -1,0 +1,281 @@
+/* app.wxss - 全局样式 */
+
+/* ===== CSS 变量（设计令牌） ===== */
+page {
+  --primary: #2563EB;
+  --primary-light: #EFF6FF;
+  --primary-dark: #1D4ED8;
+  --secondary: #10B981;
+  --secondary-light: #D1FAE5;
+  --accent: #F59E0B;
+  --danger: #EF4444;
+  --danger-light: #FEE2E2;
+  --warning: #F59E0B;
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  --text-muted: #9CA3AF;
+  --border: #E5E7EB;
+  --bg-page: #F5F6FA;
+  --bg-card: #FFFFFF;
+  --radius-sm: 8rpx;
+  --radius-md: 16rpx;
+  --radius-lg: 24rpx;
+  --radius-xl: 32rpx;
+  --shadow: 0 2rpx 16rpx rgba(0,0,0,0.06);
+  --shadow-md: 0 4rpx 24rpx rgba(0,0,0,0.10);
+
+  background-color: var(--bg-page);
+  font-family: 'MiSans Rounded','MiSans','HarmonyOS Sans SC','PingFang SC','Nunito','Helvetica Rounded','Arial Rounded MT',sans-serif;
+  color: var(--text-primary);
+  font-size: 28rpx;
+  line-height: 1.6;
+  box-sizing: border-box;
+}
+
+/* ===== 通用容器 ===== */
+.container {
+  padding: 0 32rpx 120rpx;
+  min-height: 100vh;
+}
+
+/* ===== 卡片 ===== */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 32rpx;
+  box-shadow: var(--shadow);
+  margin-bottom: 24rpx;
+}
+
+/* ===== 按钮 ===== */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xl);
+  font-size: 30rpx;
+  font-weight: 600;
+  height: 96rpx;
+  border: none;
+  padding: 0 48rpx;
+  transition: opacity 0.15s;
+}
+
+.btn::after {
+  border: none;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #FFFFFF;
+}
+
+.btn-primary:active {
+  opacity: 0.85;
+}
+
+.btn-secondary {
+  background: var(--secondary);
+  color: #FFFFFF;
+}
+
+.btn-secondary:active {
+  opacity: 0.85;
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--primary);
+  border: 2rpx solid var(--primary);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #FFFFFF;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+.btn-sm {
+  height: 72rpx;
+  font-size: 26rpx;
+  padding: 0 32rpx;
+}
+
+/* ===== 标题 ===== */
+.section-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 24rpx;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+
+.section-more {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+/* ===== 标签 ===== */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6rpx 18rpx;
+  border-radius: 100rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+}
+
+.tag-primary {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.tag-success {
+  background: var(--secondary-light);
+  color: var(--secondary);
+}
+
+.tag-warning {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+/* ===== 分割线 ===== */
+.divider {
+  height: 1rpx;
+  background: var(--border);
+  margin: 24rpx 0;
+}
+
+/* ===== 空状态 ===== */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120rpx 32rpx;
+  color: var(--text-muted);
+}
+
+.empty-icon {
+  font-size: 96rpx;
+  margin-bottom: 24rpx;
+}
+
+.empty-text {
+  font-size: 28rpx;
+}
+
+/* ===== 列表项 ===== */
+.list-item {
+  display: flex;
+  align-items: center;
+  padding: 32rpx;
+  background: var(--bg-card);
+  border-bottom: 1rpx solid var(--border);
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+/* ===== 输入框 ===== */
+input, textarea {
+  min-height: 92rpx;
+  line-height: 1.5;
+}
+
+textarea {
+  min-height: 200rpx;
+}
+
+.input-field {
+  background: var(--bg-page);
+  border-radius: var(--radius-md);
+  padding: 24rpx 28rpx;
+  font-size: 28rpx;
+  color: var(--text-primary);
+  width: 100%;
+  box-sizing: border-box;
+  border: 2rpx solid var(--border);
+}
+
+.input-field:focus {
+  border-color: var(--primary);
+}
+
+/* ===== 进度条 ===== */
+.progress-bar {
+  height: 8rpx;
+  background: var(--border);
+  border-radius: 100rpx;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 100rpx;
+  transition: width 0.3s ease;
+}
+
+/* ===== 浮动底部操作区 ===== */
+.bottom-action {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24rpx 32rpx;
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+  background: var(--bg-card);
+  box-shadow: 0 -2rpx 16rpx rgba(0,0,0,0.08);
+  z-index: 100;
+}
+
+/* ===== 骨架屏 ===== */
+.skeleton {
+  background: linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 50%, #F3F4F6 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ===== 徽章 ===== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--danger);
+  color: #FFF;
+  border-radius: 100rpx;
+  min-width: 36rpx;
+  height: 36rpx;
+  font-size: 20rpx;
+  padding: 0 8rpx;
+}
+
+/* ===== 通用文字 ===== */
+.text-primary { color: var(--primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-muted { color: var(--text-muted); }
+.text-danger { color: var(--danger); }
+.text-success { color: var(--secondary); }
+.text-bold { font-weight: 700; }
+.text-center { text-align: center; }
+.text-sm { font-size: 24rpx; }
+.text-lg { font-size: 34rpx; }
+.text-xl { font-size: 40rpx; }

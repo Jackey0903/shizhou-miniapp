@@ -1,0 +1,32 @@
+<view class="sb-page">
+  <view class="sb-empty" wx:if="{{!loading && plans.length === 0}}">
+    <text class="sb-empty-icon">📚</text>
+    <text class="sb-empty-title">还没有加入新学本</text>
+    <text class="sb-empty-desc">去题库页添加学习计划后，这里会自动展示你的新学课程。</text>
+  </view>
+
+  <view class="sb-list" wx:else>
+    <view class="sb-item" wx:for="{{plans}}" wx:key="_id" bindtap="openPlan" data-courseid="{{item.courseId}}" data-coursename="{{item.courseName}}">
+      <image class="sb-cover" src="{{item.courseCover}}" mode="aspectFill"/>
+      <view class="sb-info">
+        <view class="sb-title-row">
+          <text class="sb-name">{{item.courseName}}</text>
+          <text class="sb-progress">{{item.progress}}%</text>
+        </view>
+        <text class="sb-desc">{{item.courseDescription}}</text>
+        <view class="sb-meta">
+          <text class="sb-meta-item">已学 {{item.learnedCount}} / {{item.totalCount}} 题</text>
+          <text class="sb-meta-item">剩余 {{item.remainingCount}} 题</text>
+        </view>
+        <view class="sb-progress-bar">
+          <view class="sb-progress-fill" style="width: {{item.progress}}%;"></view>
+        </view>
+      </view>
+      <text class="sb-del" catchtap="removePlan" data-id="{{item._id}}">移除</text>
+    </view>
+  </view>
+
+  <view class="bottom-action">
+    <button class="btn btn-secondary btn-full" bindtap="addCourse">添加课本</button>
+  </view>
+</view>

@@ -1,0 +1,99 @@
+<view class="home-container">
+  <view class="home-header">
+    <view class="header-left">
+      <image class="header-logo" src="/assets/images/logo.png" mode="aspectFit"/>
+      <text class="header-slogan">日积月累，仕舟渡你上岸</text>
+    </view>
+    <view class="header-right">
+      <navigator url="/pages/message/message" class="header-icon">
+        <text class="iconfont icon-bell">🔔</text>
+        <view class="header-badge" wx:if="{{unreadCount > 0}}">{{unreadCount}}</view>
+      </navigator>
+      <navigator url="/pages/profile/profile" class="header-icon">
+        <image class="header-avatar" src="{{userInfo.avatarUrl || '/assets/images/default-avatar.png'}}" mode="aspectFill"/>
+      </navigator>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">考点记忆卡</text>
+      <navigator url="/pages/course-list/course-list" class="section-more">查看更多 ›</navigator>
+    </view>
+
+    <view class="course-grid" wx:if="{{loading}}">
+      <view class="course-card skeleton" wx:for="{{[1,2,3,4,5,6,7,8]}}" wx:key="*this">
+        <view class="skeleton-line" style="height:280rpx;border-radius:24rpx;"></view>
+      </view>
+    </view>
+
+    <view class="course-grid" wx:else>
+      <view
+        class="category-card"
+        wx:for="{{homeCards}}"
+        wx:key="id"
+        wx:for-item="card"
+        bindtap="openCategory"
+        data-category="{{card.category}}"
+        data-courseid="{{card.directCourseId}}"
+        data-coursename="{{card.directCourseName}}"
+        style="background: {{card.color.bg}}; border-color: {{card.color.border}};"
+      >
+        <view class="category-main">
+          <text class="category-name">{{card.name}}</text>
+          <view class="preview-list">
+            <view class="preview-row" wx:for="{{card.previews}}" wx:key="_id" wx:for-item="preview">
+              <text class="preview-item-name">{{preview.name}}</text>
+              <text class="preview-item-count" style="color: {{card.color.accent}};">{{preview.count}}题</text>
+            </view>
+          </view>
+        </view>
+        <view class="category-dots">
+          <text class="category-dot" style="background: {{card.color.accent}};"></text>
+          <text class="category-dot" style="background: {{card.color.accent}};"></text>
+          <text class="category-dot" style="background: {{card.color.accent}};"></text>
+        </view>
+        <text class="category-lock" wx:if="{{card.locked && !isVip}}">🔒</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">助学工具</text>
+    </view>
+
+    <view class="tools-grid">
+      <navigator class="tool-item" url="/pages/review-book/review-book">
+        <view class="tool-icon tool-icon--blue">📖</view>
+        <text class="tool-name">记忆本</text>
+      </navigator>
+      <navigator class="tool-item" url="/pages/audio-ear/audio-ear">
+        <view class="tool-icon tool-icon--green">🎧</view>
+        <text class="tool-name">磨耳朵</text>
+      </navigator>
+      <navigator class="tool-item" url="/pages/supervision-plan/supervision-plan?mode=full">
+        <view class="tool-icon tool-icon--indigo">⏰</view>
+        <text class="tool-name">订阅提醒</text>
+      </navigator>
+      <navigator class="tool-item" url="/pages/material/material">
+        <view class="tool-icon tool-icon--teal">📦</view>
+        <text class="tool-name">领取学习资料</text>
+      </navigator>
+      <navigator class="tool-item" url="/pages/wallpaper/wallpaper">
+        <view class="tool-icon tool-icon--pink">🖼️</view>
+        <text class="tool-name">屏保壁纸</text>
+      </navigator>
+      <navigator class="tool-item" url="/pages/calendar/calendar">
+        <view class="tool-icon tool-icon--orange">📅</view>
+        <text class="tool-name">学习日历</text>
+      </navigator>
+      <navigator class="tool-item" url="/pages/checkin/checkin">
+        <view class="tool-icon tool-icon--purple">🪧</view>
+        <text class="tool-name">打卡海报</text>
+      </navigator>
+    </view>
+  </view>
+
+  <view style="height:40rpx;"></view>
+</view>

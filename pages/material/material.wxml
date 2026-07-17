@@ -1,0 +1,48 @@
+<view class="mat-page">
+  <view class="mat-hero card">
+    <view>
+      <text class="mat-title">领取学习资料</text>
+      <text class="mat-sub">支持免费、VIP免费和舟币兑换资料，领取后可反复打开，不重复扣费</text>
+    </view>
+    <view class="mat-coins">
+      <text class="mat-coins-num">{{userCoins}}</text>
+      <text class="mat-coins-label">舟币</text>
+    </view>
+  </view>
+
+  <view class="mat-tabs card">
+    <view class="mat-tab {{activeTab === item.key ? 'mat-tab--active' : ''}}" wx:for="{{tabs}}" wx:key="key" data-key="{{item.key}}" bindtap="switchTab">
+      {{item.label}}
+    </view>
+  </view>
+
+  <view class="mat-list" wx:if="{{filteredMaterials.length > 0}}">
+    <view class="mat-item" wx:for="{{filteredMaterials}}" wx:key="_id">
+      <view class="mat-icon">
+        <image wx:if="{{item.coverUrl}}" class="mat-cover" src="{{item.coverUrl}}" mode="aspectFill"/>
+        <text wx:else>{{item.type === 'document' ? '📄' : item.type === 'audio' ? '🎧' : '🖼️'}}</text>
+      </view>
+      <view class="mat-info">
+        <text class="mat-name">{{item.name}}</text>
+        <text class="mat-desc">{{item.description}}</text>
+        <view class="mat-meta-row">
+          <text class="mat-meta">{{item.category || (item.type === 'document' ? '文档' : item.type === 'audio' ? '音频' : '图片')}}</text>
+          <text class="mat-cost">{{item.accessLabel}}</text>
+        </view>
+      </view>
+      <view class="mat-actions">
+        <button class="mat-btn" size="mini" bindtap="onActionTap" data-item="{{item}}">
+          {{item.actionLabel}}
+        </button>
+        <button wx:if="{{item.canDownload}}" class="mat-btn mat-btn--ghost" size="mini" bindtap="downloadMaterial" data-item="{{item}}">
+          下载/转发
+        </button>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:elif="{{!loading}}">
+    <text class="empty-icon">📦</text>
+    <text class="empty-text">当前分类暂无资料</text>
+  </view>
+</view>

@@ -1,0 +1,115 @@
+{
+  "setting": {
+    "es6": true,
+    "postcss": true,
+    "minified": true,
+    "uglifyFileName": false,
+    "enhance": true,
+    "packNpmRelationList": [],
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    },
+    "useCompilerPlugins": false,
+    "minifyWXML": true
+  },
+  "compileType": "miniprogram",
+  "simulatorPluginLibVersion": {},
+  "packOptions": {
+    "ignore": [
+      {
+        "type": "file",
+        "value": ".DS_Store"
+      },
+      {
+        "type": "file",
+        "value": "project.private.config.json"
+      },
+      {
+        "type": "file",
+        "value": "cloudbaserc.json"
+      },
+      {
+        "type": "file",
+        "value": "738878d94f5954a5400e5663f85e7aff.mp4"
+      },
+      {
+        "type": "file",
+        "value": "gen_icons.py"
+      },
+      {
+        "type": "file",
+        "value": "gen_logo.py"
+      },
+      {
+        "type": "file",
+        "value": "沟通稿.pdf"
+      },
+      {
+        "type": "file",
+        "value": "仕舟小程序客户确认版需求文档.pdf"
+      },
+      {
+        "type": "file",
+        "value": "需求_large.jpg"
+      },
+      {
+        "type": "file",
+        "value": "需求.jpg"
+      },
+      {
+        "type": "file",
+        "value": "database_export-pYWQwcPwOJZy.json"
+      },
+      {
+        "type": "file",
+        "value": "题库导入模板.json"
+      },
+      {
+        "type": "file",
+        "value": "文曲星壁纸.zip"
+      },
+      {
+        "type": "file",
+        "value": "文档.tar.gz"
+      },
+      {
+        "type": "file",
+        "value": "未命名作品.psd"
+      },
+      {
+        "type": "file",
+        "value": "音频.tar.gz"
+      },
+      {
+        "type": "folder",
+        "value": "docs"
+      },
+      {
+        "type": "folder",
+        "value": "cloudfunctions"
+      },
+      {
+        "type": "folder",
+        "value": "samples"
+      },
+      {
+        "type": "folder",
+        "value": "scripts"
+      },
+      {
+        "type": "folder",
+        "value": "tmp"
+      },
+      {
+        "type": "folder",
+        "value": "先发第一批"
+      }
+    ],
+    "include": []
+  },
+  "appid": "wxca6ebd21699eca53",
+  "editorSetting": {},
+  "cloudfunctionRoot": "cloudfunctions/"
+}

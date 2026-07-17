@@ -1,0 +1,253 @@
+.cl-page {
+  min-height: 100vh;
+  background: var(--bg-page);
+  padding: 18rpx 16rpx 32rpx;
+  box-sizing: border-box;
+}
+
+.cl-header {
+  margin-bottom: 14rpx;
+  padding-top: 4rpx;
+}
+
+.cl-title {
+  font-size: 44rpx;
+  font-weight: 800;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.cl-subtitle {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+}
+
+.cl-category-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14rpx;
+}
+
+.cl-category-card {
+  min-height: 238rpx;
+  padding: 16rpx 16rpx 14rpx;
+  border-radius: var(--radius-xl);
+  border: 2rpx solid transparent;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: left;
+  overflow: hidden;
+}
+
+.cl-category-main {
+  width: 100%;
+}
+
+.cl-category-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 8rpx;
+  margin-bottom: 10rpx;
+  min-width: 0;
+}
+
+.cl-category-name {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  font-size: 32rpx;
+  font-weight: 900;
+  color: #111111;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cl-category-total {
+  flex-shrink: 0;
+  font-size: 20rpx;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.cl-category-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.cl-category-preview-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rpx 0;
+  gap: 8rpx;
+  min-width: 0;
+}
+
+.cl-category-preview-item {
+  flex: 1;
+  min-width: 0;
+  font-size: 22rpx;
+  color: var(--text-secondary);
+  line-height: 1.28;
+  text-align: left;
+  white-space: normal;
+  word-break: break-all;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.cl-category-preview-count {
+  flex-shrink: 0;
+  min-width: 42rpx;
+  text-align: right;
+  font-size: 20rpx;
+  font-weight: 800;
+  white-space: nowrap;
+  line-height: 1.28;
+}
+
+.cl-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24rpx;
+}
+
+.cl-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  padding: 24rpx;
+  gap: 24rpx;
+}
+
+.cl-cover {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: var(--radius-md);
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.cl-info {
+  flex: 1;
+}
+
+.cl-badges {
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
+}
+
+.cl-badge {
+  padding: 6rpx 14rpx;
+  border-radius: 100rpx;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 22rpx;
+}
+
+.cl-badge-light {
+  background: #F3F4F6;
+  color: var(--text-secondary);
+}
+
+.cl-name {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8rpx;
+  display: block;
+}
+
+.cl-desc {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-bottom: 16rpx;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.cl-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cl-count {
+  font-size: 24rpx;
+  color: var(--primary);
+  background: var(--primary-light);
+  padding: 4rpx 16rpx;
+  border-radius: 100rpx;
+  font-weight: 600;
+}
+
+.cl-action {
+  font-size: 24rpx;
+  color: var(--text-muted);
+}
+
+
+.cl-category-footer {
+  margin-top: 10rpx;
+  padding-top: 10rpx;
+  border-top: 2rpx solid rgba(255, 255, 255, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8rpx;
+}
+
+.cl-category-bank-count {
+  font-size: 20rpx;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.cl-category-more {
+  font-size: 20rpx;
+  font-weight: 700;
+}
+
+
+.cl-category-more-pill {
+  flex-shrink: 0;
+  padding: 6rpx 10rpx;
+  border-radius: 999rpx;
+  font-size: 18rpx;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.cl-category-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 8rpx;
+}
+
+.cl-category-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  opacity: 0.7;
+}

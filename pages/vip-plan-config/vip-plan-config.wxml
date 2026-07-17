@@ -1,0 +1,27 @@
+<view class="cfg-page">
+  <view class="card cfg-form">
+    <text class="cfg-title">新增/配置VIP套餐</text>
+    <input class="cfg-input" placeholder="套餐名称，如 基础VIP包年" value="{{name}}" data-field="name" bindinput="onInput"/>
+    <input class="cfg-input" placeholder="识别标识，如 基础VIP" value="{{tag}}" data-field="tag" bindinput="onInput"/>
+    <input class="cfg-input" placeholder="套餐 code，如 basic_vip_year" value="{{code}}" data-field="code" bindinput="onInput"/>
+    <input class="cfg-input" type="number" placeholder="价格（分）如 19800" value="{{price}}" data-field="price" bindinput="onInput"/>
+    <input class="cfg-input" type="number" placeholder="免广告天数，如 365" value="{{days}}" data-field="days" bindinput="onInput"/>
+    <input class="cfg-input" type="number" placeholder="督学天数，如 1 / 30 / 365" value="{{supervisionDays}}" data-field="supervisionDays" bindinput="onInput"/>
+    <input class="cfg-input" placeholder="虚拟支付道具ID，如 basic_vip_year" value="{{virtualProductId}}" data-field="virtualProductId" bindinput="onInput"/>
+    <textarea class="cfg-textarea" placeholder="权益说明，每行一条" value="{{benefits}}" data-field="benefits" bindinput="onInput"/>
+    <button class="btn btn-primary btn-full" bindtap="submit" loading="{{loading}}">保存套餐</button>
+  </view>
+
+  <view class="cfg-list">
+    <view class="cfg-item" wx:for="{{list}}" wx:key="_id">
+      <view class="cfg-main">
+        <text class="cfg-item-title">{{item.tag}} · {{item.name}}</text>
+        <text class="cfg-item-content">价格：{{(item.price || 0) / 100}}元 · 免广告{{item.days || 0}}天 · 督学{{item.supervisionDays || 0}}天</text>
+        <text class="cfg-item-content">虚拟支付道具ID：{{item.virtualProductId || item.code}}</text>
+        <text class="cfg-item-content">权益：{{item.benefitText}}</text>
+        <text class="cfg-item-meta">{{item.enabled ? '启用中' : '已停用'}}</text>
+      </view>
+      <button class="cfg-toggle" size="mini" bindtap="toggle" data-id="{{item._id}}" data-enabled="{{item.enabled}}">{{item.enabled ? '停用' : '启用'}}</button>
+    </view>
+  </view>
+</view>

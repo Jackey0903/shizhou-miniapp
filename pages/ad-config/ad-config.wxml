@@ -1,0 +1,45 @@
+<view class="cfg-page">
+  <view class="card cfg-form">
+    <text class="cfg-title">广告位管理</text>
+    <text class="cfg-sub">管理员只需填写微信广告 unitId，页面位置已预设好，避免填错。</text>
+
+    <view class="cfg-block">
+      <text class="cfg-label">选择广告位</text>
+      <picker range="{{positionOptions}}" range-key="label" value="{{positionIndex}}" bindchange="onPositionChange">
+        <view class="cfg-picker">{{positionOptions[positionIndex].label}}</view>
+      </picker>
+      <text class="cfg-hint">{{positionOptions[positionIndex].desc}}</text>
+    </view>
+
+    <view class="cfg-block">
+      <text class="cfg-label">显示名称</text>
+      <input class="cfg-input" placeholder="如 学习计划页横幅" value="{{name}}" data-field="name" bindinput="onInput"/>
+    </view>
+
+    <view class="cfg-block">
+      <text class="cfg-label">微信广告 unitId</text>
+      <input class="cfg-input" placeholder="请输入正式广告位 unitId" value="{{unitId}}" data-field="unitId" bindinput="onInput"/>
+    </view>
+
+    <view class="cfg-block">
+      <text class="cfg-label">备注</text>
+      <textarea class="cfg-textarea" placeholder="可选，方便管理员记录用途" value="{{remark}}" data-field="remark" bindinput="onInput"/>
+    </view>
+
+    <button class="btn btn-primary btn-full" bindtap="submit" loading="{{loading}}">保存广告位配置</button>
+  </view>
+
+  <view class="cfg-list">
+    <view class="cfg-item" wx:for="{{list}}" wx:key="_id">
+      <view class="cfg-main">
+        <text class="cfg-item-title">{{item.positionLabel}}</text>
+        <text class="cfg-item-content">名称：{{item.name}}</text>
+        <text class="cfg-item-content">位置标识：{{item.position}}</text>
+        <text class="cfg-item-content">说明：{{item.positionDesc || '未填写说明'}}</text>
+        <text class="cfg-item-content">unitId：{{item.unitId || '未配置'}}</text>
+        <text class="cfg-item-meta">{{item.enabled ? '启用中' : '已停用'}}</text>
+      </view>
+      <button class="cfg-toggle" size="mini" bindtap="toggle" data-id="{{item._id}}" data-enabled="{{item.enabled}}">{{item.enabled ? '停用' : '启用'}}</button>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,10 @@
+{
+    "name": "supervisionMatch",
+    "version": "1.0.0",
+    "description": "督学真实匹配：加入、退出、查询列表",
+    "main": "index.js",
+    "dependencies": {
+        "ws": "^8.21.0",
+        "wx-server-sdk": "^4.0.2"
+    }
+}

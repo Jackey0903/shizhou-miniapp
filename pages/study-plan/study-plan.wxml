@@ -1,0 +1,80 @@
+<!--pages/study-plan/study-plan.wxml-->
+<view class="plan-page">
+  <view class="plan-card card">
+    <view class="plan-card-head">
+      <!-- 课程信息 -->
+      <view class="plan-course-header">
+        <view class="plan-course-cover">
+          <image wx:if="{{course.cover}}" src="{{course.cover}}" mode="aspectFill" class="cover-img"/>
+          <view wx:else class="cover-placeholder">📚</view>
+        </view>
+        <view class="plan-course-info">
+          <text class="plan-course-name">{{course.name}}</text>
+          <text class="plan-course-meta">每日{{plan.dailyCount || 10}}题目，剩余{{remainDays}}天</text>
+          <view class="plan-prog-bar">
+            <view class="plan-prog-fill" style="width:{{learnedPct}}%;"></view>
+          </view>
+          <text class="plan-prog-text">已学{{learnedCount}}题目，总共{{course.totalCount || 0}}题目</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 完成日期 -->
+    <view class="plan-deadline">
+      <text class="plan-deadline-text">完成日期：</text>
+      <picker mode="date" bindchange="onDeadlineChange" value="{{plan.deadline}}">
+        <text class="plan-deadline-val">{{plan.deadlineLabel || '选择日期'}}</text>
+      </picker>
+    </view>
+
+    <!-- 每天答题数 -->
+    <view class="plan-row">
+      <text class="plan-row-label">每天答题个数</text>
+      <picker mode="selector" range="{{dailyCountOptions}}" bindchange="onDailyCountChange" value="{{dailyCountIndex}}">
+        <view class="plan-picker">
+          <text>{{dailyCountOptions[dailyCountIndex]}}题</text>
+          <text class="picker-arrow">∨</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 学习模式 -->
+    <view class="plan-row">
+      <text class="plan-row-label">选择学习模式</text>
+      <picker mode="selector" range="{{modeOptions}}" bindchange="onModeChange" value="{{modeIndex}}">
+        <view class="plan-picker">
+          <text>{{modeOptions[modeIndex]}}</text>
+          <text class="picker-arrow">∨</text>
+        </view>
+      </picker>
+    </view>
+  </view>
+
+  <!-- 进度按钮 -->
+  <view class="plan-stats">
+    <view class="plan-stat-item">
+      <text class="plan-stat-num">{{todayNew}}</text>
+      <text class="plan-stat-label">今日新学 {{todayNew}}/{{plan.dailyCount || 10}}</text>
+    </view>
+    <view class="plan-stat-item">
+      <text class="plan-stat-num">{{todayReview}}</text>
+      <text class="plan-stat-label">今日复习 {{todayReview}}/{{plan.dailyCount || 10}}</text>
+    </view>
+  </view>
+
+  <!-- 新学/复习按钮 -->
+  <view class="plan-action-row">
+    <button class="btn btn-primary plan-action-btn" bindtap="startNew">新学</button>
+    <button class="btn btn-secondary plan-action-btn" bindtap="startReview">复习</button>
+  </view>
+
+  <!-- 广告位 -->
+  <view class="ad-wrap" wx:if="{{bannerAdUnitId}}">
+    <ad unit-id="{{bannerAdUnitId}}" ad-type="banner"></ad>
+  </view>
+
+  <!-- 底部保存/修改按钮 -->
+  <view class="bottom-action">
+    <button class="btn btn-primary btn-full" bindtap="savePlan" loading="{{saving}}">保存学习计划</button>
+  </view>
+</view>

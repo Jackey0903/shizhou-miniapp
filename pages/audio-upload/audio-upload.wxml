@@ -1,0 +1,33 @@
+<view class="audio-upload-page">
+  <view class="card audio-upload-card">
+    <text class="audio-upload-title">批量上传磨耳朵音频</text>
+    <text class="audio-upload-sub">一次可上传多条音频，统一设置分类和标签</text>
+
+    <view class="form-item">
+      <text class="form-label">所属模块</text>
+      <picker range="{{categories}}" value="{{categoryIndex}}" bindchange="onCategoryChange">
+        <view class="form-picker">{{categories[categoryIndex]}}</view>
+      </picker>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">音频标签</text>
+      <picker range="{{types}}" value="{{typeIndex}}" bindchange="onTypeChange">
+        <view class="form-picker">{{types[typeIndex]}}</view>
+      </picker>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">时长说明（可选）</text>
+      <input class="form-input" placeholder="例如 05:20" value="{{duration}}" bindinput="onDurationInput"/>
+    </view>
+
+    <button class="btn btn-secondary btn-full" bindtap="chooseFiles">选择音频文件</button>
+
+    <view class="file-list" wx:if="{{files.length > 0}}">
+      <view class="file-item" wx:for="{{files}}" wx:key="name">{{item.name}}</view>
+    </view>
+
+    <button class="btn btn-primary btn-full" bindtap="submit" loading="{{uploading}}">开始批量上传</button>
+  </view>
+</view>

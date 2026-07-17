@@ -1,0 +1,216 @@
+{
+  "totalBanks": 19,
+  "totalQuestions": 2379,
+  "totalFailed": 0,
+  "banks": [
+    {
+      "file": "先发第一批/逻辑推理/定义判断/定义判断47式.wps",
+      "subject": "逻辑推理",
+      "bank": "定义判断47式",
+      "blocks": 47,
+      "imported": 47,
+      "choiceCount": 0,
+      "fillCount": 47,
+      "failedCount": 0,
+      "failed": []
+    },
+    {
+      "file": "先发第一批/逻辑推理/定义判断/定义判断常识141条.wps",
+      "subject": "逻辑推理",
+      "bank": "定义判断常识141条",
+      "blocks": 141,
+      "imported": 141,
+      "choiceCount": 0,
+      "fillCount": 141,
+      "failedCount": 0,
+      "failed": []
+    },
+    {
+      "file": "先发第一批/逻辑推理/定义判断/定义判断母题.wps",
+      "subject": "逻辑推理",
+      "bank": "定义判断母题",
+      "blocks": 47,
+      "imported": 47,
+      "choiceCount": 47,
+      "fillCount": 0,
+      "failedCount": 0,
+      "failed": []
+    },
+    {
+      "file": "先发第一批/逻辑推理/类比推理/类比推理28式.doc",
+      "subject": "逻辑推理",
+      "bank": "类比推理28式",
+      "blocks": 28,
+      "imported": 28,
+      "choiceCount": 0,
+      "fillCount": 28,
+      "failedCount": 0,
+      "failed": []
+    },
+    {
+      "file": "先发第一批/逻辑推理/类比推理/类比推理母题.wps",
+      "subject": "逻辑推理",
+      "bank": "类比推理母题",
+      "blocks": 28,
+      "imported": 28,
+      "choiceCount": 28,
+      "fillCount": 0,
+      "failedCount": 0,
+      "failed": []
+    },
+    {
+      "file": "先发第一批/逻辑推理/逻辑判断/逻辑判断42式.doc",
+      "subject": "逻辑推理",
+      "bank": "逻辑判断42式",
+      "blocks": 42,
+      "imported": 42,
+      "choiceCount": 0,
+      "fillCount": 42,
+      "failedCount": 0,
+      "failed": []
+    },
+    {
+      "file": "先发第一批/逻辑推理/逻辑判断/逻辑判断母题.wps",
+      "subject": "逻辑推理",
+      "bank": "逻辑判断母题",
+      "blocks": 42,
+      "imported": 42,
+      "choiceCount": 40,
+      "fillCount": 2,
+      "failedCount": 0,
+      "failed": []
+    },
+    {
+      "file": "先发第一批/申论/申论57式.wps",
+      "subject": "申论",
+      "bank": "申论57式",
+      "blocks": 57,
+      "imported": 57,
+      "choiceCount": 0,
+      "fillCount": 57,
+      "failedCount": 0,
+      "failed": []
+    },
+    {
+      "file": "先发第一批/申论/申论母题.wps",
+      "subject": "申论",
+      "bank": "申论母题",
+      "blocks": 57,
+      "imported": 57,
+      "choiceCount": 0,
+      "fillCount": 57,
+      "failedCount": 0,
+      "failed": []
+    },
+    {
+      "file": "先发第一批/数量关系/数量关系185式.wps",
+      "subject": "数量关系",
+      "bank": "数量关系185式",
+      "blocks": 185,
+      "imported": 185,
+      "choiceCount": 0,
+      "fillCount": 185,
+      "failedCount": 0,
+      "failed": []
+    },
+    {
+      "file": "先发第一批/数量关系/数量关系母题.wps",
+      "subject": "数量关系",
+      "bank": "数量关系母题",
+      "blocks": 185,
+      "imported": 185,
+      "choiceCount": 178,
+      "fillCount": 7,
+      "failedCount": 0,
+      "failed": []
+    },
+    {
+      "file": "先发第一批/言语理解/成语800条.wps",
+      "subject": "言语理解",
+      "bank": "成语800条",
+      "blocks": 800,
+      "imported": 800,
+      "choiceCount": 0,
+      "fillCount": 800,
+      "failedCount": 0,
+      "failed": []
+    },
+    {
+      "file": "先发第一批/言语理解/实词辨析255条.wps",
+      "subject": "言语理解",
+      "bank": "实词辨析255条",
+      "blocks": 267,
+      "imported": 267,
+      "choiceCount": 0,
+      "fillCount": 267,
+      "failedCount": 0,
+      "failed": []
+    },
+    {
+      "file": "先发第一批/言语理解/言语理解37式.wps",
+      "subject": "言语理解",
+      "bank": "言语理解37式",
+      "blocks": 37,
+      "imported": 37,
+      "choiceCount": 0,
+      "fillCount": 37,
+      "failedCount": 0,
+      "failed": []
+    },
+    {
+      "file": "先发第一批/言语理解/言语理解37式母题.wps",
+      "subject": "言语理解",
+      "bank": "言语理解37式母题",
+      "blocks": 38,
+      "imported": 38,
+      "choiceCount": 35,
+      "fillCount": 3,
+      "failedCount": 0,
+      "failed": []
+    },
+    {
+      "file": "先发第一批/资料分析/资料分析165式.wps",
+      "subject": "资料分析",
+      "bank": "资料分析165式",
+      "blocks": 165,
+      "imported": 165,
+      "choiceCount": 0,
+      "fillCount": 165,
+      "failedCount": 0,
+      "failed": []
+    },
+    {
+      "file": "先发第一批/资料分析/资料分析母题.wps",
+      "subject": "资料分析",
+      "bank": "资料分析母题",
+      "blocks": 173,
+      "imported": 173,
+      "choiceCount": 165,
+      "fillCount": 8,
+      "failedCount": 0,
+      "failed": []
+    },
+    {
+      "file": "先发第一批/综应/综应20式.wps",
+      "subject": "综应",
+      "bank": "综应20式",
+      "blocks": 20,
+      "imported": 20,
+      "choiceCount": 0,
+      "fillCount": 20,
+      "failedCount": 0,
+      "failed": []
+    },
+    {
+      "file": "先发第一批/综应/综应母题.wps",
+      "subject": "综应",
+      "bank": "综应母题",
+      "blocks": 20,
+      "imported": 20,
+      "choiceCount": 0,
+      "fillCount": 20,
+      "failedCount": 0,
+      "failed": []
+    }
+  ]
+}

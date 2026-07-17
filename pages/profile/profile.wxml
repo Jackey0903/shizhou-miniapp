@@ -1,0 +1,175 @@
+<!--pages/profile/profile.wxml-->
+<view class="profile-page">
+  <!-- 用户信息卡 -->
+  <view class="profile-hero" wx:if="{{isLogin}}">
+    <image class="profile-avatar" src="{{userInfo.avatarUrl || '/assets/images/default-avatar.png'}}" mode="aspectFill"/>
+    <view class="profile-info">
+      <text class="profile-name">{{userInfo.nickName}}</text>
+      <view class="profile-vip-tag" wx:if="{{isVip}}">
+        <text>👑 VIP 会员</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 未登录 -->
+  <view class="profile-login-prompt" wx:else bindtap="goLogin">
+    <image class="profile-avatar-placeholder" src="/assets/images/default-avatar.png" mode="aspectFill"/>
+    <text class="profile-login-text">点击登录 ›</text>
+  </view>
+
+  <!-- 统计数据 -->
+  <view class="profile-stats card" wx:if="{{isLogin}}">
+    <view class="stat-item">
+      <text class="stat-num">{{userInfo.streak || 0}}</text>
+      <text class="stat-label">连续签到天数</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-num">{{userInfo.totalCheckins || 0}}</text>
+      <text class="stat-label">累计签到天数</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-num">{{userInfo.coins || 0}}</text>
+      <text class="stat-label">累计舟币数量</text>
+    </view>
+  </view>
+
+  <!-- 舟币余额 -->
+  <view class="coin-row card" wx:if="{{isLogin}}">
+    <text class="coin-label">剩余舟币</text>
+    <view class="coin-value">
+      <text class="coin-num">{{userInfo.coins || 0}}</text>
+      <text class="coin-icon">🪙</text>
+    </view>
+  </view>
+
+  <!-- 菜单列表 -->
+  <view class="menu-list card">
+    <navigator class="menu-item" url="/pages/study-book/study-book">
+      <text class="menu-icon">📚</text>
+      <text class="menu-title">我的新学本</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+
+    <navigator class="menu-item" url="/pages/review-book/review-book">
+      <text class="menu-icon">📖</text>
+      <text class="menu-title">我的记忆本</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+
+    <navigator class="menu-item" url="/pages/coin-log/coin-log">
+      <text class="menu-icon">🪙</text>
+      <text class="menu-title">舟币明细</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+
+    <navigator class="menu-item" url="/pages/vip/vip">
+      <text class="menu-icon">💎</text>
+      <text class="menu-title">加入VIP</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+
+    <navigator class="menu-item" url="/pages/order-center/order-center">
+      <text class="menu-icon">🧾</text>
+      <text class="menu-title">我的订单</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+
+    <navigator class="menu-item" url="/pages/share-gift/share-gift" open-type="switchTab">
+      <text class="menu-icon">🎁</text>
+      <text class="menu-title">推荐有礼</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+
+    <navigator class="menu-item" url="/pages/question-upload/question-upload" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
+      <text class="menu-icon">✍️</text>
+      <text class="menu-title">题目录入</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+
+    <navigator class="menu-item" url="/pages/course-upload/course-upload" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
+      <text class="menu-icon">🗂️</text>
+      <text class="menu-title">题库管理</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+
+    <navigator class="menu-item" url="/pages/audio-upload/audio-upload" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
+      <text class="menu-icon">🎧</text>
+      <text class="menu-title">音频上传</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+
+    <navigator class="menu-item" url="/pages/material-upload/material-upload" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
+      <text class="menu-icon">📦</text>
+      <text class="menu-title">资料上传</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+
+    <navigator class="menu-item" url="/pages/wallpaper-upload/wallpaper-upload" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
+      <text class="menu-icon">🖼️</text>
+      <text class="menu-title">壁纸上传</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+
+    <navigator class="menu-item" url="/pages/reminder-config/reminder-config" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
+      <text class="menu-icon">⏰</text>
+      <text class="menu-title">提醒配置</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+
+    <navigator class="menu-item" url="/pages/vip-plan-config/vip-plan-config" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
+      <text class="menu-icon">💠</text>
+      <text class="menu-title">VIP套餐管理</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+
+    <navigator class="menu-item" url="/pages/message-config/message-config" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
+      <text class="menu-icon">📣</text>
+      <text class="menu-title">消息推荐管理</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+
+    <navigator class="menu-item" url="/pages/ad-config/ad-config" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
+      <text class="menu-icon">🧩</text>
+      <text class="menu-title">广告位管理</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+
+    <navigator class="menu-item" url="/pages/help-config/help-config" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
+      <text class="menu-icon">💬</text>
+      <text class="menu-title">帮助反馈配置</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+
+    <navigator class="menu-item" url="/pages/punch-background-config/punch-background-config" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
+      <text class="menu-icon">🖼️</text>
+      <text class="menu-title">打卡背景管理</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+
+    <navigator class="menu-item" url="/pages/punch-quote-config/punch-quote-config" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
+      <text class="menu-icon">✒️</text>
+      <text class="menu-title">打卡文案管理</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+
+    <navigator class="menu-item" url="/pages/calendar/calendar">
+      <text class="menu-icon">📅</text>
+      <text class="menu-title">学习日历</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+
+    <navigator class="menu-item" url="/pages/help-feedback/help-feedback">
+      <text class="menu-icon">💬</text>
+      <text class="menu-title">帮助与反馈</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+
+    <view class="menu-item" bindtap="onLogout" wx:if="{{isLogin}}">
+      <text class="menu-icon">🚪</text>
+      <text class="menu-title logout-text">退出登录</text>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,16 @@
+<view class="upload-page">
+  <view class="card upload-card">
+    <text class="upload-title">上传平台壁纸</text>
+    <text class="upload-sub">上传后的壁纸会出现在屏保壁纸页，用户可下载或编辑分享。</text>
+
+    <view class="form-item">
+      <text class="form-label">壁纸标题</text>
+      <input class="form-input" placeholder="例如 清晨上岸" value="{{title}}" bindinput="onInput"/>
+    </view>
+
+    <button class="btn btn-secondary btn-full" bindtap="chooseImage">选择壁纸图片</button>
+    <image wx:if="{{selectedFile}}" class="preview" src="{{selectedFile.preview}}" mode="aspectFill"/>
+
+    <button class="btn btn-primary btn-full" bindtap="submit" loading="{{uploading}}">上传壁纸</button>
+  </view>
+</view>

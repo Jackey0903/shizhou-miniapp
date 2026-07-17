@@ -1,0 +1,16 @@
+.plan-page { min-height: 100vh; background: var(--bg-page); padding: 24rpx; box-sizing: border-box; }
+.guide-card, .qr-card, .form-card, .reminder-card { margin-top: 20rpx; }
+.section-title { display: block; font-size: 32rpx; font-weight: 800; }
+.section-sub { display: block; margin-top: 10rpx; font-size: 24rpx; line-height: 1.7; color: var(--text-secondary); }
+.guide-step { display: block; margin-top: 12rpx; font-size: 24rpx; line-height: 1.75; color: #334155; }
+.qr-image { width: 360rpx; margin: 24rpx auto 0; display: block; border-radius: 24rpx; background: #fff; box-shadow: 0 12rpx 28rpx rgba(15, 23, 42, 0.08); }
+.qr-btn { margin-top: 20rpx; }
+.form-textarea, .form-picker, .form-input { width: 100%; min-height: 92rpx; border-radius: 24rpx; border: 2rpx solid var(--border); background: #fff; padding: 0 24rpx; box-sizing: border-box; font-size: 28rpx; display: flex; align-items: center; margin-top: 16rpx; }
+.form-textarea { min-height: 240rpx; padding: 24rpx; }
+.plan-template-btn { margin-top: 18rpx; }
+.section-tip { display: block; margin-top: 8rpx; font-size: 22rpx; color: #2563eb; }
+.reminder-item { display: flex; justify-content: space-between; gap: 16rpx; align-items: center; padding: 20rpx 0; border-bottom: 1rpx solid var(--border); }
+.reminder-main { flex: 1; }
+.reminder-title { display: block; font-size: 28rpx; font-weight: 700; }
+.reminder-meta, .empty-line { display: block; margin-top: 8rpx; font-size: 24rpx; color: var(--text-secondary); line-height: 1.6; }
+.reminder-delete { border-radius: 999rpx; color: #ef4444; border-color: #fecaca; }

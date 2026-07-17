@@ -1,0 +1,10 @@
+{
+  "name": "getCourses",
+  "version": "1.0.0",
+  "description": "获取题库列表",
+  "main": "index.js",
+  "dependencies": {
+    "ws": "^8.21.0",
+    "wx-server-sdk": "^4.0.2"
+  }
+}

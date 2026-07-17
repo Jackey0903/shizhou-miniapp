@@ -1,0 +1,34 @@
+[
+    {
+        "courseId": "替换为课程_id（从云端courses表获取）",
+        "type": "choice",
+        "content": "中国四大名著之一的《红楼梦》作者是谁？",
+        "options": [
+            "A. 曹雪芹",
+            "B. 罗贯中",
+            "C. 施耐庵",
+            "D. 吴承恩"
+        ],
+        "answer": "A",
+        "sort": 1
+    },
+    {
+        "courseId": "替换为课程_id（从云端courses表获取）",
+        "type": "fill",
+        "content": "光的传播速度在真空中约为______千米每秒。",
+        "answer": "300,000",
+        "sort": 2
+    },
+    {
+        "courseId": "替换为课程_id（从云端courses表获取）",
+        "type": "image",
+        "content": "请观察以下图表，选出正确的推论。",
+        "imageUrl": "cloud://cloud1-shizhou-xxx.xxx/images/question3.png",
+        "options": [
+            "A. x轴递增",
+            "B. y轴递增"
+        ],
+        "answer": "A",
+        "sort": 3
+    }
+]

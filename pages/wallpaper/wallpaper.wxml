@@ -1,0 +1,29 @@
+<view class="wp-page">
+  <view class="wp-topbar">
+    <view>
+      <text class="wp-title">屏保壁纸</text>
+      <text class="wp-sub">支持从手机相册上传到云端</text>
+    </view>
+    <button class="btn btn-primary wp-upload" loading="{{uploading}}" bindtap="uploadLocal">上传本地壁纸</button>
+  </view>
+
+  <view class="wp-grid">
+    <view class="wp-item" wx:for="{{wallpapers}}" wx:key="_id">
+      <image class="wp-img" src="{{item.imageUrl}}" mode="aspectFill" bindtap="preview" data-src="{{item.imageUrl}}"/>
+      <view class="wp-source" wx:if="{{item.source === 'mine'}}">我的上传</view>
+      <view class="wp-actions">
+        <button class="wp-btn wp-btn-share" bindtap="shareImage" data-item="{{item}}">分享朋友圈</button>
+        <text class="wp-btn" bindtap="save" data-item="{{item}}">保存</text>
+        <text class="wp-btn" bindtap="edit" data-item="{{item}}">编辑</text>
+        <text class="wp-btn wp-btn-primary" bindtap="useForCheckin" data-item="{{item}}">用于打卡</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{wallpapers.length === 0}}">
+    <text class="empty-icon">🖼️</text>
+    <text class="empty-text">壁纸加载中...</text>
+  </view>
+
+  <canvas class="wp-share-canvas" canvas-id="wallpaperShareCanvas"></canvas>
+</view>

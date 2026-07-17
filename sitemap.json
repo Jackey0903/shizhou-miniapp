@@ -1,0 +1,9 @@
+{
+    "desc": "关注敏感数据及用户隐私",
+    "rules": [
+        {
+            "action": "disallow",
+            "page": "*"
+        }
+    ]
+}

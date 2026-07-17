@@ -1,0 +1,96 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/course-list/course-list",
+    "pages/study-plan/study-plan",
+    "pages/study-book/study-book",
+    "pages/question/question",
+    "pages/review-book/review-book",
+    "pages/calendar/calendar",
+    "pages/checkin/checkin",
+    "pages/mutual-help/mutual-help",
+    "pages/supervision/supervision",
+    "pages/share-gift/share-gift",
+    "pages/message/message",
+    "pages/help-feedback/help-feedback",
+    "pages/profile/profile",
+    "pages/login/login",
+    "pages/agreement/agreement",
+    "pages/privacy/privacy",
+    "pages/supervision-pay/supervision-pay",
+    "pages/supervision-plan/supervision-plan",
+    "pages/vip/vip",
+    "pages/order-center/order-center",
+    "pages/wallpaper/wallpaper",
+    "pages/audio-ear/audio-ear",
+    "pages/calculator/calculator",
+    "pages/material/material",
+    "pages/coin-log/coin-log",
+    "pages/question-upload/question-upload",
+    "pages/course-upload/course-upload",
+    "pages/audio-upload/audio-upload",
+    "pages/material-upload/material-upload",
+    "pages/wallpaper-upload/wallpaper-upload",
+    "pages/reminder-config/reminder-config",
+    "pages/message-config/message-config",
+    "pages/ad-config/ad-config",
+    "pages/help-config/help-config",
+    "pages/vip-plan-config/vip-plan-config",
+    "pages/punch-background-config/punch-background-config",
+    "pages/punch-quote-config/punch-quote-config",
+    "pages/wallpaper-editor/wallpaper-editor"
+  ],
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#2563EB",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页",
+        "iconPath": "assets/icons/home.png",
+        "selectedIconPath": "assets/icons/home-active.png"
+      },
+      {
+        "pagePath": "pages/share-gift/share-gift",
+        "text": "分享有礼",
+        "iconPath": "assets/icons/share.png",
+        "selectedIconPath": "assets/icons/share-active.png"
+      },
+      {
+        "pagePath": "pages/supervision/supervision",
+        "text": "督学匹配",
+        "iconPath": "assets/icons/supervision.png",
+        "selectedIconPath": "assets/icons/supervision-active.png"
+      },
+      {
+        "pagePath": "pages/message/message",
+        "text": "消息",
+        "iconPath": "assets/icons/message.png",
+        "selectedIconPath": "assets/icons/message-active.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "assets/icons/profile.png",
+        "selectedIconPath": "assets/icons/profile-active.png"
+      }
+    ]
+  },
+  "window": {
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "navigationBarTitleText": "仕舟公考",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F5F6FA"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents",
+  "plugins": {},
+  "cloud": true,
+  "requiredBackgroundModes": [
+    "audio"
+  ]
+}

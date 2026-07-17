@@ -1,0 +1,34 @@
+<view class="cfg-page">
+  <view class="card cfg-form">
+    <text class="cfg-title">帮助与反馈配置</text>
+    <text class="cfg-sub">管理员维护后，普通用户进入“帮助与反馈”会自动读取这里的内容。</text>
+
+    <view class="cfg-block">
+      <text class="cfg-label">页面标题</text>
+      <input class="cfg-input" value="{{title}}" data-field="title" bindinput="onInput"/>
+    </view>
+
+    <view class="cfg-block">
+      <text class="cfg-label">页面说明</text>
+      <textarea class="cfg-textarea" value="{{desc}}" data-field="desc" bindinput="onInput"/>
+    </view>
+
+    <view class="cfg-block">
+      <text class="cfg-label">客服二维码路径</text>
+      <input class="cfg-input" value="{{qrCodePath}}" data-field="qrCodePath" bindinput="onInput" placeholder="如 /QRcode.png 或云图片地址"/>
+    </view>
+
+    <view class="cfg-block">
+      <text class="cfg-label">复制反馈说明</text>
+      <textarea class="cfg-textarea" value="{{copyGuide}}" data-field="copyGuide" bindinput="onInput"/>
+    </view>
+
+    <view class="cfg-block">
+      <text class="cfg-label">常见问题</text>
+      <text class="cfg-hint">每行一条，格式：问题｜答案</text>
+      <textarea class="cfg-textarea cfg-textarea--faq" value="{{faqText}}" data-field="faqText" bindinput="onInput"/>
+    </view>
+
+    <button class="btn btn-primary btn-full" bindtap="submit" loading="{{loading}}">保存帮助配置</button>
+  </view>
+</view>

@@ -1,0 +1,71 @@
+<!--pages/calendar/calendar.wxml-->
+<view class="cal-page">
+  <view class="cal-header card">
+    <view class="cal-nav">
+      <text class="cal-nav-btn" bindtap="prevMonth">‹</text>
+      <text class="cal-title">{{year}}年{{month}}月</text>
+      <text class="cal-nav-btn" bindtap="nextMonth">›</text>
+      <view class="cal-header-right">
+        <text class="cal-more-icon">•••</text>
+      </view>
+    </view>
+
+    <view class="cal-weekdays">
+      <text wx:for="{{weekdays}}" wx:key="*this" class="cal-weekday {{item === '日' ? 'weekend' : ''}}">{{item}}</text>
+    </view>
+
+    <view class="cal-grid">
+      <view
+        class="cal-day {{item.isCurrentMonth ? '' : 'other-month'}} {{item.isToday ? 'today' : ''}} {{item.isCheckin ? 'checked' : ''}}"
+        wx:for="{{calDays}}"
+        wx:key="index"
+      >
+        <text class="cal-day-num">{{item.day}}</text>
+        <view class="cal-dot" wx:if="{{item.isCheckin}}"></view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section card">
+    <view class="section-header">
+      <text class="section-title">学习记录</text>
+      <text class="section-more">共{{todayRecords.length}}条</text>
+    </view>
+    <view class="record-list" wx:if="{{todayRecords.length > 0}}">
+      <view class="record-item" wx:for="{{todayRecords}}" wx:key="_id">
+        <text class="record-time">{{item.timeLabel}}</text>
+        <view class="record-main">
+          <text class="record-bank">{{item.bankName}}</text>
+          <text class="record-desc strikethrough">{{item.description}}</text>
+          <text class="record-status">{{item.doneText}}</text>
+        </view>
+      </view>
+    </view>
+    <view class="empty" wx:else>
+      <text class="empty-text">今日还没有学习记录</text>
+    </view>
+  </view>
+
+  <view class="section card">
+    <view class="section-header">
+      <text class="section-title">待完成计划</text>
+      <text class="section-more">共{{planItems.length}}项</text>
+    </view>
+    <view class="plan-items" wx:if="{{planItems.length > 0}}">
+      <view class="plan-item {{item.done ? 'done' : ''}}" wx:for="{{planItems}}" wx:key="_id" bindtap="onPlanTap" data-courseid="{{item.courseId}}">
+        <view class="plan-item-info">
+          <text class="plan-item-title {{item.done ? 'strikethrough' : ''}}">{{item.title}}</text>
+          <text class="plan-item-time">今日目标 {{item.targetCount}}题，已完成 {{item.finishedToday}}题，完成日期 {{item.deadline}}</text>
+        </view>
+        <text class="plan-item-tag {{item.done ? 'plan-item-tag--done' : ''}}">{{item.tag}}</text>
+      </view>
+    </view>
+    <view class="empty" wx:else>
+      <text class="empty-text">还没有学习计划，先去任意题库设置计划</text>
+    </view>
+  </view>
+
+  <view class="bottom-action">
+    <button class="btn {{canCheckin ? 'btn-primary' : 'btn-outline'}} btn-full" bindtap="goCheckin">{{canCheckin ? '完成任一题库任务，立即打卡' : '完成任一题库今日任务后可打卡'}}</button>
+  </view>
+</view>
