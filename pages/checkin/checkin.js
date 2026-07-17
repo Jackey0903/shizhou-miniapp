@@ -220,7 +220,12 @@ Page({
         wx.showToast({ title: '已打卡，分享图片可得舟币', icon: 'none' })
       } else {
         wx.showToast({ title: res.result.msg || '今日已打卡', icon: 'none' })
-        this.setData({ checkedToday: true, shareReady: true, loading: false })
+        const alreadyChecked = res.result.code === 1
+        this.setData({
+          checkedToday: alreadyChecked,
+          shareReady: alreadyChecked,
+          loading: false
+        })
       }
     } catch (e) {
       wx.showToast({ title: '打卡失败', icon: 'none' })
@@ -323,6 +328,10 @@ Page({
   },
 
   async shareFullImage() {
+    if (!this.data.shareReady) {
+      wx.showToast({ title: '完成今日学习任务并打卡后才能分享领奖励', icon: 'none' })
+      return
+    }
     let loadingVisible = true
     wx.showLoading({ title: '准备图片中', mask: true })
     try {

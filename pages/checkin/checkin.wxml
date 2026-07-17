@@ -27,7 +27,7 @@
   </view>
 
   <view class="checkin-share-tip">
-    <button class="checkin-share-btn" bindtap="shareFullImage" loading="{{loading}}">分享图片获取10舟币</button>
+    <button class="checkin-share-btn" bindtap="shareFullImage" loading="{{loading}}" disabled="{{!shareReady}}">分享图片获取10舟币</button>
     <text class="checkin-share-title">完整图片分享</text>
     <text class="checkin-share-desc">会生成朋友圈适配的正方形图片，壁纸完整显示不裁切；如果当前微信版本不支持，会自动保存到相册。</text>
   </view>

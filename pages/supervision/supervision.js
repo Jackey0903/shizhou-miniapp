@@ -292,8 +292,10 @@ Page({
         })
         wx.showToast({ title: '已加入匹配池', icon: 'success' })
         setTimeout(() => {
-          wx.navigateTo({ url: `/pages/supervision-pay/supervision-pay?mode=${this.data.activeTab}` })
+          wx.navigateTo({ url: `/pages/supervision-plan/supervision-plan?mode=${this.data.activeTab}` })
         }, 350)
+      } else if (res.result && res.result.code === 402) {
+        wx.navigateTo({ url: `/pages/supervision-pay/supervision-pay?mode=${this.data.activeTab}` })
       } else {
         wx.showToast({ title: (res.result && res.result.msg) || '加入失败', icon: 'none' })
       }

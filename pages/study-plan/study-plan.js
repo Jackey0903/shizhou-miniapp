@@ -70,10 +70,8 @@ Page({
 
             // 计算已学数
             const records = await cloudApi.getStudyRecords(this.data.courseId)
-            const planRecords = plan._id
-                ? records.filter(r => r.planId === plan._id || !r.planId)
-                : records
-            const learnedCount = planRecords.filter(r => r.result === 'know').length
+            const planRecords = records
+            const learnedCount = new Set(planRecords.map(r => r.questionId).filter(Boolean)).size
             const learnedPct = total > 0 ? Math.round((learnedCount / total) * 100) : 0
 
             // 今日进度
@@ -131,7 +129,8 @@ Page({
         })
     },
 
-    async savePlan() {
+    async savePlan(options = {}) {
+        const silent = options && options.silent === true
         this.setData({ saving: true })
         const dailyCount = this.data.dailyCountOptions[this.data.dailyCountIndex]
         const mode = this.data.modeIndex === 1 ? 'random' : 'sequential'
@@ -144,23 +143,28 @@ Page({
                 mode,
                 deadline: this.data.plan.deadline || null
             })
-            if (res.result.code === 0) {
+            if (res.result && res.result.code === 0) {
                 this.setData({
                     'plan._id': (res.result.data && res.result.data.planId) || this.data.plan._id,
                     'plan.dailyCount': dailyCount,
                     'plan.mode': mode,
                     remainDays: calcRemainDays(this.data.plan.deadline, this.data.course.totalCount || 0, dailyCount, this.data.learnedCount)
                 })
-                wx.showToast({ title: '计划已保存', icon: 'success' })
+                if (!silent) wx.showToast({ title: '计划已保存', icon: 'success' })
+                return true
             }
+            throw new Error((res.result && (res.result.error || res.result.msg)) || '保存失败')
         } catch (e) {
-            wx.showToast({ title: '保存失败', icon: 'none' })
+            wx.showToast({ title: e.message || '保存失败', icon: 'none' })
+            return false
         } finally {
             this.setData({ saving: false })
         }
     },
 
-    startNew() {
+    async startNew() {
+        const saved = await this.savePlan({ silent: true })
+        if (!saved) return
         wx.navigateTo({
             url: `/pages/question/question?courseId=${this.data.courseId}&courseName=${this.data.courseName}&planId=${this.data.plan._id || ''}&mode=new`
         })

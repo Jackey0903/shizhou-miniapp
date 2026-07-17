@@ -35,6 +35,13 @@ function normalizeFillText(value = '') {
         .replace(/[。．.,，!！?？;；:："'“”‘’()（）【】\[\]{}]/g, '')
 }
 
+function getCorrectIndex(question = {}) {
+    const explicit = Number(question.correctIndex)
+    if (Number.isInteger(explicit) && explicit >= 0) return explicit
+    const match = String(question.answer || '').trim().match(/^([A-E])(?:[.、\s]|$)/i)
+    return match ? match[1].toUpperCase().charCodeAt(0) - 65 : -1
+}
+
 function formatDateKey(date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
@@ -71,6 +78,8 @@ Page({
         fillAnswer: '',
         fillCorrect: false,
         fillCheckMode: 'auto',
+        selectedOptionIndex: -1,
+        submittingAnswer: false,
         dailyTarget: 0,
         todayDoneCount: 0,
         activePlan: null,
@@ -83,11 +92,18 @@ Page({
         }
     },
 
-    onLoad(options) {
+    onLoad(options = {}) {
         const { courseId, courseName, planId, mode = 'new', questionIds = '' } = options
-        const ids = questionIds
+        let ids = questionIds
             ? questionIds.split(',').filter(Boolean)
             : []
+        if (options.reviewSessionKey) {
+            const storageKey = `reviewQuestionIds:${options.reviewSessionKey}`
+            const storedIds = wx.getStorageSync(storageKey)
+            if (Array.isArray(storedIds) && storedIds.length) ids = storedIds.filter(Boolean)
+            wx.removeStorageSync(storageKey)
+        }
+        this._answerSessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
         this.setData({ courseId, courseName, planId, mode, questionIds: ids })
         wx.setNavigationBarTitle({ title: courseName || '学习' })
         this._loadAdSlot()
@@ -104,6 +120,13 @@ Page({
             const slot = await cloudApi.getAdSlot('question-banner')
             this.setData({ bannerAdUnitId: slot ? (slot.unitId || slot.adUnitId || '') : '' })
         } catch (err) {}
+    },
+
+    onAdLoad() {},
+
+    onAdError(err) {
+        console.warn('题目页广告加载失败', err)
+        this.setData({ bannerAdUnitId: '' })
     },
 
     async _loadQuestions() {
@@ -125,12 +148,12 @@ Page({
                     ids = records.map(r => r.questionId)
                 }
 
-                // 取出题目详情（优先使用 study_records 快照）
+                // 云端会校验当前访问权限，并为旧记录补齐题目快照。
                 const records = await cloudApi.getStudyRecords(this.data.courseId)
                 const recordMap = {}
                 records.forEach(r => { recordMap[r.questionId] = r })
 
-                const promises = ids.slice(0, 50).map(async id => {
+                const promises = ids.map(async id => {
                     const cached = recordMap[id]
                     if (cached && cached.questionContent) {
                         return {
@@ -140,16 +163,14 @@ Page({
                             options: cached.questionOptions || [],
                             answer: cached.questionAnswer || '',
                             explanation: cached.questionExplanation || '',
+                            correctIndex: Number.isInteger(Number(cached.questionCorrectIndex))
+                                ? Number(cached.questionCorrectIndex)
+                                : getCorrectIndex({ answer: cached.questionAnswer }),
+                            imageUrl: cached.questionImageUrl || '',
                             fromRecord: true
                         }
                     }
-                    try {
-                        const res = await cloudApi.db.collection('questions').doc(id).get()
-                        return res.data
-                    } catch (err) {
-                        console.warn('题目不存在', id, err)
-                        return null
-                    }
+                    return null
                 })
                 questions = (await Promise.all(promises)).filter(Boolean)
                 if (questions.length === 0) {
@@ -163,7 +184,7 @@ Page({
             } else {
                 const [plans, allQuestions, records] = await Promise.all([
                     cloudApi.getPlans().catch(() => []),
-                    cloudApi.getQuestions(this.data.courseId, 0, 500),
+                    cloudApi.getQuestions(this.data.courseId, 0, 5000),
                     cloudApi.getStudyRecords(this.data.courseId).catch(() => [])
                 ])
                 const plan = plans.find((item) => (
@@ -171,7 +192,10 @@ Page({
                 )) || {}
                 const dailyCount = Math.max(1, Number(plan.dailyCount || 10))
                 const today = new Date()
-                const todayDoneCount = records.filter((item) => sameDate(item.updatedAt || item.createdAt, today)).length
+                const todayDoneCount = new Set(records
+                    .filter((item) => sameDate(item.createdAt, today))
+                    .map((item) => item.questionId)
+                    .filter(Boolean)).size
                 const remainingCount = Math.max(0, dailyCount - todayDoneCount)
                 const mode = plan.mode || 'sequential'
                 const learnedIds = new Set(records.map((item) => item.questionId).filter(Boolean))
@@ -229,6 +253,8 @@ Page({
                 fillAnswer: '',
                 fillCorrect: false,
                 fillCheckMode: 'auto',
+                selectedOptionIndex: -1,
+                submittingAnswer: false,
                 showAnswer: false,
                 answered: false,
                 choiceState: {},
@@ -278,9 +304,13 @@ Page({
     // 选择题：选项点击
     onSelectOption(e) {
         if (this.data.answered) return
-        const { index } = e.currentTarget.dataset
+        const index = Number(e.currentTarget.dataset.index)
         const question = this.data.questions[this.data.currentIndex]
-        const correctIndex = question.correctIndex ?? 0
+        const correctIndex = getCorrectIndex(question)
+        if (!Number.isInteger(index) || index < 0 || correctIndex < 0) {
+            wx.showToast({ title: '题目答案配置异常，请提交纠错', icon: 'none' })
+            return
+        }
 
         const choiceState = {}
         if (index === correctIndex) {
@@ -290,34 +320,53 @@ Page({
             choiceState[correctIndex] = 'correct'
         }
 
-        this.setData({ choiceState, answered: true })
+        this.setData({ choiceState, answered: true, selectedOptionIndex: index })
     },
 
     // 三按钮结果
     async onResult(e) {
+        if (this.data.submittingAnswer) return
         const { result } = e.currentTarget.dataset
         const question = this.data.questions[this.data.currentIndex]
-        const extraPayload = question.type === 'fill'
-            ? {
-                userAnswer: (this.data.fillAnswer || '').trim(),
-                isCorrect: result === 'know'
-            }
-            : {}
+        if (!question || !['none', 'maybe', 'know'].includes(result)) return
 
+        const selectedOptionIndex = Number(this.data.selectedOptionIndex)
+        const correctIndex = getCorrectIndex(question)
+        const fillAnswer = (this.data.fillAnswer || '').trim()
+        const extraPayload = question.type === 'choice'
+            ? {
+                userOptionIndex: selectedOptionIndex,
+                userAnswer: question.options && question.options[selectedOptionIndex] || '',
+                isCorrect: selectedOptionIndex >= 0 && selectedOptionIndex === correctIndex
+            }
+            : {
+                userAnswer: fillAnswer,
+                isCorrect: question.type === 'fill'
+                    ? normalizeFillText(fillAnswer) === normalizeFillText(question.answer || '')
+                    : result === 'know'
+            }
+
+        this.setData({ submittingAnswer: true })
         try {
-            await cloudApi.submitAnswer({
+            const response = await cloudApi.submitAnswer({
                 questionId: question._id,
                 courseId: this.data.courseId,
                 planId: this.data.planId,
                 result,
+                submissionId: `${this._answerSessionId}:${this.data.currentIndex}:${question._id}`,
                 ...extraPayload
             })
+            const submitResult = response && response.result
+            if (!submitResult || submitResult.code !== 0) {
+                throw new Error((submitResult && (submitResult.msg || submitResult.error)) || '答题结果保存失败')
+            }
+            this._nextQuestion()
         } catch (err) {
             console.error('提交答题结果失败', err)
+            wx.showToast({ title: err.message || '保存失败，请重试', icon: 'none' })
+        } finally {
+            this.setData({ submittingAnswer: false })
         }
-
-        // 下一题
-        this._nextQuestion()
     },
 
     _nextQuestion() {
@@ -336,7 +385,8 @@ Page({
                 choiceState: {},
                 fillAnswer: '',
                 fillCorrect: false,
-                fillCheckMode: 'auto'
+                fillCheckMode: 'auto',
+                selectedOptionIndex: -1
             })
             // 检查是否可以打卡
             this._checkAndPromptCheckin(total)
@@ -350,7 +400,8 @@ Page({
                 choiceState: {},
                 fillAnswer: '',
                 fillCorrect: false,
-                fillCheckMode: 'auto'
+                fillCheckMode: 'auto',
+                selectedOptionIndex: -1
             })
         }
     },

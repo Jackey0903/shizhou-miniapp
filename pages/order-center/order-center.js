@@ -46,9 +46,23 @@ Page({
   async loadOrders() {
     this.setData({ loading: true })
     try {
-      const res = await cloudApi.getMyOrders(100)
-      const result = res.result || {}
+      let res = await cloudApi.getMyOrders(100)
+      let result = res.result || {}
       if (result.code !== 0) throw new Error(result.msg || '订单加载失败')
+      const candidates = (result.data || [])
+        .filter((order) => ['pending', 'paid'].includes(order.status) && order.outTradeNo)
+        .slice(0, 20)
+      if (candidates.length) {
+        await Promise.all(candidates.map((order) => (
+          wx.cloud.callFunction({
+            name: 'createVipOrder',
+            data: { action: 'sync', outTradeNo: order.outTradeNo }
+          }).catch(() => null)
+        )))
+        res = await cloudApi.getMyOrders(100)
+        result = res.result || {}
+        if (result.code !== 0) throw new Error(result.msg || '订单加载失败')
+      }
       const orders = (result.data || []).map((order) => ({
         ...order,
         statusLabel: STATUS_LABELS[order.status] || order.status || '未知状态',

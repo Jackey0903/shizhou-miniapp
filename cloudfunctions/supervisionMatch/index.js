@@ -20,7 +20,13 @@ async function getUserBase(openid) {
     return res.data[0] || {}
 }
 
-async function upsertProfile(openid, mode, profile) {
+function hasActiveSupervision(user = {}) {
+    if (!user.supervisionExpireDate) return false
+    const expireTime = new Date(user.supervisionExpireDate).getTime()
+    return Number.isFinite(expireTime) && expireTime > Date.now()
+}
+
+async function upsertProfile(openid, mode, profile, status) {
     await ensureCollection()
     const current = await db.collection('supervision_profiles')
         .where({ _openid: openid, mode })
@@ -31,7 +37,7 @@ async function upsertProfile(openid, mode, profile) {
     const payload = {
         _openid: openid,
         mode,
-        status: 'active',
+        status,
         displayName: profile.displayName || userBase.nickName || '考友',
         contact: profile.contact || '',
         examType: profile.examType || '',
@@ -102,10 +108,53 @@ async function listProfiles(openid, mode) {
             .get()
     ])
 
+    const matches = (listRes.data || []).map((item) => ({
+        _id: item._id,
+        mode: item.mode,
+        displayName: item.displayName || '考友',
+        examType: item.examType || '',
+        goal: item.goal || '',
+        city: item.city || '',
+        targetCityLabel: item.targetCityLabel || '',
+        examDate: item.examDate || '',
+        avgHours: item.avgHours || '',
+        dailyPeriods: Array.isArray(item.dailyPeriods) ? item.dailyPeriods : [],
+        modules: Array.isArray(item.modules) ? item.modules : [],
+        candidateType: item.candidateType || '',
+        slogan: item.slogan || '',
+        avatarUrl: item.avatarUrl || ''
+    }))
+
     return {
         mine: mineRes.data[0] || null,
-        matches: listRes.data || []
+        matches,
+        matchCount: matches.length
     }
+}
+
+async function getPrivateData(openid) {
+    const res = await db.collection('supervision').where({ _openid: openid }).limit(1).get()
+    return (res.data || [])[0] || null
+}
+
+async function savePrivateData(openid, input = {}) {
+    const payload = {
+        profiles: input.profiles && typeof input.profiles === 'object' ? input.profiles : {},
+        reminders: input.reminders && typeof input.reminders === 'object' ? input.reminders : {},
+        topics: input.topics && typeof input.topics === 'object' ? input.topics : {},
+        updatedAt: db.serverDate()
+    }
+    if (JSON.stringify(payload).length > 100000) throw new Error('督学资料内容过大')
+    const current = await getPrivateData(openid)
+    if (current) {
+        await db.collection('supervision').doc(current._id).update({ data: payload })
+        return { ...current, ...payload }
+    }
+    const id = `supervision_${require('crypto').createHash('sha256').update(openid).digest('hex').slice(0, 32)}`
+    await db.collection('supervision').doc(id).set({
+        data: { _openid: openid, ...payload, createdAt: db.serverDate() }
+    })
+    return { _id: id, _openid: openid, ...payload }
 }
 
 exports.main = async (event) => {
@@ -117,11 +166,23 @@ exports.main = async (event) => {
             return { code: -1, msg: '未获取到用户身份' }
         }
 
+        if (action === 'getData') {
+            return { code: 0, data: await getPrivateData(OPENID) }
+        }
+        if (action === 'saveData') {
+            return { code: 0, data: await savePrivateData(OPENID, event.data || {}) }
+        }
+
         if (action === 'upsert') {
             if (!profile.contact) {
                 return { code: -1, msg: '请先填写联系方式' }
             }
-            await upsertProfile(OPENID, mode, profile)
+            const user = await getUserBase(OPENID)
+            const active = hasActiveSupervision(user)
+            await upsertProfile(OPENID, mode, profile, active ? 'active' : 'pending_payment')
+            if (!active) {
+                return { code: 402, msg: '请先开通督学', data: { pendingPayment: true } }
+            }
         } else if (action === 'leave') {
             await leaveProfile(OPENID, mode)
         }

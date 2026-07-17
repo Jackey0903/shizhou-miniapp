@@ -26,9 +26,12 @@ Page({
             const user = await cloudApi.getCurrentUser()
             if (user) {
                 const app = getApp()
+                const vipExpiryTime = user.vipExpireDate ? new Date(user.vipExpireDate).getTime() : 0
                 app.globalData.userInfo = user
-                app.globalData.isVip = user.isVip && new Date(user.vipExpireDate) > new Date()
+                app.globalData.isVip = !!(user.isVip && (!vipExpiryTime || vipExpiryTime > Date.now()))
+                app.globalData.vipExpireDate = user.vipExpireDate || null
                 app.globalData.coins = user.coins || 0
+                wx.setStorageSync('userInfo', user)
                 this.setData({ userInfo: user, isVip: app.globalData.isVip })
             }
         } catch (e) {
@@ -52,7 +55,9 @@ Page({
                     app.globalData.isVip = false
                     wx.removeStorageSync('userInfo')
                     wx.removeStorageSync('token')
+                    wx.removeStorageSync('tokenExpiresAt')
                     app.globalData.token = ''
+                    app.globalData.tokenExpiresAt = ''
                     this.setData({ userInfo: null, isLogin: false, isVip: false })
                 }
             }

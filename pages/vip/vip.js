@@ -2,14 +2,6 @@ const cloudApi = require('../../utils/cloudApi')
 const virtualPayment = require('../../utils/virtualPayment')
 const auth = require('../../utils/auth')
 
-const FALLBACK_PLANS = [
-{ code: 'basic_vip_year', tag: '基础VIP', name: '基础VIP包年', price: 19800, days: 365, supervisionDays: 0, virtualProductId: 'basic_vip_year', sort: 1, benefits: ['免广告学习', '免费领取学习资料'] },
-{ code: 'supervision_trial_day', tag: '督学试用', name: '督学试用1日', price: 800, days: 365, supervisionDays: 1, virtualProductId: 'supervision_trial_day', sort: 2, benefits: ['督学试用1天', '赠送1年免广告学习', '免费领取学习资料'] },
-{ code: 'supervision_month', tag: '督学包月', name: '督学包月', price: 19800, days: 365, supervisionDays: 30, virtualProductId: 'supervision_month', sort: 3, benefits: ['督学包月服务', '赠送1年免广告学习', '免费领取学习资料'] },
-{ code: 'premium_vip_year', tag: '高级VIP', name: '高级VIP包年', price: 98800, days: 365, supervisionDays: 365, virtualProductId: 'premium_vip_year', sort: 4, benefits: ['免广告学习', '免费领取学习资料', '督学包年服务'] }
-]
-
-const ALL_PLAN_CODES = FALLBACK_PLANS.map((item) => item.code)
 const VIP_PLAN_CODES = ['basic_vip_year', 'premium_vip_year']
 
 function normalizeVipPlan(item) {
@@ -21,13 +13,11 @@ function normalizeVipPlan(item) {
   }
 }
 
-const VIP_PLANS = FALLBACK_PLANS.filter((item) => VIP_PLAN_CODES.includes(item.code)).map(normalizeVipPlan)
-
 Page({
   data: {
     sel: 0,
-    plans: VIP_PLANS,
-    currentPlan: VIP_PLANS[0],
+    plans: [],
+    currentPlan: null,
     entryMode: 'full',
     fromSupervision: false
   },
@@ -47,12 +37,9 @@ Page({
   async loadPlans() {
     try {
       const plans = await cloudApi.getVipPlans()
-      const hasUnifiedPlans = ALL_PLAN_CODES.every((code) => plans.some((item) => item.code === code))
-      const sourcePlans = hasUnifiedPlans
-        ? plans.filter((item) => VIP_PLAN_CODES.includes(item.code))
-        : FALLBACK_PLANS.filter((item) => VIP_PLAN_CODES.includes(item.code))
+      const sourcePlans = plans.filter((item) => VIP_PLAN_CODES.includes(item.code))
       const normalized = sourcePlans.map(normalizeVipPlan)
-      const currentIndex = Math.min(this.data.sel, normalized.length - 1)
+      const currentIndex = Math.max(0, Math.min(this.data.sel, normalized.length - 1))
       this.setData({
         plans: normalized,
         sel: currentIndex,
@@ -60,6 +47,8 @@ Page({
       })
     } catch (err) {
       console.error('加载VIP套餐失败', err)
+      this.setData({ plans: [], currentPlan: null, sel: 0 })
+      wx.showToast({ title: '套餐加载失败，请稍后重试', icon: 'none' })
     }
   },
 
@@ -73,13 +62,15 @@ Page({
 
   async _pollOrderResult(outTradeNo) {
     for (let i = 0; i < 20; i += 1) {
-      const syncRes = await wx.cloud.callFunction({
-        name: 'createVipOrder',
-        data: { action: 'sync', outTradeNo }
-      })
-      if (syncRes.result && syncRes.result.code === 0 && syncRes.result.data && syncRes.result.data.order) {
-        return syncRes.result.data.order
-      }
+      try {
+        const syncRes = await wx.cloud.callFunction({
+          name: 'createVipOrder',
+          data: { action: 'sync', outTradeNo }
+        })
+        if (syncRes.result && syncRes.result.code === 0 && syncRes.result.data && syncRes.result.data.order) {
+          return syncRes.result.data.order
+        }
+      } catch (err) {}
       await new Promise((resolve) => setTimeout(resolve, 1500))
     }
     return null
@@ -105,6 +96,11 @@ Page({
       const { payment, outTradeNo } = result.data || {}
       if (!payment) {
         throw new Error('未获取到支付参数')
+      }
+      const serverPlan = result.data && result.data.plan
+      if (!serverPlan || Number(serverPlan.price) !== Number(plan.price)) {
+        await this.loadPlans()
+        throw new Error('套餐价格已更新，请重新确认后购买')
       }
 
       wx.hideLoading()
@@ -137,6 +133,7 @@ Page({
           app.globalData.userInfo.supervisionExpireDate = latestUser.supervisionExpireDate
         }
         app.globalData.isVip = true
+        wx.setStorageSync('userInfo', app.globalData.userInfo)
       }
       wx.showModal({
         title: '支付成功',

@@ -109,7 +109,11 @@ Page({
   },
 
   openCategory(e) {
-    const { category, courseid, coursename } = e.currentTarget.dataset
+    const { category, courseid, coursename, locked } = e.currentTarget.dataset
+    if (locked && !this.data.isVip) {
+      wx.navigateTo({ url: '/pages/vip/vip' })
+      return
+    }
     if (courseid) {
       wx.navigateTo({
         url: `/pages/study-plan/study-plan?courseId=${courseid}&courseName=${coursename || ''}`

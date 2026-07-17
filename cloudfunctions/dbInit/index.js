@@ -5,6 +5,11 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 const _ = db.command
 
+function canRunOperations(event = {}) {
+    const expected = process.env.OPS_ADMIN_TOKEN || ''
+    return !!expected && typeof event.opsToken === 'string' && event.opsToken === expected
+}
+
 const COLLECTIONS = [
     'users', 'courses', 'subjects', 'question_banks', 'questions', 'plans',
     'study_records', 'checkins', 'mutual_questions',
@@ -111,6 +116,9 @@ async function ensureCollection(colName) {
 }
 
 exports.main = async (event, context) => {
+    if (!canRunOperations(event)) {
+        return { code: 403, msg: '该运维函数已锁定，仅允许携带服务器运维凭证调用' }
+    }
     const mode = event && event.mode ? event.mode : 'collections'
     const results = []
 

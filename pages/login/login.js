@@ -55,12 +55,7 @@ Page({
         try {
             const payload = { loginType: 'phone' }
             if (e.detail.code) payload.phoneCode = e.detail.code
-            if (e.detail.cloudID) payload.phoneData = wx.cloud.CloudID(e.detail.cloudID)
-            if (e.detail.encryptedData && e.detail.iv) {
-                payload.encryptedData = e.detail.encryptedData
-                payload.iv = e.detail.iv
-            }
-            if (!payload.phoneCode && !payload.phoneData && !payload.encryptedData) {
+            if (!payload.phoneCode) {
                 throw new Error('未获取到手机号授权凭证')
             }
             const res = await cloudApi.userLogin({
@@ -80,15 +75,20 @@ Page({
     },
 
     _loginSuccess(userInfo) {
-        const { token, ...profile } = userInfo
+        const { token, tokenExpiresAt, ...profile } = userInfo
         const app = getApp()
         app.globalData.userInfo = profile
         app.globalData.isLogin = true
-        app.globalData.isVip = profile.isVip
+        const vipExpiryTime = profile.vipExpireDate ? new Date(profile.vipExpireDate).getTime() : 0
+        app.globalData.isVip = !!(profile.isVip && (!vipExpiryTime || vipExpiryTime > Date.now()))
         app.globalData.coins = profile.coins || 0
         if (token) {
             app.globalData.token = token
             wx.setStorageSync('token', token)
+        }
+        if (tokenExpiresAt) {
+            app.globalData.tokenExpiresAt = tokenExpiresAt
+            wx.setStorageSync('tokenExpiresAt', tokenExpiresAt)
         }
 
         wx.setStorageSync('userInfo', profile)

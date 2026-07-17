@@ -95,8 +95,14 @@ async function writeRunLog(data) {
 }
 
 exports.main = async (event = {}) => {
+  const { OPENID } = cloud.getWXContext()
   const limit = Math.max(1, Math.min(Number(event.limit || 50), 100))
   try {
+    // 定时触发器没有 OPENID；小程序客户端调用始终带 OPENID，必须拒绝。
+    if (OPENID) {
+      return { code: 403, msg: '无权执行提醒派发', sent: 0, failed: 0, checked: 0 }
+    }
+
     await ensureCollection('study_reminders')
     const config = await getConfig()
     if (!config || !config.templateId) {
@@ -119,6 +125,21 @@ exports.main = async (event = {}) => {
     let sent = 0
     let failed = 0
     for (const reminder of dueList) {
+      const userRes = await db.collection('users').where({ _openid: reminder._openid }).limit(1).get()
+      const user = (userRes.data || [])[0]
+      const supervisionActive = user && user.supervisionExpireDate && new Date(user.supervisionExpireDate).getTime() > now.getTime()
+      if (!supervisionActive) {
+        await db.collection('study_reminders').doc(reminder._id).update({
+          data: {
+            active: false,
+            lastError: '督学服务已到期，提醒已停用',
+            updatedAt: db.serverDate()
+          }
+        })
+        failed += 1
+        continue
+      }
+
       const data = {}
       data[config.thingKey || 'thing1'] = { value: truncate((config.titlePrefix ? `${config.titlePrefix}：` : '') + reminder.title, 20) }
       data[config.timeKey || 'time2'] = { value: formatSendTime(reminder.nextRemindAt || now) }

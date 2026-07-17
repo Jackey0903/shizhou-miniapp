@@ -5,14 +5,9 @@ const https = require('https')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 
-const LEGACY_PLANS = [
-  { code: 'basic_vip_year', name: '基础VIP包年', tag: '基础VIP', price: 19800, days: 365, supervisionDays: 0, virtualProductId: 'basic_vip_year', benefits: ['免广告学习', '免费领取学习资料'] },
-  { code: 'supervision_trial_day', name: '督学试用1日', tag: '督学试用', price: 800, days: 365, supervisionDays: 1, virtualProductId: 'supervision_trial_day', benefits: ['督学试用1天', '赠送1年免广告学习', '免费领取学习资料'] },
-  { code: 'supervision_month', name: '督学包月', tag: '督学包月', price: 19800, days: 365, supervisionDays: 30, virtualProductId: 'supervision_month', benefits: ['督学包月服务', '赠送1年免广告学习', '免费领取学习资料'] },
-  { code: 'premium_vip_year', name: '高级VIP包年', tag: '高级VIP', price: 98800, days: 365, supervisionDays: 365, virtualProductId: 'premium_vip_year', benefits: ['免广告学习', '免费领取学习资料', '督学包年服务'] }
-]
-
 const PAID_REMOTE_STATUS = [2, 3, 4]
+const REFUNDED_REMOTE_STATUS = [5, 8]
+const CLOSED_REMOTE_STATUS = [6]
 const ACCESS_TOKEN_CACHE = {
   token: '',
   expiresAt: 0
@@ -155,7 +150,8 @@ async function ensureCurrentUser(openid, appid) {
   if (existed) return existed
 
   const vipExpireDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-  const addRes = await db.collection('users').add({
+  const userId = `user_${crypto.createHash('sha256').update(openid).digest('hex').slice(0, 32)}`
+  await db.collection('users').doc(userId).set({
     data: {
       _openid: openid,
       appid: appid || '',
@@ -174,7 +170,7 @@ async function ensureCurrentUser(openid, appid) {
   })
 
   return {
-    _id: addRes._id,
+    _id: userId,
     _openid: openid,
     appid: appid || '',
     coins: 0,
@@ -185,52 +181,149 @@ async function ensureCurrentUser(openid, appid) {
 }
 
 async function getPlan(planCode) {
+  const safeCode = String(planCode || '').trim()
+  if (!safeCode) return null
   try {
-    const planRes = await db.collection('vip_plans').where({ code: planCode, enabled: true }).limit(1).get()
-    if (planRes.data.length) return planRes.data[0]
-  } catch (err) {}
-  return LEGACY_PLANS.find((item) => item.code === planCode) || null
+    const planRes = await db.collection('vip_plans').where({ code: safeCode }).limit(2).get()
+    if ((planRes.data || []).length !== 1) return null
+    const plan = planRes.data[0]
+    if (!plan || plan.enabled !== true || !isValidPlan(plan)) return null
+    return plan
+  } catch (err) {
+    const message = String((err && (err.message || err.errMsg)) || '')
+    if (!message.includes('Db or Table not exist') && !message.includes('database collection not') && !message.includes('-502005')) {
+      throw err
+    }
+    return null
+  }
+}
+
+async function listEnabledPlans() {
+  try {
+    const res = await db.collection('vip_plans')
+      .where({ enabled: true })
+      .orderBy('sort', 'asc')
+      .get()
+    const seen = new Set()
+    return (res.data || []).filter((plan) => {
+      if (!isValidPlan(plan) || seen.has(plan.code)) return false
+      seen.add(plan.code)
+      return true
+    })
+  } catch (err) {
+    const message = String((err && (err.message || err.errMsg)) || '')
+    if (!message.includes('Db or Table not exist') && !message.includes('database collection not') && !message.includes('-502005')) {
+      throw err
+    }
+    throw new Error('套餐配置暂不可用，请联系管理员')
+  }
 }
 
 function getVirtualProductId(plan) {
   return String(plan.virtualProductId || plan.productId || plan.code || '').trim()
 }
 
+function isValidPlan(plan = {}) {
+  const code = String(plan.code || '').trim()
+  const productId = getVirtualProductId(plan)
+  const price = Number(plan.price)
+  const days = Number(plan.days || 0)
+  const supervisionDays = Number(plan.supervisionDays || 0)
+  return /^[A-Za-z0-9._:-]{1,128}$/.test(code)
+    && /^[A-Za-z0-9._:-]{1,128}$/.test(productId)
+    && Number.isInteger(price) && price > 0 && price <= 100000000
+    && Number.isInteger(days) && days >= 0 && days <= 3650
+    && Number.isInteger(supervisionDays) && supervisionDays >= 0 && supervisionDays <= 3650
+    && (days > 0 || supervisionDays > 0)
+}
+
 function toClientOrder(order) {
   return {
     orderId: order._id,
-    outTradeNo: order.outTradeNo,
-    status: order.status,
+    outTradeNo: order.outTradeNo || '',
+    status: order.status || '',
+    planCode: order.planCode || order.planId || '',
     vipExpireDate: order.vipExpireDate || '',
     planLabel: order.planLabel || '',
-    payChannel: order.payChannel || 'wechat_virtual'
+    price: Number(order.price || 0),
+    payChannel: order.payChannel || 'wechat_virtual',
+    deliveryStatus: order.deliveryStatus || '',
+    createdAt: order.createdAt || '',
+    payTime: order.payTime || '',
+    benefits: Array.isArray(order.benefits) ? order.benefits : []
+  }
+}
+
+async function activatePendingSupervisionProfiles(openid) {
+  const res = await db.collection('supervision_profiles')
+    .where({ _openid: openid, status: 'pending_payment' })
+    .limit(20)
+    .get()
+    .catch(() => ({ data: [] }))
+  for (const profile of (res.data || [])) {
+    await db.collection('supervision_profiles').doc(profile._id).update({
+      data: { status: 'active', updatedAt: db.serverDate() }
+    })
   }
 }
 
 async function grantOrderBenefits(order, callbackData = {}) {
-  if (order.status === 'paid' && order.benefitsGranted) return order
-
   const user = await ensureCurrentUser(order._openid, '')
+  const grantedOrder = await db.runTransaction(async (transaction) => {
+    const latestOrderRes = await transaction.collection('orders').doc(order._id).get()
+    const latestOrder = latestOrderRes.data
+    if (!latestOrder) throw new Error('订单不存在')
+    if (latestOrder.status === 'paid' && latestOrder.benefitsGranted) return latestOrder
 
-  const now = new Date()
-  let currentExpire = user.vipExpireDate ? new Date(user.vipExpireDate) : now
-  if (currentExpire < now) currentExpire = now
-  const newExpire = new Date(currentExpire.getTime() + (order.days || 0) * 24 * 60 * 60 * 1000)
+    const latestUserRes = await transaction.collection('users').doc(user._id).get()
+    const latestUser = latestUserRes.data
+    if (!latestUser) throw new Error('用户不存在')
 
-  let supervisionExpireDate = user.supervisionExpireDate ? new Date(user.supervisionExpireDate) : null
-  if (order.supervisionDays) {
-    const supervisionBase = supervisionExpireDate && supervisionExpireDate > now ? supervisionExpireDate : now
-    supervisionExpireDate = new Date(supervisionBase.getTime() + order.supervisionDays * 24 * 60 * 60 * 1000)
-  }
+    const now = new Date()
+    let currentExpire = latestUser.vipExpireDate ? new Date(latestUser.vipExpireDate) : now
+    if (currentExpire < now) currentExpire = now
+    const newExpire = new Date(currentExpire.getTime() + Number(latestOrder.days || 0) * 86400000)
 
-  await db.collection('users').doc(user._id).update({
-    data: {
-      isVip: true,
+    let supervisionExpireDate = latestUser.supervisionExpireDate
+      ? new Date(latestUser.supervisionExpireDate)
+      : null
+    if (latestOrder.supervisionDays) {
+      const supervisionBase = supervisionExpireDate && supervisionExpireDate > now ? supervisionExpireDate : now
+      supervisionExpireDate = new Date(supervisionBase.getTime() + Number(latestOrder.supervisionDays) * 86400000)
+    }
+
+    await transaction.collection('users').doc(latestUser._id).update({
+      data: {
+        isVip: true,
+        vipExpireDate: newExpire,
+        isFreeTrial: false,
+        lastVipPlanCode: latestOrder.planCode || '',
+        lastVipPlanLabel: latestOrder.planLabel || latestOrder.planTag || '',
+        supervisionExpireDate: supervisionExpireDate || null
+      }
+    })
+
+    const updateData = {
+      status: 'paid',
+      benefitsGranted: true,
+      payTime: db.serverDate(),
+      transactionId: callbackData.transactionId || callbackData.wxpay_order_id || '',
+      callbackData,
       vipExpireDate: newExpire,
-      isFreeTrial: false,
-      lastVipPlanCode: order.planCode || '',
-      lastVipPlanLabel: order.planLabel || order.planTag || '',
-      supervisionExpireDate: supervisionExpireDate || null
+      supervisionExpireDate: supervisionExpireDate || null,
+      updatedAt: db.serverDate()
+    }
+    if (callbackData.source === 'xpay_goods_deliver_notify') {
+      updateData.deliveryStatus = 'confirmed'
+      updateData.deliveryNotifiedAt = db.serverDate()
+    }
+    await transaction.collection('orders').doc(latestOrder._id).update({ data: updateData })
+    return {
+      ...latestOrder,
+      ...updateData,
+      status: 'paid',
+      benefitsGranted: true,
+      vipExpireDate: newExpire
     }
   })
 
@@ -238,9 +331,8 @@ async function grantOrderBenefits(order, callbackData = {}) {
     .where({ _openid: order._openid, type: 'vip_pay', orderId: order._id })
     .limit(1)
     .get()
-
   if (!existsLog.data.length) {
-    await db.collection('coin_logs').add({
+    await db.collection('coin_logs').doc(`vip_pay_${order._id}`).set({
       data: {
         _openid: order._openid,
         type: 'vip_pay',
@@ -255,30 +347,82 @@ async function grantOrderBenefits(order, callbackData = {}) {
       }
     })
   }
-
-  const updateData = {
-    status: 'paid',
-    benefitsGranted: true,
-    payTime: db.serverDate(),
-    transactionId: callbackData.transactionId || callbackData.wxpay_order_id || '',
-    callbackData,
-    vipExpireDate: newExpire,
-    updatedAt: db.serverDate()
+  if (Number(grantedOrder.supervisionDays || order.supervisionDays || 0) > 0) {
+    await activatePendingSupervisionProfiles(order._openid)
   }
+  return grantedOrder
+}
 
-  if (callbackData.source === 'xpay_goods_deliver_notify') {
-    updateData.deliveryStatus = 'confirmed'
-    updateData.deliveryNotifiedAt = db.serverDate()
-  }
+async function revokeOrderBenefits(order, remoteOrder = {}) {
+  const userRes = await db.collection('users').where({ _openid: order._openid }).limit(1).get()
+  const user = userRes.data[0]
+  if (!user) throw new Error('用户不存在')
 
-  await db.collection('orders').doc(order._id).update({ data: updateData })
+  const revokedOrder = await db.runTransaction(async (transaction) => {
+    const latestOrderRes = await transaction.collection('orders').doc(order._id).get()
+    const latestOrder = latestOrderRes.data
+    if (!latestOrder) throw new Error('订单不存在')
+    if (latestOrder.status === 'refunded' && latestOrder.benefitsRevoked) return latestOrder
 
-  return {
-    ...order,
-    status: 'paid',
-    benefitsGranted: true,
-    vipExpireDate: newExpire
-  }
+    if (!latestOrder.benefitsGranted) {
+      const updateData = {
+        status: 'refunded',
+        benefitsRevoked: true,
+        refundTime: db.serverDate(),
+        refundRemoteOrder: remoteOrder,
+        updatedAt: db.serverDate()
+      }
+      await transaction.collection('orders').doc(latestOrder._id).update({ data: updateData })
+      return { ...latestOrder, ...updateData, status: 'refunded' }
+    }
+
+    const latestUserRes = await transaction.collection('users').doc(user._id).get()
+    const latestUser = latestUserRes.data
+    const now = new Date()
+    const currentVipExpire = latestUser.vipExpireDate ? new Date(latestUser.vipExpireDate) : now
+    const vipExpireDate = new Date(currentVipExpire.getTime() - Number(latestOrder.days || 0) * 86400000)
+    let supervisionExpireDate = latestUser.supervisionExpireDate
+      ? new Date(latestUser.supervisionExpireDate)
+      : null
+    if (supervisionExpireDate && latestOrder.supervisionDays) {
+      supervisionExpireDate = new Date(
+        supervisionExpireDate.getTime() - Number(latestOrder.supervisionDays || 0) * 86400000
+      )
+    }
+
+    await transaction.collection('users').doc(latestUser._id).update({
+      data: {
+        isVip: vipExpireDate > now,
+        vipExpireDate,
+        supervisionExpireDate,
+        lastRefundedOrderId: latestOrder._id
+      }
+    })
+    const updateData = {
+      status: 'refunded',
+      benefitsRevoked: true,
+      refundTime: db.serverDate(),
+      refundRemoteOrder: remoteOrder,
+      updatedAt: db.serverDate()
+    }
+    await transaction.collection('orders').doc(latestOrder._id).update({ data: updateData })
+    return { ...latestOrder, ...updateData, status: 'refunded' }
+  })
+
+  const logId = `vip_refund_${order._id}`
+  await db.collection('coin_logs').doc(logId).set({
+    data: {
+      _openid: order._openid,
+      type: 'order_refund',
+      orderId: order._id,
+      planId: order.planId,
+      planLabel: order.planLabel,
+      amount: 0,
+      daysAdded: order.benefitsGranted ? -Number(order.days || 0) : 0,
+      createdAt: db.serverDate()
+    }
+  })
+  return revokedOrder
 }
 
 async function queryVirtualOrder(config, openid, outTradeNo) {
@@ -325,6 +469,16 @@ function getStoredWxOrderId(order = {}) {
     ? order.virtualQueryResult.order
     : {}
   return getWxOrderIdFromRemote(remoteOrder) || order.wxOrderId || ''
+}
+
+function validateRemoteOrder(order, remoteOrder = {}) {
+  if (remoteOrder.order_id && remoteOrder.order_id !== order.outTradeNo) {
+    throw new Error('微信订单号与本地订单不一致')
+  }
+  const orderFee = Number(remoteOrder.order_fee)
+  if (!Number.isFinite(orderFee) || orderFee !== Number(order.price || 0)) {
+    throw new Error('支付订单金额与套餐金额不一致')
+  }
 }
 
 async function notifyAndRecordDelivery(config, order, wxOrderId, source = 'sync') {
@@ -471,13 +625,6 @@ async function syncVirtualOrder(event, wxContext) {
     const orderRes = await db.collection('orders').where({ _openid: OPENID, outTradeNo }).limit(1).get()
     const order = orderRes.data[0]
     if (!order) return { code: -1, msg: '订单不存在' }
-    if (order.status === 'paid' && order.benefitsGranted) {
-      if (!isDeliveryDone(order)) {
-        const config = getVirtualPayConfig(wxContext)
-        await notifyAndRecordDelivery(config, order, getStoredWxOrderId(order), 'sync_paid_order')
-      }
-      return { code: 0, data: { order: toClientOrder(order) } }
-    }
     if (order.payChannel !== 'wechat_virtual') {
       return { code: -1, msg: '非虚拟支付订单' }
     }
@@ -504,14 +651,22 @@ async function syncVirtualOrder(event, wxContext) {
       }
     })
 
+    if (REFUNDED_REMOTE_STATUS.includes(remoteStatus)) {
+      const revoked = await revokeOrderBenefits(order, remoteOrder)
+      return { code: 0, data: { order: toClientOrder(revoked) } }
+    }
+    if (CLOSED_REMOTE_STATUS.includes(remoteStatus)) {
+      await db.collection('orders').doc(order._id).update({
+        data: { status: 'closed', updatedAt: db.serverDate() }
+      })
+      return { code: 0, data: { order: toClientOrder({ ...order, status: 'closed' }) } }
+    }
+
     if (!PAID_REMOTE_STATUS.includes(remoteStatus)) {
       return { code: 1, msg: '支付尚未完成', data: { remoteStatus } }
     }
 
-    const paidFee = Number(remoteOrder.paid_fee || remoteOrder.order_fee || 0)
-    if (paidFee && paidFee !== Number(order.price || 0)) {
-      throw new Error('支付金额与订单金额不一致')
-    }
+    validateRemoteOrder(order, remoteOrder)
 
     const granted = await grantOrderBenefits(order, {
       source: 'virtual_query_order',
@@ -519,12 +674,35 @@ async function syncVirtualOrder(event, wxContext) {
       transactionId: remoteOrder.wxpay_order_id || remoteOrder.wx_order_id || ''
     })
 
-    await notifyAndRecordDelivery(config, granted, getWxOrderIdFromRemote(remoteOrder), 'virtual_query_order')
+    if (!isDeliveryDone(granted)) {
+      await notifyAndRecordDelivery(config, granted, getWxOrderIdFromRemote(remoteOrder), 'virtual_query_order')
+    }
 
     return { code: 0, data: { order: toClientOrder(granted) } }
   } catch (err) {
     console.error('[createVipOrder:syncVirtualOrder] error', err)
     return { code: -1, msg: err.message || '同步支付结果失败' }
+  }
+}
+
+async function listMyOrders(event, wxContext) {
+  const { OPENID } = wxContext
+  if (!OPENID) return { code: -1, msg: '未获取到用户身份' }
+
+  try {
+    const safeLimit = Math.max(1, Math.min(Number(event && event.limit) || 50, 100))
+    const result = await db.collection('orders')
+      .where({ _openid: OPENID })
+      .orderBy('createdAt', 'desc')
+      .limit(safeLimit)
+      .get()
+    return {
+      code: 0,
+      data: (result.data || []).map(toClientOrder)
+    }
+  } catch (err) {
+    console.error('[createVipOrder:listMyOrders] error', err)
+    return { code: -1, msg: err.message || '订单加载失败' }
   }
 }
 
@@ -542,7 +720,8 @@ function normalizeNotifyEvent(event = {}) {
         'ToUserName', 'FromUserName', 'CreateTime', 'MsgType', 'Event',
         'OpenId', 'OutTradeNo', 'Env', 'ProductId', 'Quantity',
         'OrigPrice', 'ActualPrice', 'Attach', 'MchOrderNo',
-        'TransactionId', 'PaidTime', 'WxOrderId', 'MchOrderId'
+        'TransactionId', 'PaidTime', 'WxOrderId', 'MchOrderId',
+        'WxRefundId', 'MchRefundId', 'RefundFee', 'RetCode', 'RetMsg'
       ]
       keys.forEach((key) => {
         const match = new RegExp(`<${key}>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${key}>`).exec(body)
@@ -563,28 +742,76 @@ async function handleVirtualDeliverNotify(rawEvent) {
     const orderRes = await db.collection('orders').where({ outTradeNo }).limit(1).get()
     const order = orderRes.data[0]
     if (!order) return { ErrCode: -1, ErrMsg: 'order not found' }
-    if (event.OpenId && event.OpenId !== order._openid) return { ErrCode: -1, ErrMsg: 'openid mismatch' }
-
-    const goodsInfo = event.GoodsInfo || event.goodsInfo || {}
-    const productId = goodsInfo.ProductId || goodsInfo.productId || event.ProductId || event.productId
-    const actualPrice = goodsInfo.ActualPrice || goodsInfo.actualPrice || event.ActualPrice || event.actualPrice
-    if (productId && order.virtualProductId && productId !== order.virtualProductId) {
-      return { ErrCode: -1, ErrMsg: 'product mismatch' }
+    if (order.status === 'paid' && order.benefitsGranted) {
+      if (order.deliveryStatus !== 'confirmed') {
+        await db.collection('orders').doc(order._id).update({
+          data: {
+            deliveryStatus: 'confirmed',
+            deliveryNotifiedAt: db.serverDate(),
+            updatedAt: db.serverDate()
+          }
+        })
+      }
+      return { ErrCode: 0, ErrMsg: 'success', errcode: 0, errmsg: 'success' }
     }
-    if (actualPrice && Number(actualPrice) !== Number(order.price || 0)) {
-      return { ErrCode: -1, ErrMsg: 'price mismatch' }
-    }
 
-    const payInfo = event.WeChatPayInfo || event.weChatPayInfo || {}
+    const config = getVirtualPayConfig({})
+    const queryRes = await queryVirtualOrder(config, order._openid, outTradeNo)
+    if (queryRes.errcode) return { ErrCode: -1, ErrMsg: queryRes.errmsg || 'query order failed' }
+    const remoteOrder = queryRes.order || {}
+    const remoteStatus = Number(remoteOrder.status)
+    if (!PAID_REMOTE_STATUS.includes(remoteStatus)) {
+      return { ErrCode: -1, ErrMsg: 'order is not paid' }
+    }
+    validateRemoteOrder(order, remoteOrder)
+
     await grantOrderBenefits(order, {
       source: 'xpay_goods_deliver_notify',
-      rawEvent: event,
-      transactionId: payInfo.TransactionId || payInfo.transactionId || ''
+      remoteOrder,
+      transactionId: getWxOrderIdFromRemote(remoteOrder)
     })
     return { ErrCode: 0, ErrMsg: 'success', errcode: 0, errmsg: 'success' }
   } catch (err) {
     console.error('[createVipOrder:handleVirtualDeliverNotify] error', err)
     return { ErrCode: -1, ErrMsg: err.message || 'callback error' }
+  }
+}
+
+async function handleVirtualRefundNotify(rawEvent) {
+  const event = normalizeNotifyEvent(rawEvent)
+  const outTradeNo = event.MchOrderId || event.OutTradeNo || event.outTradeNo || event.order_id || ''
+  const wxOrderId = event.WxOrderId || event.wx_order_id || ''
+  if (!outTradeNo && !wxOrderId) return { ErrCode: -1, ErrMsg: 'missing order id' }
+
+  try {
+    let order = null
+    if (outTradeNo) {
+      const res = await db.collection('orders').where({ outTradeNo }).limit(1).get()
+      order = (res.data || [])[0] || null
+    }
+    if (!order && wxOrderId) {
+      const res = await db.collection('orders').where({ wxOrderId }).limit(1).get()
+      order = (res.data || [])[0] || null
+    }
+    if (!order) return { ErrCode: -1, ErrMsg: 'order not found' }
+    if (order.status === 'refunded' && order.benefitsRevoked) {
+      return { ErrCode: 0, ErrMsg: 'success' }
+    }
+
+    const config = getVirtualPayConfig({})
+    const queryRes = await queryVirtualOrder(config, order._openid, order.outTradeNo)
+    if (queryRes.errcode) return { ErrCode: -1, ErrMsg: queryRes.errmsg || 'query order failed' }
+    const remoteOrder = queryRes.order || {}
+    const remoteStatus = Number(remoteOrder.status)
+    if (!REFUNDED_REMOTE_STATUS.includes(remoteStatus)) {
+      return { ErrCode: -1, ErrMsg: 'refund is not completed' }
+    }
+    validateRemoteOrder(order, remoteOrder)
+    await revokeOrderBenefits(order, remoteOrder)
+    return { ErrCode: 0, ErrMsg: 'success' }
+  } catch (err) {
+    console.error('[createVipOrder:handleVirtualRefundNotify] error', err)
+    return { ErrCode: -1, ErrMsg: err.message || 'refund callback error' }
   }
 }
 
@@ -596,7 +823,31 @@ exports.main = async (event) => {
   if (normalized.Event === 'xpay_goods_deliver_notify') {
     return handleVirtualDeliverNotify(normalized)
   }
+  if (normalized.Event === 'xpay_refund_notify') {
+    return handleVirtualRefundNotify(normalized)
+  }
 
+  if (action === 'plans') {
+    try {
+      const plans = await listEnabledPlans()
+      return {
+        code: 0,
+        data: plans.map((plan) => ({
+          code: plan.code,
+          name: plan.name || plan.tag || plan.code,
+          tag: plan.tag || '',
+          price: Number(plan.price || 0),
+          days: Number(plan.days || 0),
+          supervisionDays: Number(plan.supervisionDays || 0),
+          benefits: Array.isArray(plan.benefits) ? plan.benefits : [],
+          sort: Number(plan.sort || 0)
+        }))
+      }
+    } catch (err) {
+      return { code: -1, msg: err.message || '套餐加载失败' }
+    }
+  }
+  if (action === 'list') return listMyOrders(event, wxContext)
   if (action === 'sync') return syncVirtualOrder(event, wxContext)
   return createVirtualOrder(event, wxContext)
 }

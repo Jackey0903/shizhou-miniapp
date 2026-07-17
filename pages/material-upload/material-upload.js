@@ -127,6 +127,7 @@ Page({
     this.setData({ uploading: true })
     wx.showLoading({ title: '上传中', mask: true })
     try {
+      await cloudApi.assertAdmin()
       let uploadRes = null
       if (this.data.selectedFile && this.data.selectedFile.path) {
         const ext = (this.data.selectedFile.path || this.data.selectedFile.name || '').split('.').pop() || (type === 'image' ? 'jpg' : 'dat')
@@ -145,8 +146,6 @@ Page({
           filePath: this.data.coverFile.path
         })
         coverFileId = coverRes.fileID
-        const temp = await wx.cloud.getTempFileURL({ fileList: [coverRes.fileID] })
-        coverUrl = (temp.fileList && temp.fileList[0] && temp.fileList[0].tempFileURL) || ''
       }
 
       const payload = {
@@ -164,8 +163,7 @@ Page({
       }
 
       if (type === 'image' && uploadRes) {
-        const temp = await wx.cloud.getTempFileURL({ fileList: [uploadRes.fileID] })
-        payload.imageUrl = (temp.fileList && temp.fileList[0] && temp.fileList[0].tempFileURL) || ''
+        payload.imageUrl = ''
       }
 
       const res = await cloudApi.uploadMaterials([payload])

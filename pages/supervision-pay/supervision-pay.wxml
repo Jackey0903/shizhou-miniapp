@@ -25,5 +25,4 @@
   </view>
 
   <button class="btn btn-primary btn-full pay-btn" bindtap="buyPlan" wx:if="{{!hasAccess}}">立即开通督学</button>
-  <button class="btn btn-outline btn-full test-btn" bindtap="grantTestAccess" loading="{{grantingTestAccess}}" wx:if="{{!hasAccess && isTestEnv}}">开发环境一键开通督学测试</button>
 </view>

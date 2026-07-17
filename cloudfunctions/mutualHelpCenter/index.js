@@ -3,6 +3,32 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 const _ = db.command
+const DAILY_SUBMISSION_LIMIT = 10
+
+function shanghaiDateKey(value = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(value)
+}
+
+function toClientQuestion(item = {}) {
+  return {
+    _id: item._id,
+    title: item.title || '',
+    content: item.content || '',
+    answer: item.answer || '',
+    category: item.category || '',
+    status: item.status || '',
+    reviewerNote: item.reviewerNote || '',
+    submitterName: item.submitterName || '匿名考友',
+    avatarUrl: item.avatarUrl || '',
+    createdAt: item.createdAt || '',
+    updatedAt: item.updatedAt || ''
+  }
+}
 
 async function ensureCollection() {
   try {
@@ -41,6 +67,13 @@ function validateQuestion(payload = {}) {
 async function submitQuestion(openid, payload) {
   const user = await getCurrentUser(openid)
   const question = validateQuestion(payload)
+  const submitDateStr = shanghaiDateKey()
+  const todayCount = await db.collection('mutual_questions')
+    .where({ _openid: openid, submitDateStr })
+    .count()
+  if (Number(todayCount.total || 0) >= DAILY_SUBMISSION_LIMIT) {
+    throw new Error('今日投稿次数已达上限')
+  }
 
   await db.collection('mutual_questions').add({
     data: {
@@ -50,6 +83,7 @@ async function submitQuestion(openid, payload) {
       reviewerNote: '',
       submitterName: user.nickName || '匿名考友',
       avatarUrl: user.avatarUrl || '',
+      submitDateStr,
       createdAt: db.serverDate(),
       updatedAt: db.serverDate()
     }
@@ -88,9 +122,9 @@ async function getDashboard(openid) {
 
   return {
     isAdmin,
-    approved: approvedRes.data || [],
-    mine: mineRes.data || [],
-    pending: pendingRes ? pendingRes.data || [] : []
+    approved: (approvedRes.data || []).map(toClientQuestion),
+    mine: (mineRes.data || []).map(toClientQuestion),
+    pending: pendingRes ? (pendingRes.data || []).map(toClientQuestion) : []
   }
 }
 

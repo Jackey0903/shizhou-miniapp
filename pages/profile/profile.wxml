@@ -31,7 +31,7 @@
     <view class="stat-divider"></view>
     <view class="stat-item">
       <text class="stat-num">{{userInfo.coins || 0}}</text>
-      <text class="stat-label">累计舟币数量</text>
+      <text class="stat-label">当前舟币余额</text>
     </view>
   </view>
 

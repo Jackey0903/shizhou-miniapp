@@ -37,6 +37,7 @@
         data-category="{{card.category}}"
         data-courseid="{{card.directCourseId}}"
         data-coursename="{{card.directCourseName}}"
+        data-locked="{{card.locked}}"
         style="background: {{card.color.bg}}; border-color: {{card.color.border}};"
       >
         <view class="category-main">

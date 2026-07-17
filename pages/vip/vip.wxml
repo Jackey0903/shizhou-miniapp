@@ -17,7 +17,7 @@
 
   <view class="vip-guide" wx:if="{{currentPlan}}">
     <text class="guide-title">当前选择：{{currentPlan.title}}</text>
-    <text class="guide-text">购买后将调用 wx.requestVirtualPayment 并自动发放对应权益，同步更新会员状态与到期时间。</text>
+    <text class="guide-text">支付成功后将自动发放对应权益，并同步更新会员状态与到期时间。</text>
   </view>
 
   <view class="bottom-action">

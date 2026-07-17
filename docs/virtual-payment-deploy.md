@@ -48,11 +48,10 @@ Deploy these functions after every virtual payment code change.
 ```text
 createVipOrder
 vipPayCallback
-queryVipOrder
 adminConfigCenter
 ```
 
-`createVipOrder` creates signed virtual payment parameters, syncs paid orders, grants benefits, and calls `notify_provide_goods`.
+`createVipOrder` creates signed virtual payment parameters, lists and syncs the current user's orders, grants benefits, handles refunds, and calls `notify_provide_goods`.
 
 `vipPayCallback` handles `xpay_goods_deliver_notify` callbacks if an HTTP trigger is configured for virtual payment delivery notification.
 
@@ -94,6 +93,6 @@ Before uploading a new development version:
 3. All products are published in the virtual payment console.
 4. Product IDs match `vip_plans.virtualProductId`.
 5. `createVipOrder` has all production environment variables.
-6. `createVipOrder`, `vipPayCallback`, `queryVipOrder`, and `adminConfigCenter` are deployed.
+6. `createVipOrder`, `vipPayCallback`, and `adminConfigCenter` are deployed.
 7. Test purchase can create an order and call `wx.requestVirtualPayment`.
 8. Order center opens at `pages/order-center/order-center`.

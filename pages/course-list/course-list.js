@@ -29,7 +29,8 @@ function buildCategoryCards(courses = []) {
       _id: item._id,
       name: stripPrefix(item.name) || item.name,
       rawName: item.name || '',
-      count: item.totalCount || 0
+      count: item.totalCount || 0,
+      isLocked: !!item.isLocked
     }))
 
     return {
@@ -41,6 +42,7 @@ function buildCategoryCards(courses = []) {
       previews,
       directCourseId: banks.length === 1 ? banks[0]._id : '',
       directCourseName: banks.length === 1 ? (banks[0].name || '') : '',
+      locked: banks.length === 1 ? !!banks[0].isLocked : banks.every((item) => item.isLocked),
       color: CARD_COLORS[idx % CARD_COLORS.length],
       sort: Math.min(...banks.map((item) => item.sort || 9999)),
       actionText: banks.length === 1 ? '进入题库' : '查看全部'
@@ -55,10 +57,13 @@ Page({
     category: '',
     categoryCards: [],
     courses: [],
-    showCategories: true
+    showCategories: true,
+    isVip: false
   },
 
-  async onLoad(options) {
+  async onLoad(options = {}) {
+    const app = getApp()
+    this.setData({ isVip: !!app.globalData.isVip })
     const category = options.category ? decodeURIComponent(options.category) : ''
     const allCourses = await cloudApi.getCourses()
 
@@ -89,19 +94,23 @@ Page({
   },
 
   openCourse(e) {
-    const { courseid, coursename } = e.currentTarget.dataset
+    const { courseid, coursename, locked } = e.currentTarget.dataset
     if (!courseid) return
+    if (locked && !this.data.isVip) {
+      wx.navigateTo({ url: '/pages/vip/vip' })
+      return
+    }
     wx.navigateTo({
       url: `/pages/study-plan/study-plan?courseId=${courseid}&courseName=${coursename || ''}`
     })
   },
 
   openCategory(e) {
-    const { category, courseid, coursename } = e.currentTarget.dataset
+    const { category, courseid, coursename, locked } = e.currentTarget.dataset
     if (courseid) {
       this.openCourse({
         currentTarget: {
-          dataset: { courseid, coursename }
+          dataset: { courseid, coursename, locked }
         }
       })
       return

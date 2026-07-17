@@ -44,17 +44,16 @@ Page({
     this.setData({ uploading: true })
     wx.showLoading({ title: '上传中', mask: true })
     try {
+      await cloudApi.assertAdmin()
       const ext = (this.data.selectedFile.path || '').split('.').pop() || 'jpg'
       const uploadRes = await wx.cloud.uploadFile({
         cloudPath: `wallpapers/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`,
         filePath: this.data.selectedFile.path
       })
-      const temp = await wx.cloud.getTempFileURL({ fileList: [uploadRes.fileID] })
-      const imageUrl = (temp.fileList && temp.fileList[0] && temp.fileList[0].tempFileURL) || ''
       const res = await cloudApi.uploadWallpapers([{
         title: this.data.title.trim() || '平台壁纸',
         fileId: uploadRes.fileID,
-        imageUrl,
+        imageUrl: '',
         sort: Date.now()
       }])
       if (res.result && res.result.code === 0) {

@@ -68,7 +68,7 @@ async function withTempUrls(list = []) {
 
   return list.map((item) => ({
     ...item,
-    imageUrl: item.imageUrl || urlMap[item.fileId] || item.fileId || ''
+    imageUrl: urlMap[item.fileId] || item.imageUrl || item.fileId || ''
   }))
 }
 

@@ -510,6 +510,10 @@ async function patchHomeCards() {
 }
 
 exports.main = async (event = {}) => {
+  const opsToken = process.env.OPS_ADMIN_TOKEN || ''
+  if (!opsToken || event.opsToken !== opsToken) {
+    return { code: 403, msg: '该运维函数已锁定，仅允许携带服务器运维凭证调用' }
+  }
   try {
     const mode = event.mode || 'home-patch'
     await ensureCollections()

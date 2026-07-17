@@ -52,7 +52,11 @@ async function issueToken(openid) {
             createdAt: db.serverDate()
         }
     })
-    return token
+    return { token, expiresAt }
+}
+
+function buildUserId(openid) {
+    return `user_${crypto.createHash('sha256').update(openid).digest('hex').slice(0, 32)}`
 }
 
 async function createOnboardingMessage(openid) {
@@ -89,12 +93,12 @@ function readPhoneNumber(res = {}) {
 
 exports.main = async (event = {}, context) => {
     const { OPENID, APPID } = cloud.getWXContext()
-    const { nickName, avatarUrl, loginType, phoneData, phoneCode, code, encryptedData, iv } = event
+    const { action, nickName, avatarUrl, loginType, phoneCode, code } = event
+    const safeNickName = typeof nickName === 'string' ? nickName.trim().slice(0, 40) : ''
+    const safeAvatarUrl = typeof avatarUrl === 'string' ? avatarUrl.slice(0, 1000) : ''
     let phoneNumber = ''
     if (loginType === 'phone') {
-        if (phoneData && phoneData.data && phoneData.data.phoneNumber) {
-            phoneNumber = phoneData.data.phoneNumber
-        } else if (phoneCode || code) {
+        if (phoneCode || code) {
             try {
                 const res = await cloud.openapi.phonenumber.getPhoneNumber({
                     code: phoneCode || code
@@ -103,16 +107,9 @@ exports.main = async (event = {}, context) => {
             } catch (err) {
                 console.warn('[userLogin] get phone by code fail', err)
             }
-        } else if (encryptedData && iv) {
-            try {
-                const res = await cloud.openapi.phonenumber.decryptPhoneNumber({
-                    encryptedData,
-                    iv
-                })
-                phoneNumber = readPhoneNumber(res)
-            } catch (err) {
-                console.warn('[userLogin] decrypt phone fail', err)
-            }
+        }
+        if (!phoneNumber) {
+            return { code: -1, msg: '手机号授权失败，请重新授权后再试' }
         }
     }
 
@@ -120,6 +117,25 @@ exports.main = async (event = {}, context) => {
         if (!OPENID) return { code: -1, msg: '未获取到用户身份' }
         await ensureCollection('users')
         await ensureCollection('tokens')
+
+        if (action === 'getCurrentUser') {
+            const existing = await db.collection('users').where({ _openid: OPENID }).limit(1).get()
+            return { code: 0, data: (existing.data || [])[0] || null }
+        }
+
+        if (action === 'updateProfile') {
+            const existing = await db.collection('users').where({ _openid: OPENID }).limit(1).get()
+            const user = existing.data[0]
+            if (!user) return { code: -1, msg: '请先登录' }
+            const updates = {}
+            if (typeof nickName === 'string' && nickName.trim()) updates.nickName = nickName.trim().slice(0, 40)
+            if (typeof avatarUrl === 'string') updates.avatarUrl = avatarUrl.slice(0, 1000)
+            if (!Object.keys(updates).length) return { code: -1, msg: '没有可更新的资料' }
+            await db.collection('users').doc(user._id).update({
+                data: { ...updates, updatedAt: db.serverDate() }
+            })
+            return { code: 0, data: { ...user, ...updates } }
+        }
 
         // 查找是否已有用户
         const existing = await db.collection('users').where({ _openid: OPENID }).get()
@@ -130,8 +146,8 @@ exports.main = async (event = {}, context) => {
             await db.collection('users').doc(user._id).update({
                 data: {
                     lastLoginAt: db.serverDate(),
-                    ...(nickName && { nickName }),
-                    ...(avatarUrl && { avatarUrl }),
+                    ...(safeNickName && { nickName: safeNickName }),
+                    ...(safeAvatarUrl && { avatarUrl: safeAvatarUrl }),
                     ...(phoneNumber && { phone: phoneNumber })
                 }
             })
@@ -142,8 +158,8 @@ exports.main = async (event = {}, context) => {
             const newUser = {
                 _openid: OPENID,
                 appid: APPID,
-                nickName: nickName || ('学员' + Math.floor(Math.random() * 9000 + 1000)),
-                avatarUrl: avatarUrl || '',
+                nickName: safeNickName || ('学员' + Math.floor(Math.random() * 9000 + 1000)),
+                avatarUrl: safeAvatarUrl || '',
                 phone: phoneNumber || '',
                 coins: 0,
                 isVip: true,
@@ -154,14 +170,14 @@ exports.main = async (event = {}, context) => {
                 createdAt: db.serverDate(),
                 lastLoginAt: db.serverDate()
             }
-            const addRes = await db.collection('users').add({ data: newUser })
+            await db.collection('users').doc(buildUserId(OPENID)).set({ data: newUser })
             await createOnboardingMessage(OPENID)
         }
 
         const latest = await db.collection('users').where({ _openid: OPENID }).get()
         const currentUser = latest.data[0]
-        const token = await issueToken(OPENID)
-        return { code: 0, data: { ...currentUser, token } }
+        const { token, expiresAt: tokenExpiresAt } = await issueToken(OPENID)
+        return { code: 0, data: { ...currentUser, token, tokenExpiresAt } }
     } catch (err) {
         console.error('[userLogin] login failed', err)
         return { code: -1, msg: err.message || '登录失败', error: err.message }

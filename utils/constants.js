@@ -35,14 +35,6 @@ const EBBINGHAUS_INTERVALS = [
     15 * 24 * 60 * 60 * 1000 // 15天
 ]
 
-// VIP 套餐（价格单位：分）
-const VIP_PLANS = [
-    { id: 'basic_vip_year', label: '基础VIP包年', price: 19800, days: 365, supervisionDays: 0, virtualProductId: 'basic_vip_year' },
-    { id: 'supervision_trial_day', label: '督学试用1日', price: 800, days: 365, supervisionDays: 1, virtualProductId: 'supervision_trial_day' },
-    { id: 'supervision_month', label: '督学包月', price: 19800, days: 365, supervisionDays: 30, virtualProductId: 'supervision_month' },
-    { id: 'premium_vip_year', label: '高级VIP包年', price: 98800, days: 365, supervisionDays: 365, virtualProductId: 'premium_vip_year' }
-]
-
 // 打卡签到奖励（舟币）
 const CHECKIN_COINS = 10
 // 分享朋友圈奖励（舟币）
@@ -62,7 +54,6 @@ module.exports = {
     ANSWER_RESULT,
     STUDY_MODE,
     EBBINGHAUS_INTERVALS,
-    VIP_PLANS,
     CHECKIN_COINS,
     SHARE_COINS_REWARD,
     AD_COINS_REWARD,

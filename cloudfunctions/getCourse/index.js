@@ -19,6 +19,9 @@ exports.main = async (event, context) => {
             const bankRes = await db.collection('question_banks').doc(courseId).get()
             if (bankRes.data) {
                 const bank = bankRes.data
+                if (['disabled', 'offline'].includes(bank.status)) {
+                    return { code: 404, msg: '该题库已下架' }
+                }
                 let subject = {}
                 if (bank.subjectId) {
                     try {
@@ -41,6 +44,9 @@ exports.main = async (event, context) => {
 
         // 降级到 courses 集合
         const courseRes = await db.collection('courses').doc(courseId).get()
+        if (!courseRes.data || ['disabled', 'offline'].includes(courseRes.data.status)) {
+            return { code: 404, msg: '该题库不存在或已下架' }
+        }
         return { code: 0, data: courseRes.data }
     } catch (err) {
         return { code: -1, msg: err.message }

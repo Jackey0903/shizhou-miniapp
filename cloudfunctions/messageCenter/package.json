@@ -1,0 +1,10 @@
+{
+  "name": "messageCenter",
+  "version": "1.0.0",
+  "description": "按当前用户安全读取和标记消息",
+  "main": "index.js",
+  "dependencies": {
+    "ws": "^8.21.1",
+    "wx-server-sdk": "^4.0.2"
+  }
+}

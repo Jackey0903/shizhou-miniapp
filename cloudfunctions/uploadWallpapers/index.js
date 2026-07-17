@@ -3,8 +3,27 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 
-exports.main = async (event) => {
+exports.main = async (event = {}) => {
   const { OPENID } = cloud.getWXContext()
+  if (event.action === 'list') {
+    try {
+      const list = []
+      while (list.length < 1000) {
+        const res = await db.collection('wallpapers').where({ enabled: true })
+          .skip(list.length).limit(Math.min(100, 1000 - list.length)).get()
+        const page = res.data || []
+        list.push(...page)
+        if (page.length < 100) break
+      }
+      const type = String(event.type || '')
+      const data = list
+        .filter((item) => !type || item.type === type)
+        .sort((a, b) => Number(a.sort || 0) - Number(b.sort || 0))
+      return { code: 0, data }
+    } catch (err) {
+      return { code: -1, msg: err.message || '壁纸加载失败' }
+    }
+  }
   const wallpapers = Array.isArray(event.wallpapers) ? event.wallpapers : []
 
   if (!wallpapers.length) {

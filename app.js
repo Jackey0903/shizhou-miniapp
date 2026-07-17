@@ -16,12 +16,22 @@ App({
     // 检查本地缓存的用户信息
     const userInfo = wx.getStorageSync('userInfo')
     const token = wx.getStorageSync('token')
-    if (userInfo) {
+    const tokenExpiresAt = wx.getStorageSync('tokenExpiresAt')
+    const expiryTime = tokenExpiresAt ? new Date(tokenExpiresAt).getTime() : 0
+    const tokenValid = !!token && (!expiryTime || expiryTime > Date.now())
+    if (userInfo && tokenValid) {
       this.globalData.userInfo = userInfo
       this.globalData.isLogin = true
-    }
-    if (token) {
       this.globalData.token = token
+      this.globalData.tokenExpiresAt = tokenExpiresAt || ''
+      const vipExpiryTime = userInfo.vipExpireDate ? new Date(userInfo.vipExpireDate).getTime() : 0
+      this.globalData.isVip = !!(userInfo.isVip && (!vipExpiryTime || vipExpiryTime > Date.now()))
+      this.globalData.vipExpireDate = userInfo.vipExpireDate || null
+      this.globalData.coins = Number(userInfo.coins || 0)
+    } else if (userInfo || token || tokenExpiresAt) {
+      wx.removeStorageSync('userInfo')
+      wx.removeStorageSync('token')
+      wx.removeStorageSync('tokenExpiresAt')
     }
 
     // 检查更新
@@ -70,6 +80,7 @@ App({
     vipExpireDate: null,
     // 舟币余额
     coins: 0,
-    token: ''
+    token: '',
+    tokenExpiresAt: ''
   }
 })

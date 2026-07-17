@@ -68,6 +68,14 @@ async function getReminderConfig() {
   return (fallback.data || [])[0] || null
 }
 
+async function getActiveSupervisionUser(openid) {
+  const res = await db.collection('users').where({ _openid: openid }).limit(1).get()
+  const user = (res.data || [])[0]
+  if (!user) return null
+  const expireAt = user.supervisionExpireDate ? new Date(user.supervisionExpireDate).getTime() : 0
+  return expireAt > Date.now() ? user : null
+}
+
 exports.main = async (event = {}) => {
   const { OPENID } = cloud.getWXContext()
   const { action, payload = {} } = event
@@ -78,6 +86,11 @@ exports.main = async (event = {}) => {
     if (action === 'getConfig') {
       const config = await getReminderConfig()
       return { code: 0, data: config }
+    }
+
+
+    if (!OPENID) {
+      return { code: 401, msg: '请先登录' }
     }
 
     if (action === 'list') {
@@ -92,7 +105,17 @@ exports.main = async (event = {}) => {
       const title = String(payload.title || '').trim()
       const time = String(payload.time || '').trim()
       if (!title) return { code: -1, msg: '请填写提醒内容' }
-      if (!/^\d{2}:\d{2}$/.test(time)) return { code: -1, msg: '提醒时间格式不正确' }
+      if (title.length > 40) return { code: -1, msg: '提醒内容不能超过40个字' }
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return { code: -1, msg: '提醒时间格式不正确' }
+
+      const user = await getActiveSupervisionUser(OPENID)
+      if (!user) return { code: 403, msg: '请先开通有效的督学服务' }
+
+      const activeRes = await db.collection('study_reminders').where({ _openid: OPENID, active: true }).limit(20).get()
+      if ((activeRes.data || []).length >= 10) return { code: -1, msg: '最多可设置10条提醒' }
+
+      const duplicate = (activeRes.data || []).find((item) => item.mode === mode && item.time === time && item.title === title)
+      if (duplicate) return { code: -1, msg: '相同提醒已存在' }
 
       const config = await getReminderConfig()
       const nextRemindAt = buildNextRemindAt(time)

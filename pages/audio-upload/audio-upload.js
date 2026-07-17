@@ -47,6 +47,7 @@ Page({
     this.setData({ uploading: true })
     wx.showLoading({ title: '上传中', mask: true })
     try {
+      await cloudApi.assertAdmin()
       const category = this.data.categories[this.data.categoryIndex]
       const type = this.data.types[this.data.typeIndex]
       const uploaded = []

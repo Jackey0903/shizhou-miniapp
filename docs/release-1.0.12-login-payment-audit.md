@@ -1,5 +1,7 @@
 # 1.0.12 Login And Payment Audit
 
+> Historical record only. Do not submit this version. The current release checklist is `release-1.0.14-verification.md`.
+
 Date: 2026-07-06
 
 ## Scope

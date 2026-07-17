@@ -128,13 +128,27 @@ function checkCloudFunctionDeps() {
 }
 
 function checkUploadInfo() {
-  const infoPath = 'tmp/upload-1.0.13.json'
+  const requestedVersion = process.env.RELEASE_VERSION || process.argv[2] || ''
+  const candidates = fs.existsSync(path.join(root, 'tmp'))
+    ? fs.readdirSync(path.join(root, 'tmp'))
+      .filter((name) => /^upload-\d+\.\d+\.\d+\.json$/.test(name))
+      .sort((left, right) => {
+        const a = left.match(/\d+/g).map(Number)
+        const b = right.match(/\d+/g).map(Number)
+        for (let index = 0; index < Math.max(a.length, b.length); index += 1) {
+          if ((a[index] || 0) !== (b[index] || 0)) return (a[index] || 0) - (b[index] || 0)
+        }
+        return 0
+      })
+    : []
+  const selected = requestedVersion ? `upload-${requestedVersion}.json` : candidates[candidates.length - 1]
+  const infoPath = selected ? `tmp/${selected}` : ''
   assert(exists(infoPath), `${infoPath} is missing`)
   const info = JSON.parse(read(infoPath))
   const total = info && info.size && Number(info.size.total)
   assert(total > 0, 'upload info has no package size')
   assert(total < maxMiniProgramSize, `mini program package too large: ${total}`)
-  return total
+  return { total, version: selected.replace(/^upload-|\.json$/g, '') }
 }
 
 function main() {
@@ -142,16 +156,19 @@ function main() {
   checkNoLegacyRuntimePayment()
   checkLoginAndPaymentFixes()
   checkCloudFunctionDeps()
-  const uploadSize = checkUploadInfo()
+  const upload = checkUploadInfo()
   run(process.execPath, ['scripts/regression-login-payment.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-customer-reported-issues.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-plan-separation.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-learning-flow.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-release-integrity.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-security-critical.js'], { stdio: 'pipe' })
 
   console.log(JSON.stringify({
     ok: true,
     checkedJsFiles: checkedFiles,
-    uploadVersion: '1.0.13',
-    uploadSize,
+    uploadVersion: upload.version,
+    uploadSize: upload.total,
     checks: [
       'syntax',
       'legacy-login-payment-scan',
@@ -160,7 +177,10 @@ function main() {
       'upload-size',
       'login-payment-regression',
       'customer-reported-issue-regression',
-      'VIP-supervision-plan-separation'
+      'VIP-supervision-plan-separation',
+      'learning-review-checkin-regression',
+      'page-route-asset-cloud-function-integrity',
+      'critical-security-business-invariants'
     ]
   }, null, 2))
 }

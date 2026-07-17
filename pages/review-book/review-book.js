@@ -45,42 +45,22 @@ Page({
   },
 
   async _hydrateRecords(records, courseMap) {
-    const missingIds = records
-      .filter((item) => item.questionId && !item.questionContent)
-      .map((item) => item.questionId)
-
-    let questionMap = {}
-    if (missingIds.length > 0) {
-      const uniqueIds = [...new Set(missingIds)]
-      const questionEntries = await Promise.all(uniqueIds.map(async (questionId) => {
-        try {
-          const res = await cloudApi.db.collection('questions').doc(questionId).get()
-          return [questionId, res.data || null]
-        } catch (err) {
-          return [questionId, null]
-        }
-      }))
-      questionMap = Object.fromEntries(questionEntries)
-    }
-
     return records.map((item) => {
-      const question = item.questionContent ? null : questionMap[item.questionId]
       const course = courseMap[item.courseId] || {}
       const courseName = stripPrefix(course.name || '') || '未分类题库'
-      const hydratedContent = item.questionContent || (question && question.content) || ''
-      const missingQuestion = !item.questionContent && !question
+      const missingQuestion = !item.questionContent
       return {
         ...item,
-        questionContent: hydratedContent || '（题目已更新，请重新加入记忆）',
-        questionOptions: item.questionOptions || (question && question.options) || [],
-        questionType: item.questionType || (question && question.type) || '',
-        questionAnswer: item.questionAnswer || (question && question.answer) || '',
-        questionExplanation: item.questionExplanation || (question && question.explanation) || '',
+        questionContent: item.questionContent || '（题目已更新，请重新加入记忆）',
+        questionOptions: item.questionOptions || [],
+        questionType: item.questionType || '',
+        questionAnswer: item.questionAnswer || '',
+        questionExplanation: item.questionExplanation || '',
         categoryName: course.category || '综合',
         bankName: courseName,
         bankSeries: course.series || '',
         missingQuestion,
-        reviewable: !!(item.questionContent || question)
+        reviewable: !!item.questionContent
       }
     })
   },
@@ -147,9 +127,11 @@ Page({
       wx.showToast({ title: '暂无可复习题目', icon: 'none' })
       return
     }
-    const ids = validRecords.map((item) => item.questionId).join(',')
+    const ids = validRecords.map((item) => item.questionId)
+    const reviewSessionKey = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+    wx.setStorageSync(`reviewQuestionIds:${reviewSessionKey}`, ids)
     wx.navigateTo({
-      url: `/pages/question/question?courseId=${this.data.courseId}&mode=review&questionIds=${ids}`
+      url: `/pages/question/question?courseId=${this.data.courseId}&mode=review&reviewSessionKey=${reviewSessionKey}`
     })
   },
 
@@ -160,9 +142,11 @@ Page({
       return
     }
     const shuffled = [...validRecords].sort(() => Math.random() - 0.5)
-    const ids = shuffled.map((item) => item.questionId).join(',')
+    const ids = shuffled.map((item) => item.questionId)
+    const reviewSessionKey = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+    wx.setStorageSync(`reviewQuestionIds:${reviewSessionKey}`, ids)
     wx.navigateTo({
-      url: `/pages/question/question?courseId=${this.data.courseId}&mode=review&questionIds=${ids}`
+      url: `/pages/question/question?courseId=${this.data.courseId}&mode=review&reviewSessionKey=${reviewSessionKey}`
     })
   }
 })

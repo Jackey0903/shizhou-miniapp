@@ -1,4 +1,5 @@
 const cloudApi = require('../../utils/cloudApi')
+const auth = require('../../utils/auth')
 
 let audioCtx = null
 const MATERIAL_COST = 5
@@ -82,21 +83,21 @@ Page({
   async loadData() {
     this.setData({ loading: true })
     try {
-      const [materials, redemptions, user] = await Promise.all([
+      const [materials, user] = await Promise.all([
         cloudApi.getMaterials(),
-        cloudApi.getMyMaterialRedemptions().catch(() => []),
         cloudApi.getCurrentUser().catch(() => null)
       ])
       const normalizedMaterials = await this.withCoverUrls(materials || [])
       const ownedMap = {}
-      ;(redemptions || []).forEach((item) => {
-        ownedMap[item.materialId] = true
+      ;(normalizedMaterials || []).forEach((item) => {
+        if (item.owned) ownedMap[item._id] = true
       })
+      const vipExpireTime = user && user.vipExpireDate ? new Date(user.vipExpireDate).getTime() : 0
       this.setData({
         materials: normalizedMaterials,
         ownedMap,
         userCoins: (user && user.coins) || 0,
-        isVip: !!(user && user.isVip),
+        isVip: !!(user && user.isVip && (!vipExpireTime || vipExpireTime > Date.now())),
         loading: false
       })
       this.applyFilter()
@@ -174,6 +175,8 @@ Page({
       return
     }
 
+    if (!(await auth.requireLogin('领取学习资料前请先登录账号'))) return
+
     const actionText = '领取'
     const confirmText = getConfirmText(item, this.data.isVip)
 
@@ -191,12 +194,18 @@ Page({
           const redeemRes = await cloudApi.exchangeMaterial(item._id)
           const result = redeemRes.result || {}
           if (result.code === 0) {
+            const grantedMaterial = (result.data && result.data.material) || item
+            const materials = this.data.materials.map((material) => (
+              material._id === item._id ? { ...material, ...grantedMaterial, owned: true } : material
+            ))
             this.setData({
               [`ownedMap.${item._id}`]: true,
+              materials,
               userCoins: result.data ? result.data.remainingCoins : this.data.userCoins
             })
+            this.applyFilter()
             wx.showToast({ title: result.data && result.data.alreadyOwned ? '已领取' : '领取成功', icon: 'success' })
-            await this.openMaterial(item)
+            await this.openMaterial(grantedMaterial)
           } else if (result.code === 3) {
             wx.showModal({
               title: 'VIP资料',
@@ -321,14 +330,14 @@ Page({
   },
 
   async resolveUrl(item) {
-    if (item.fileUrl) return item.fileUrl
-    if (item.linkUrl) return item.linkUrl
-    if (item.imageUrl) return item.imageUrl
     if (item.fileId && item.fileId.startsWith('cloud://')) {
       const res = await wx.cloud.getTempFileURL({ fileList: [item.fileId] })
       const file = (res.fileList || [])[0]
-      return file ? file.tempFileURL : ''
+      if (file && file.tempFileURL) return file.tempFileURL
     }
+    if (item.fileUrl) return item.fileUrl
+    if (item.linkUrl) return item.linkUrl
+    if (item.imageUrl) return item.imageUrl
     return item.fileId || ''
   }
 })

@@ -31,11 +31,8 @@ Page({
 
       const formattedPlans = plans.map((plan) => {
         const course = courseMap[plan.courseId] || {}
-        const planRecords = records.filter((record) => {
-          if (plan._id && record.planId) return record.planId === plan._id
-          return record.courseId === plan.courseId
-        })
-        const learnedCount = planRecords.filter((record) => record.result === 'know').length
+        const planRecords = records.filter((record) => record.courseId === plan.courseId)
+        const learnedCount = new Set(planRecords.map((record) => record.questionId).filter(Boolean)).size
         const totalCount = course.totalCount || 0
         const progress = totalCount > 0 ? Math.min(100, Math.round((learnedCount / totalCount) * 100)) : 0
         return {
@@ -73,9 +70,16 @@ Page({
   async removePlan(e) {
     const { id } = e.currentTarget.dataset
     if (!id) return
-    await cloudApi.deletePlan(id)
-    const plans = this.data.plans.filter((plan) => plan._id !== id)
-    this.setData({ plans })
-    wx.showToast({ title: '已移除', icon: 'success' })
+    try {
+      const res = await cloudApi.deletePlan(id)
+      if (!res.result || res.result.code !== 0) {
+        throw new Error((res.result && (res.result.error || res.result.msg)) || '移除失败')
+      }
+      const plans = this.data.plans.filter((plan) => plan._id !== id)
+      this.setData({ plans })
+      wx.showToast({ title: '已移除', icon: 'success' })
+    } catch (err) {
+      wx.showToast({ title: err.message || '移除失败', icon: 'none' })
+    }
   }
 })

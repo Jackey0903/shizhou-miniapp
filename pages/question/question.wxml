@@ -5,7 +5,7 @@
     <view class="q-back" bindtap="goBack">‹</view>
     <view class="q-title-area">
       <text class="q-title">{{courseName}}</text>
-      <text class="q-progress">{{currentIndex + 1}}/{{total}}</text>
+      <text class="q-progress">{{total > 0 ? (currentIndex < total ? currentIndex + 1 : total) : 0}}/{{total}}</text>
     </view>
     <view class="q-header-icons">
       <view class="q-icon" bindtap="goReviewBook">📖</view>
@@ -150,7 +150,7 @@
       <button class="q-report-btn" bindtap="submitCorrection">提交纠错</button>
     </view>
 
-    <view class="q-action-bar" wx:if="{{showAnswer || answered}}">
+    <view class="q-action-bar {{submittingAnswer ? 'is-submitting' : ''}}" wx:if="{{showAnswer || answered}}">
       <view class="action-btn action-none" bindtap="onResult" data-result="none">
         <text class="action-emoji">😟</text>
         <text class="action-label">不会</text>

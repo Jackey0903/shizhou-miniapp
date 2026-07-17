@@ -3,13 +3,21 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 
+function canRunOperations(event = {}) {
+  const expected = process.env.OPS_ADMIN_TOKEN || ''
+  return !!expected && typeof event.opsToken === 'string' && event.opsToken === expected
+}
+
 async function ensureCollection(name) {
   try {
     await db.createCollection(name)
   } catch (err) {}
 }
 
-exports.main = async () => {
+exports.main = async (event = {}) => {
+  if (!canRunOperations(event)) {
+    return { code: 403, msg: '该运维函数已锁定，仅允许携带服务器运维凭证调用' }
+  }
   const results = []
 
   await ensureCollection('subjects')

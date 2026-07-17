@@ -11,9 +11,19 @@ function buildCurrentPageUrl() {
 
 function hasLocalLogin() {
   const app = getApp()
-  if (app.globalData && app.globalData.isLogin && app.globalData.userInfo) return true
   try {
-    return !!wx.getStorageSync('userInfo')
+    const userInfo = (app.globalData && app.globalData.userInfo) || wx.getStorageSync('userInfo')
+    const token = (app.globalData && app.globalData.token) || wx.getStorageSync('token')
+    const tokenExpiresAt = (app.globalData && app.globalData.tokenExpiresAt) || wx.getStorageSync('tokenExpiresAt')
+    const expiryTime = tokenExpiresAt ? new Date(tokenExpiresAt).getTime() : 0
+    const valid = !!userInfo && !!token && (!expiryTime || expiryTime > Date.now())
+    if (!valid && app.globalData) {
+      app.globalData.userInfo = null
+      app.globalData.isLogin = false
+      app.globalData.token = ''
+      app.globalData.tokenExpiresAt = ''
+    }
+    return valid
   } catch (err) {
     return false
   }

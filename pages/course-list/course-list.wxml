@@ -14,6 +14,7 @@
       data-category="{{category.category}}"
       data-courseid="{{category.directCourseId}}"
       data-coursename="{{category.directCourseName}}"
+      data-locked="{{category.locked}}"
       style="background: {{category.color.bg}}; border-color: {{category.color.border}};"
     >
       <view class="cl-category-main">
@@ -30,6 +31,7 @@
             catchtap="openCourse"
             data-courseid="{{preview._id}}"
             data-coursename="{{preview.rawName}}"
+            data-locked="{{preview.isLocked}}"
           >
             <text class="cl-category-preview-item">{{preview.name}}</text>
             <text class="cl-category-preview-count" style="color: {{category.color.accent}};">{{preview.count}}题</text>
@@ -49,7 +51,7 @@
   </view>
 
   <view class="cl-grid" wx:else>
-    <navigator class="cl-card" url="/pages/study-plan/study-plan?courseId={{item._id}}&courseName={{item.name}}" wx:for="{{courses}}" wx:key="_id">
+    <view class="cl-card" bindtap="openCourse" data-courseid="{{item._id}}" data-coursename="{{item.name}}" data-locked="{{item.isLocked}}" wx:for="{{courses}}" wx:key="_id">
       <image class="cl-cover" src="{{item.cover || '/assets/icons/default-cover.png'}}" mode="aspectFill"/>
       <view class="cl-info">
         <view class="cl-badges">
@@ -60,9 +62,9 @@
         <text class="cl-desc" wx:if="{{item.description}}">{{item.description}}</text>
         <view class="cl-meta">
           <text class="cl-count">{{item.totalCount}}题</text>
-          <text class="cl-action">进入题库 ›</text>
+          <text class="cl-action">{{item.isLocked && !isVip ? 'VIP专享 🔒' : '进入题库 ›'}}</text>
         </view>
       </view>
-    </navigator>
+    </view>
   </view>
 </view>

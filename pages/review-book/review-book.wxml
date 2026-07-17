@@ -53,7 +53,7 @@
 
   <view class="empty" wx:else>
     <text class="empty-icon">📖</text>
-    <text class="empty-text">{{activeTab === 'none' ? '还没有不太会的题目' : activeTab === 'maybe' ? '没有不会的题目' : '暂无已掌握题目'}}</text>
+    <text class="empty-text">{{activeTab === 'none' ? '还没有不会的题目' : activeTab === 'maybe' ? '还没有不太会的题目' : '暂无已掌握题目'}}</text>
   </view>
 
   <view class="rb-bottom-bar" wx:if="{{records.length > 0}}">
