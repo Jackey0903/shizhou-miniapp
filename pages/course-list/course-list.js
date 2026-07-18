@@ -101,7 +101,7 @@ Page({
       return
     }
     wx.navigateTo({
-      url: `/pages/study-plan/study-plan?courseId=${courseid}&courseName=${coursename || ''}`
+      url: `/pages/study-plan/study-plan?courseId=${encodeURIComponent(courseid)}&courseName=${encodeURIComponent(coursename || '')}`
     })
   },
 

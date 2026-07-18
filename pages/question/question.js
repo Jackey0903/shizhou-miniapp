@@ -1,5 +1,6 @@
 // pages/question/question.js
 const cloudApi = require('../../utils/cloudApi')
+const { decodeRouteParam } = require('../../utils/routeParams')
 
 function sameDate(value, target) {
     if (!value) return false
@@ -93,7 +94,8 @@ Page({
     },
 
     onLoad(options = {}) {
-        const { courseId, courseName, planId, mode = 'new', questionIds = '' } = options
+        const { courseId, planId, mode = 'new', questionIds = '' } = options
+        const courseName = decodeRouteParam(options.courseName)
         let ids = questionIds
             ? questionIds.split(',').filter(Boolean)
             : []
@@ -504,7 +506,7 @@ Page({
         const actionType = this.data.emptyState && this.data.emptyState.actionType
         if (actionType === 'review') {
             wx.redirectTo({
-                url: `/pages/question/question?courseId=${this.data.courseId}&courseName=${this.data.courseName}&planId=${this.data.planId || ''}&mode=review`
+                url: `/pages/question/question?courseId=${encodeURIComponent(this.data.courseId)}&courseName=${encodeURIComponent(this.data.courseName)}&planId=${encodeURIComponent(this.data.planId || '')}&mode=review`
             })
             return
         }

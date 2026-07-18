@@ -33,12 +33,12 @@
         <checkbox-group bindchange="onAgreeChange">
           <label class="agreement-label">
             <checkbox value="agree" checked="{{agreed}}" color="#2563EB"/>
-            <text class="agreement-text">
-              我已阅读并同意
+            <view class="agreement-text">
+              <text>我已阅读并同意</text>
               <navigator url="/pages/agreement/agreement" class="agreement-link">《用户协议》</navigator>
-              和
+              <text>和</text>
               <navigator url="/pages/privacy/privacy" class="agreement-link">《隐私政策》</navigator>
-            </text>
+            </view>
           </label>
         </checkbox-group>
       </view>

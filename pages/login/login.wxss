@@ -89,6 +89,10 @@
 }
 
 .agreement-text {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   font-size: 22rpx;
   color: var(--text-secondary);
   line-height: 1.8;
@@ -96,7 +100,6 @@
 
 .agreement-link {
   color: var(--primary);
-  display: inline;
 }
 
 .login-skip {

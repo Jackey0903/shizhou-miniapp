@@ -1,5 +1,6 @@
 // pages/study-plan/study-plan.js
 const cloudApi = require('../../utils/cloudApi')
+const { decodeRouteParam } = require('../../utils/routeParams')
 
 const DAILY_COUNT_OPTIONS = Array.from({ length: 50 }, (_, index) => index + 1)
 
@@ -39,7 +40,8 @@ Page({
     },
 
     async onLoad(options) {
-        const { courseId, courseName } = options
+        const courseId = options.courseId || ''
+        const courseName = decodeRouteParam(options.courseName)
         this.setData({ courseId, courseName })
         wx.setNavigationBarTitle({ title: courseName || '制定计划' })
         await Promise.all([this._loadData(), this._loadAdSlot()])
@@ -166,13 +168,13 @@ Page({
         const saved = await this.savePlan({ silent: true })
         if (!saved) return
         wx.navigateTo({
-            url: `/pages/question/question?courseId=${this.data.courseId}&courseName=${this.data.courseName}&planId=${this.data.plan._id || ''}&mode=new`
+            url: `/pages/question/question?courseId=${encodeURIComponent(this.data.courseId)}&courseName=${encodeURIComponent(this.data.courseName)}&planId=${encodeURIComponent(this.data.plan._id || '')}&mode=new`
         })
     },
 
     startReview() {
         wx.navigateTo({
-            url: `/pages/question/question?courseId=${this.data.courseId}&courseName=${this.data.courseName}&planId=${this.data.plan._id || ''}&mode=review`
+            url: `/pages/question/question?courseId=${encodeURIComponent(this.data.courseId)}&courseName=${encodeURIComponent(this.data.courseName)}&planId=${encodeURIComponent(this.data.plan._id || '')}&mode=review`
         })
     }
 })
