@@ -50,7 +50,11 @@ Page({
       let result = res.result || {}
       if (result.code !== 0) throw new Error(result.msg || '订单加载失败')
       const candidates = (result.data || [])
-        .filter((order) => ['pending', 'paid'].includes(order.status) && order.outTradeNo)
+        .filter((order) => (
+          order.payChannel === 'wechat_virtual'
+          && ['pending', 'paid'].includes(order.status)
+          && order.outTradeNo
+        ))
         .slice(0, 20)
       if (candidates.length) {
         await Promise.all(candidates.map((order) => (
@@ -63,7 +67,9 @@ Page({
         result = res.result || {}
         if (result.code !== 0) throw new Error(result.msg || '订单加载失败')
       }
-      const orders = (result.data || []).map((order) => ({
+      const orders = (result.data || [])
+        .filter((order) => order.payChannel === 'wechat_virtual')
+        .map((order) => ({
         ...order,
         statusLabel: STATUS_LABELS[order.status] || order.status || '未知状态',
         deliveryLabel: DELIVERY_LABELS[order.deliveryStatus] || (order.status === 'paid' ? '权益确认中' : ''),

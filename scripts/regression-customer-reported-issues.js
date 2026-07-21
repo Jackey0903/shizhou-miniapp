@@ -54,6 +54,33 @@ async function testVirtualPaymentOrderRefreshesRejectedLoginCode() {
   delete global.wx
 }
 
+async function testVirtualPaymentReportsActionableClientError() {
+  const modulePath = path.join(root, 'utils/virtualPayment.js')
+  delete require.cache[require.resolve(modulePath)]
+  let reported = null
+  global.wx = {
+    getSystemInfoSync() {
+      return { platform: 'android', system: 'Android 14', SDKVersion: '3.7.8', version: '8.0.60' }
+    },
+    cloud: {
+      async callFunction(options) {
+        reported = options
+        return { result: { code: 0 } }
+      }
+    }
+  }
+
+  const virtualPayment = require(modulePath)
+  const error = { errCode: -15010, errMsg: 'requestVirtualPayment:fail product not published' }
+  assert.match(virtualPayment.getPaymentErrorMessage(error), /未发布/)
+  await virtualPayment.reportPaymentError('OUT_TRADE_123', error)
+  assert.strictEqual(reported.name, 'createVipOrder')
+  assert.strictEqual(reported.data.action, 'paymentClientError')
+  assert.strictEqual(reported.data.errCode, -15010)
+  assert.strictEqual(reported.data.clientInfo.platform, 'android')
+  delete global.wx
+}
+
 function testCustomerServiceQrIsPackaged() {
   const page = fs.readFileSync(path.join(root, 'pages/share-gift/share-gift.js'), 'utf8')
   const match = page.match(/qrCodePath:\s*['"]([^'"]+)['"]/) 
@@ -72,6 +99,7 @@ function testCustomerServiceQrIsPackaged() {
 async function main() {
   await testVirtualPaymentLoginRetriesEmptyCode()
   await testVirtualPaymentOrderRefreshesRejectedLoginCode()
+  await testVirtualPaymentReportsActionableClientError()
   testCustomerServiceQrIsPackaged()
   console.log('customer-reported issue regression checks passed')
 }

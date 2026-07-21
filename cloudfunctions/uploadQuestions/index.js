@@ -1,6 +1,9 @@
 const cloud = require('wx-server-sdk')
+const crypto = require('crypto')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
+
+const MAX_BATCH_SIZE = 50
 
 async function getCurrentUser(openid) {
     const res = await db.collection('users').where({ _openid: openid }).limit(1).get()
@@ -25,6 +28,13 @@ function normalizeName(value = '') {
     return String(value || '').trim()
 }
 
+function boundedText(value, field, maxLength, required = false) {
+    const text = normalizeName(value)
+    if (required && !text) throw new Error(`${field}不能为空`)
+    if (text.length > maxLength) throw new Error(`${field}不能超过 ${maxLength} 个字符`)
+    return text
+}
+
 function normalizeKey(value = '') {
     return normalizeName(value).replace(/\s+/g, '')
 }
@@ -33,7 +43,7 @@ const subjectCache = {}
 const bankCache = {}
 
 async function ensureSubject(subjectName) {
-    const name = normalizeName(subjectName || '综合题库')
+    const name = boundedText(subjectName || '综合题库', '科目名称', 100, true)
     const key = normalizeKey(name)
     if (subjectCache[key]) return subjectCache[key]
 
@@ -57,7 +67,7 @@ async function ensureSubject(subjectName) {
 }
 
 async function ensureBank(subjectName, bankName) {
-    const name = normalizeName(bankName)
+    const name = boundedText(bankName, '题库名称', 100, true)
     if (!name) {
         throw new Error('缺少题库名称')
     }
@@ -137,24 +147,28 @@ async function resolveTargetBank(q = {}) {
 
 async function normalizeQuestion(q = {}) {
     const type = q.type === 'fill' ? 'fill' : 'choice'
-    const content = (q.content || '').trim()
-    const explanation = (q.explanation || '').trim()
+    const content = boundedText(q.content, '题干', 5000, true)
+    const explanation = boundedText(q.explanation, '解析', 10000)
     const target = await resolveTargetBank(q)
     const targetId = target.id
-
-    if (!content) {
-        throw new Error('题干不能为空')
+    const importKey = crypto.createHash('sha256')
+        .update(`${targetId}|${type}|${content.replace(/\s+/g, ' ')}`)
+        .digest('hex')
+    const documentId = `q_${importKey.slice(0, 30)}`
+    const imageUrl = boundedText(q.imageUrl, '图片URL', 1000)
+    if (imageUrl && !/^(https:\/\/|cloud:\/\/)/i.test(imageUrl)) {
+        throw new Error('图片URL只支持 https:// 或 cloud://')
     }
 
     if (type === 'choice') {
         const options = Array.isArray(q.options)
-            ? q.options.map(item => (item || '').trim()).filter(Boolean)
+            ? q.options.map(item => boundedText(item, '选项', 1000)).filter(Boolean)
             : []
         const correctIndex = Number(q.correctIndex)
         if (options.length < 2) {
             throw new Error('选择题至少填写两个选项')
         }
-        if (Number.isNaN(correctIndex) || correctIndex < 0 || correctIndex >= options.length) {
+        if (!Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex >= options.length) {
             throw new Error('请选择正确答案')
         }
         return {
@@ -163,19 +177,17 @@ async function normalizeQuestion(q = {}) {
             type,
             sort: Number(q.sort) || Date.now(),
             content,
-            imageUrl: (q.imageUrl || '').trim(),
+            imageUrl,
             options,
             correctIndex,
             answer: `${String.fromCharCode(65 + correctIndex)}. ${options[correctIndex]}`,
             explanation,
-            importKey: normalizeName(q.importKey)
+            importKey,
+            documentId
         }
     }
 
-    const answer = (q.answer || '').trim()
-    if (!answer) {
-        throw new Error('填空题答案不能为空')
-    }
+    const answer = boundedText(q.answer, '填空题答案', 5000, true)
 
     return {
         bankId: targetId,
@@ -183,11 +195,12 @@ async function normalizeQuestion(q = {}) {
         type,
         sort: Number(q.sort) || Date.now(),
         content,
-        imageUrl: (q.imageUrl || '').trim(),
+        imageUrl,
         options: [],
         answer,
         explanation,
-        importKey: normalizeName(q.importKey)
+        importKey,
+        documentId
     }
 }
 
@@ -197,6 +210,9 @@ exports.main = async (event, context) => {
 
     if (!questions || !Array.isArray(questions) || questions.length === 0) {
         return { code: -1, msg: '上传失败：请至少提供一道格式正确的题目' }
+    }
+    if (questions.length > MAX_BATCH_SIZE) {
+        return { code: -1, msg: `单次最多上传 ${MAX_BATCH_SIZE} 道题` }
     }
 
     try {
@@ -216,20 +232,31 @@ exports.main = async (event, context) => {
         }
 
         let insertedCount = 0
+        let skippedCount = 0
         for (const q of normalizedQuestions) {
             if (q.importKey) {
                 const existed = await db.collection('questions')
                     .where({ importKey: q.importKey })
                     .limit(1)
                     .get()
-                if (existed.data && existed.data.length) {
+                let isDuplicate = !!(existed.data && existed.data.length)
+                if (!isDuplicate) {
+                    const legacy = await db.collection('questions')
+                        .where({ bankId: q.bankId, type: q.type, content: q.content })
+                        .limit(1)
+                        .get()
+                    isDuplicate = !!(legacy.data && legacy.data.length)
+                }
+                if (isDuplicate) {
                     bankCounter[q.bankId] = Math.max((bankCounter[q.bankId] || 0) - 1, 0)
+                    skippedCount += 1
                     continue
                 }
             }
-            await db.collection('questions').add({
+            const { documentId, ...questionData } = q
+            await db.collection('questions').doc(documentId).set({
                 data: {
-                    ...q,
+                    ...questionData,
                     createdAt: db.serverDate(),
                     updatedAt: db.serverDate()
                 }
@@ -261,7 +288,13 @@ exports.main = async (event, context) => {
 
         return {
             code: 0,
-            msg: `成功导入 ${insertedCount} 道题目`
+            msg: `成功导入 ${insertedCount} 道题目`,
+            data: {
+                totalCount: normalizedQuestions.length,
+                insertedCount,
+                skippedCount,
+                bankCount: Object.keys(bankCounter).length
+            }
         }
 
     } catch (err) {

@@ -11,25 +11,51 @@
   <view wx:else>
     <view class="qu-card card">
       <view class="qu-head">
-        <text class="qu-title">批量导入 JSON</text>
-        <text class="qu-sub">支持按题库名称导入。客户直接填写“题库名称 + 题目列表”即可，不需要记题库ID，序号也可不填，系统会自动排序。</text>
+        <text class="qu-title">CSV 批量导入</text>
+        <text class="qu-sub">固定 CSV UTF-8 模板，不需要题库 ID。</text>
       </view>
 
-      <view class="qu-field">
-        <text class="qu-label">当前默认题库</text>
-        <picker mode="selector" range="{{courseNames}}" value="{{form.courseIndex}}" bindchange="onCourseChange">
-          <view class="qu-picker">{{courseNames[form.courseIndex] || '请选择课程'}}</view>
-        </picker>
+      <view class="qu-step-list">
+        <view class="qu-step"><text class="qu-step-no">1</text><text>发送模板并填题</text></view>
+        <view class="qu-step"><text class="qu-step-no">2</text><text>选择 CSV 校验预览</text></view>
+        <view class="qu-step"><text class="qu-step-no">3</text><text>确认后分批导入</text></view>
       </view>
 
-      <button class="btn btn-secondary btn-full" bindtap="chooseJsonFile">选择 JSON 文件</button>
+      <view class="qu-template-actions">
+        <button class="btn btn-outline qu-template-btn" bindtap="shareCsvTemplate">发送 CSV 模板</button>
+        <button class="btn btn-outline qu-template-btn" bindtap="showCsvHelp">格式说明</button>
+      </view>
+      <button class="btn btn-secondary btn-full" bindtap="chooseCsvFile">选择 CSV 文件</button>
 
       <view class="qu-import-box" wx:if="{{importSummary}}">
         <text class="qu-import-title">{{importFileName}}</text>
-        <text class="qu-import-meta">共 {{importSummary.total}} 题，选择题 {{importSummary.choiceCount}} 题，填空题 {{importSummary.fillCount}} 题</text>
-        <text class="qu-import-meta">默认导入题库：{{importSummary.courseName}}</text>
+        <view class="qu-import-stats">
+          <text>有效 {{importSummary.validCount}}</text>
+          <text class="qu-import-error-count" wx:if="{{importSummary.errorCount}}">错误 {{importSummary.errorCount}}</text>
+          <text wx:else>校验通过</text>
+        </view>
+        <text class="qu-import-meta">选择题 {{importSummary.choiceCount}} 题，填空题 {{importSummary.fillCount}} 题</text>
+        <text class="qu-import-meta" wx:if="{{importSummary.imported !== undefined}}">已处理 {{importSummary.imported}} / {{importSummary.validCount}}</text>
+
+        <view class="qu-error-list" wx:if="{{importErrors.length}}">
+          <text class="qu-error-title">请修正以下错误后重新选择文件</text>
+          <text class="qu-error-item" wx:for="{{importErrors}}" wx:key="*this">{{item}}</text>
+          <text class="qu-error-more" wx:if="{{importSummary.errorCount > importErrors.length}}">错误较多，仅显示前 {{importErrors.length}} 条</text>
+        </view>
+
+        <view class="qu-preview" wx:if="{{previewQuestions.length}}">
+          <text class="qu-preview-title">前 {{previewQuestions.length}} 题预览</text>
+          <view class="qu-preview-item" wx:for="{{previewQuestions}}" wx:key="rowNumber">
+            <view class="qu-preview-head">
+              <text>第 {{item.rowNumber}} 行 · {{item.location}}</text>
+              <text>{{item.typeLabel}} · 答案 {{item.answer}}</text>
+            </view>
+            <text class="qu-preview-content">{{item.content}}</text>
+          </view>
+        </view>
+
         <view class="qu-import-actions">
-          <button class="btn btn-primary qu-import-btn" loading="{{importing}}" bindtap="importQuestionsFromJson">开始导入</button>
+          <button class="btn btn-primary qu-import-btn" disabled="{{importErrors.length > 0}}" loading="{{importing}}" bindtap="importQuestionsFromFile">确认导入</button>
           <button class="btn btn-outline qu-import-btn" bindtap="clearImportFile">清空文件</button>
         </view>
       </view>

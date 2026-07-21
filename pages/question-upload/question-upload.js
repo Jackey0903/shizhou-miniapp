@@ -1,4 +1,5 @@
 const cloudApi = require('../../utils/cloudApi')
+const questionCsv = require('../../utils/questionCsv')
 
 const DEFAULT_FORM = {
   courseIndex: 0,
@@ -140,7 +141,7 @@ function buildImportPayload(rawQuestion = {}, fallbackCourseId, fallbackSort) {
       courseName: bankName,
       subjectName,
       categoryName: subjectName,
-      importKey: buildImportKey([subjectName, bankName, sort, type, content]),
+      importKey: buildImportKey([subjectName, bankName, type, content]),
       type,
       sort,
       content,
@@ -162,118 +163,13 @@ function buildImportPayload(rawQuestion = {}, fallbackCourseId, fallbackSort) {
     courseName: bankName,
     subjectName,
     categoryName: subjectName,
-    importKey: buildImportKey([subjectName, bankName, sort, type, content]),
+    importKey: buildImportKey([subjectName, bankName, type, content]),
     type,
     sort,
     content,
     imageUrl,
     answer,
     explanation
-  }
-}
-
-function parseImportFileContent(content, fallbackCourseId, startSort, courses = []) {
-  let parsed = null
-  try {
-    parsed = JSON.parse(content)
-  } catch (err) {
-    throw new Error('JSON 格式不正确，请检查逗号和引号')
-  }
-
-  let questions = []
-  let rootCourseId = fallbackCourseId
-  let rootCourseName = ''
-  let rootSubjectName = ''
-  if (Array.isArray(parsed)) {
-    questions = parsed
-  } else if (parsed && Array.isArray(parsed.banks || parsed.bankList || parsed['题库列表'])) {
-    const banks = parsed.banks || parsed.bankList || parsed['题库列表']
-    questions = []
-    rootCourseId = ''
-    banks.forEach((bank, bankIndex) => {
-      const bankQuestions = bank.questions || bank.questionList || bank['题目列表'] || bank['题目'] || []
-      if (!Array.isArray(bankQuestions)) return
-      const bankName = pickFirstValue(bank.courseName, bank.bankName, bank.name, bank['题库名称'])
-      const subjectName = pickFirstValue(bank.subjectName, bank.categoryName, bank['科目名称'], bank['分类名称'], bank['板块名称'])
-      const bankCourseId = pickFirstValue(
-        bank.courseId,
-        bank.bankId,
-        bank['题库ID'],
-        resolveCourseIdByMeta({ courseName: bankName, subjectName }, courses)
-      )
-      bankQuestions.forEach((question, questionIndex) => {
-        questions.push({
-          ...question,
-          courseId: pickFirstValue(question.courseId, question.bankId, question['题库ID'], bankCourseId),
-          bankId: pickFirstValue(question.bankId, question.courseId, question['题库ID'], bankCourseId),
-          bankName: pickFirstValue(question.bankName, question.courseName, question['题库名称'], bankName),
-          courseName: pickFirstValue(question.courseName, question.bankName, question['题库名称'], bankName),
-          subjectName: pickFirstValue(question.subjectName, question.categoryName, question['科目名称'], subjectName),
-          categoryName: pickFirstValue(question.categoryName, question.subjectName, question['科目名称'], subjectName),
-          sort: pickFirstValue(question.sort, question['序号'], questionIndex + 1),
-          _bankIndex: bankIndex + 1
-        })
-      })
-    })
-    rootCourseName = banks.length > 1 ? `${banks.length}个题库` : pickFirstValue(banks[0] && banks[0].bankName, banks[0] && banks[0].courseName, banks[0] && banks[0] && banks[0]['题库名称'])
-  } else if (parsed && Array.isArray(parsed.questions || parsed['题目列表'] || parsed['题目'])) {
-    questions = parsed.questions || parsed['题目列表'] || parsed['题目']
-    rootCourseName = pickFirstValue(parsed.courseName, parsed.bankName, parsed.categoryName, parsed['题库名称'], parsed['科目名称'], parsed['分类名称'])
-    rootSubjectName = pickFirstValue(parsed.subjectName, parsed['科目名称'], parsed['分类名称'], parsed['板块名称'])
-    rootCourseId = pickFirstValue(
-      parsed.courseId,
-      parsed.bankId,
-      parsed['题库ID'],
-      resolveCourseIdByMeta({
-        courseName: pickFirstValue(parsed.courseName, parsed.bankName, parsed['题库名称']),
-        subjectName: rootSubjectName || pickFirstValue(parsed.categoryName, parsed['分类名称'], parsed['板块名称'])
-      }, courses),
-      fallbackCourseId
-    )
-  } else {
-    throw new Error('JSON 顶层必须是数组，或包含 questions / 题目列表 / 题库列表')
-  }
-
-  if (!questions.length) {
-    throw new Error('JSON 文件里没有题目数据')
-  }
-
-  const mappedQuestions = questions.map((item, index) => {
-    try {
-      const itemCourseId = pickFirstValue(
-        item.courseId,
-        item.bankId,
-        item['题库ID'],
-        resolveCourseIdByMeta({
-          courseName: pickFirstValue(item.courseName, item.bankName, item['题库名称']),
-          subjectName: pickFirstValue(item.subjectName, item.categoryName, item['科目名称'], item['分类名称'], item['板块名称'])
-            || rootSubjectName
-        }, courses),
-        rootCourseId
-      )
-      return buildImportPayload({
-        ...item,
-        courseId: itemCourseId,
-        bankId: itemCourseId
-      }, itemCourseId, startSort + index)
-    } catch (err) {
-      throw new Error(`第 ${index + 1} 题格式错误：${err.message}`)
-    }
-  })
-
-  const bankNames = [...new Set(mappedQuestions.map((item) => item.bankName || item.courseName).filter(Boolean))]
-  const resolvedCourseName = (bankNames.length > 1 ? `${bankNames.length}个题库` : rootCourseName)
-    || (mappedQuestions[0] && (() => {
-      const course = courses.find((item) => item._id === mappedQuestions[0].courseId)
-      if (!course) return ''
-      const subject = course.category || course.subjectName || ''
-      return subject ? `${subject} / ${course.name}` : course.name
-    })())
-    || ''
-
-  return {
-    questions: mappedQuestions,
-    resolvedCourseName
   }
 }
 
@@ -290,6 +186,8 @@ Page({
     form: { ...DEFAULT_FORM },
     importFileName: '',
     importSummary: null,
+    importErrors: [],
+    previewQuestions: [],
     importing: false
   },
 
@@ -435,19 +333,62 @@ Page({
     }
   },
 
-  async chooseJsonFile() {
+  showCsvHelp() {
+    wx.showModal({
+      title: 'CSV 填写规则',
+      content: '使用固定表头，每行必填科目、题库、题型、题目和答案。题型只填选择题/填空题；选择题答案填 A-D。用 Excel/WPS 另存为“CSV UTF-8（逗号分隔）”。',
+      showCancel: false,
+      confirmText: '知道了'
+    })
+  },
+
+  async shareCsvTemplate() {
+    if (!this.data.hasAccess) return
+    wx.showLoading({ title: '生成模板', mask: true })
+    try {
+      const filePath = `${wx.env.USER_DATA_PATH}/仕舟题库导入模板.csv`
+      await new Promise((resolve, reject) => {
+        wx.getFileSystemManager().writeFile({
+          filePath,
+          data: questionCsv.buildTemplateCsv(),
+          encoding: 'utf8',
+          success: resolve,
+          fail: reject
+        })
+      })
+      if (!wx.shareFileMessage) throw new Error('当前微信版本不支持发送文件，请升级微信')
+      await new Promise((resolve, reject) => {
+        wx.shareFileMessage({
+          filePath,
+          fileName: '仕舟题库导入模板.csv',
+          success: resolve,
+          fail: reject
+        })
+      })
+    } catch (err) {
+      if (!(err && err.errMsg && err.errMsg.includes('cancel'))) {
+        wx.showToast({ title: err.message || err.errMsg || '模板生成失败', icon: 'none' })
+      }
+    } finally {
+      wx.hideLoading()
+    }
+  },
+
+  async chooseCsvFile() {
     if (!this.data.hasAccess) return
     try {
       const res = await wx.chooseMessageFile({
         count: 1,
         type: 'file',
-        extension: ['json']
+        extension: ['csv']
       })
       const file = res.tempFiles && res.tempFiles[0]
       if (!file || !file.path) {
         throw new Error('未选择文件')
       }
-      const course = this.data.courses[this.data.form.courseIndex]
+      if (Number(file.size || 0) > 5 * 1024 * 1024) {
+        throw new Error('CSV 文件不能超过 5MB')
+      }
       const content = await new Promise((resolve, reject) => {
         wx.getFileSystemManager().readFile({
           filePath: file.path,
@@ -456,25 +397,57 @@ Page({
           fail: reject
         })
       })
-      const parsed = parseImportFileContent(content, course && course._id, this.data.nextSort, this.data.courses)
-      const questions = parsed.questions
-      const choiceCount = questions.filter((item) => item.type === 'choice').length
-      const fillCount = questions.filter((item) => item.type === 'fill').length
-      this._importQuestions = questions
-      this.setData({
-        importFileName: file.name || file.path.split('/').pop() || 'questions.json',
-        importSummary: {
-          total: questions.length,
-          choiceCount,
-          fillCount,
-          courseName: parsed.resolvedCourseName || (course ? course.name : '未指定题库')
+      const parsed = questionCsv.parseQuestionCsv(content)
+      const mappedEntries = []
+      const mappingErrors = []
+      parsed.questions.forEach((item, index) => {
+        try {
+          const itemCourseId = resolveCourseIdByMeta({
+            courseName: item.bankName,
+            subjectName: item.subjectName
+          }, this.data.courses)
+          const payload = buildImportPayload({
+            ...item,
+            courseId: itemCourseId,
+            bankId: itemCourseId
+          }, itemCourseId, item.sort || index + 1)
+          mappedEntries.push({ rowNumber: item._rowNumber || index + 2, payload })
+        } catch (err) {
+          mappingErrors.push(`第 ${item._rowNumber || index + 2} 行：${err.message}`)
         }
       })
-      wx.showToast({ title: 'JSON 解析成功', icon: 'success' })
+      const importErrors = parsed.errors.concat(mappingErrors)
+      const mappedQuestions = mappedEntries.map((item) => item.payload)
+      const questions = importErrors.length ? [] : mappedQuestions
+      const choiceCount = mappedQuestions.filter((item) => item.type === 'choice').length
+      const fillCount = mappedQuestions.filter((item) => item.type === 'fill').length
+      this._importQuestions = questions
+      this.setData({
+        importFileName: file.name || file.path.split('/').pop() || 'questions.csv',
+        importSummary: {
+          total: parsed.totalRows,
+          validCount: mappedQuestions.length,
+          errorCount: importErrors.length,
+          choiceCount,
+          fillCount
+        },
+        importErrors: importErrors.slice(0, 50),
+        previewQuestions: mappedEntries.slice(0, 5).map(({ payload: item, rowNumber }) => ({
+          rowNumber,
+          location: `${item.subjectName || '综合题库'} / ${item.bankName || item.courseName}`,
+          typeLabel: item.type === 'fill' ? '填空题' : '选择题',
+          content: item.content,
+          answer: item.type === 'fill' ? item.answer : String.fromCharCode(65 + item.correctIndex)
+        }))
+      })
+      wx.showToast({
+        title: importErrors.length ? `发现${importErrors.length}处错误` : 'CSV 校验通过',
+        icon: importErrors.length ? 'none' : 'success'
+      })
     } catch (err) {
       if (!(err && err.errMsg && err.errMsg.includes('cancel'))) {
         this._importQuestions = []
-        this.setData({ importFileName: '', importSummary: null })
+        this.setData({ importFileName: '', importSummary: null, importErrors: [], previewQuestions: [] })
         wx.showToast({ title: err.message || '读取文件失败', icon: 'none' })
       }
     }
@@ -484,28 +457,47 @@ Page({
     this._importQuestions = []
     this.setData({
       importFileName: '',
-      importSummary: null
+      importSummary: null,
+      importErrors: [],
+      previewQuestions: []
     })
   },
 
-  async importQuestionsFromJson() {
+  async importQuestionsFromFile() {
     if (this.data.importing || !this._importQuestions || this._importQuestions.length === 0) {
-      wx.showToast({ title: '请先选择 JSON 文件', icon: 'none' })
+      wx.showToast({ title: '请先选择并通过校验的 CSV 文件', icon: 'none' })
       return
     }
+
+    const confirmed = await new Promise((resolve) => {
+      wx.showModal({
+        title: '确认导入',
+        content: `将导入 ${this._importQuestions.length} 道题。已存在的重复题目会自动跳过。`,
+        confirmText: '确认导入',
+        success: (res) => resolve(!!res.confirm),
+        fail: () => resolve(false)
+      })
+    })
+    if (!confirmed) return
 
     this.setData({ importing: true })
     wx.showLoading({ title: '导入中', mask: true })
     try {
       const total = this._importQuestions.length
-      let imported = 0
+      let processed = 0
+      let insertedCount = 0
+      let skippedCount = 0
       const uploadBatch = async (batch, offset) => {
         wx.showLoading({ title: `导入${Math.min(offset + batch.length, total)}/${total}`, mask: true })
         let res = null
         let message = ''
         try {
           res = await cloudApi.uploadQuestions(batch)
-          if (res.result && res.result.code === 0) return res.result
+          if (res.result && res.result.code === 0) return res.result.data || {
+            insertedCount: batch.length,
+            skippedCount: 0,
+            totalCount: batch.length
+          }
           message = (res.result && res.result.msg) || '导入失败'
         } catch (err) {
           message = (err && (err.errMsg || err.message)) || '导入失败'
@@ -516,19 +508,26 @@ Page({
         }
 
         const middle = Math.ceil(batch.length / 2)
-        await uploadBatch(batch.slice(0, middle), offset)
-        return uploadBatch(batch.slice(middle), offset + middle)
+        const left = await uploadBatch(batch.slice(0, middle), offset)
+        const right = await uploadBatch(batch.slice(middle), offset + middle)
+        return {
+          insertedCount: Number(left.insertedCount || 0) + Number(right.insertedCount || 0),
+          skippedCount: Number(left.skippedCount || 0) + Number(right.skippedCount || 0),
+          totalCount: Number(left.totalCount || 0) + Number(right.totalCount || 0)
+        }
       }
 
-      const batchSize = 5
+      const batchSize = 25
       for (let index = 0; index < total; index += batchSize) {
         const batch = this._importQuestions.slice(index, index + batchSize)
-        await uploadBatch(batch, index)
-        imported = Math.min(index + batch.length, total)
+        const batchResult = await uploadBatch(batch, index)
+        insertedCount += Number(batchResult.insertedCount || 0)
+        skippedCount += Number(batchResult.skippedCount || 0)
+        processed = Math.min(index + batch.length, total)
         this.setData({
           importSummary: {
             ...(this.data.importSummary || {}),
-            imported
+            imported: processed
           }
         })
       }
@@ -540,7 +539,11 @@ Page({
         courses,
         courseNames: courses.map(item => item.name)
       })
-      wx.showToast({ title: '批量导入成功', icon: 'success' })
+      wx.showModal({
+        title: '导入完成',
+        content: `新增 ${insertedCount} 道，跳过重复 ${skippedCount} 道。`,
+        showCancel: false
+      })
     } catch (err) {
       wx.showToast({ title: err.message || '导入失败', icon: 'none' })
     } finally {

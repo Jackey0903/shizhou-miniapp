@@ -8,6 +8,14 @@ const db = cloud.database()
 const PAID_REMOTE_STATUS = [2, 3, 4]
 const REFUNDED_REMOTE_STATUS = [5, 8]
 const CLOSED_REMOTE_STATUS = [6]
+const REMOTE_ORDER_NUMBER_FIELDS = [
+  'create_time', 'update_time', 'status', 'biz_type', 'order_fee', 'coupon_fee',
+  'paid_fee', 'order_type', 'refund_fee', 'paid_time', 'provide_time', 'env_type',
+  'left_fee', 'sett_time', 'sett_state', 'platform_fee_fen', 'cps_fee_fen'
+]
+const REMOTE_ORDER_STRING_FIELDS = [
+  'order_id', 'biz_meta', 'token', 'wx_order_id', 'channel_order_id', 'wxpay_order_id'
+]
 const ACCESS_TOKEN_CACHE = {
   token: '',
   expiresAt: 0
@@ -46,6 +54,44 @@ function requestJson(url, options = {}, body = '') {
 function normalizePayEnv(value) {
   const env = Number(value)
   return env === 1 ? 1 : 0
+}
+
+function normalizeText(value, maxLength = 500) {
+  if (value === undefined || value === null) return ''
+  return String(value).slice(0, maxLength)
+}
+
+function normalizeRemoteOrder(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const order = {}
+  REMOTE_ORDER_NUMBER_FIELDS.forEach((field) => {
+    if (value[field] === undefined || value[field] === null || value[field] === '') return
+    const number = Number(value[field])
+    if (Number.isFinite(number)) order[field] = number
+  })
+  REMOTE_ORDER_STRING_FIELDS.forEach((field) => {
+    if (value[field] === undefined || value[field] === null) return
+    order[field] = normalizeText(value[field], 1000)
+  })
+  return order
+}
+
+function normalizeVirtualQueryResult(value) {
+  const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {}
+  const rawErrcode = source.errcode === undefined || source.errcode === null ? 0 : Number(source.errcode)
+  const result = {
+    errcode: Number.isFinite(rawErrcode) ? rawErrcode : -1,
+    errmsg: normalizeText(source.errmsg, 1000)
+  }
+  const order = normalizeRemoteOrder(source.order)
+  if (order) result.order = order
+  return result
+}
+
+function getRemoteStatus(remoteOrder) {
+  if (!remoteOrder || remoteOrder.status === undefined || remoteOrder.status === null) return null
+  const status = Number(remoteOrder.status)
+  return Number.isInteger(status) && status >= 0 && status <= 10 ? status : null
 }
 
 function getAppId(wxContext) {
@@ -246,7 +292,7 @@ function toClientOrder(order) {
     vipExpireDate: order.vipExpireDate || '',
     planLabel: order.planLabel || '',
     price: Number(order.price || 0),
-    payChannel: order.payChannel || 'wechat_virtual',
+    payChannel: order.payChannel || 'legacy_wechat',
     deliveryStatus: order.deliveryStatus || '',
     createdAt: order.createdAt || '',
     payTime: order.payTime || '',
@@ -630,7 +676,7 @@ async function syncVirtualOrder(event, wxContext) {
     }
 
     const config = getVirtualPayConfig(wxContext)
-    const queryRes = await queryVirtualOrder(config, OPENID, outTradeNo)
+    const queryRes = normalizeVirtualQueryResult(await queryVirtualOrder(config, OPENID, outTradeNo))
     if (queryRes.errcode) {
       await db.collection('orders').doc(order._id).update({
         data: {
@@ -641,8 +687,17 @@ async function syncVirtualOrder(event, wxContext) {
       return { code: 1, msg: queryRes.errmsg || '支付结果生成中', data: { remote: queryRes } }
     }
 
-    const remoteOrder = queryRes.order || {}
-    const remoteStatus = Number(remoteOrder.status)
+    const remoteOrder = queryRes.order
+    const remoteStatus = getRemoteStatus(remoteOrder)
+    if (!remoteOrder || remoteStatus === null) {
+      await db.collection('orders').doc(order._id).update({
+        data: {
+          virtualQueryResult: queryRes,
+          updatedAt: db.serverDate()
+        }
+      })
+      return { code: 1, msg: '微信订单状态暂不可用，请稍后重试' }
+    }
     await db.collection('orders').doc(order._id).update({
       data: {
         virtualQueryResult: queryRes,
@@ -682,6 +737,41 @@ async function syncVirtualOrder(event, wxContext) {
   } catch (err) {
     console.error('[createVipOrder:syncVirtualOrder] error', err)
     return { code: -1, msg: err.message || '同步支付结果失败' }
+  }
+}
+
+async function recordClientPaymentError(event, wxContext) {
+  const { OPENID } = wxContext
+  const outTradeNo = normalizeText(event && event.outTradeNo, 64)
+  if (!OPENID || !outTradeNo) return { code: -1, msg: '缺少订单信息' }
+
+  try {
+    const orderRes = await db.collection('orders').where({ _openid: OPENID, outTradeNo }).limit(1).get()
+    const order = (orderRes.data || [])[0]
+    if (!order || order.payChannel !== 'wechat_virtual') return { code: -1, msg: '订单不存在' }
+
+    const rawCode = Number(event && event.errCode)
+    const clientInfo = event && event.clientInfo && typeof event.clientInfo === 'object'
+      ? event.clientInfo
+      : {}
+    await db.collection('orders').doc(order._id).update({
+      data: {
+        lastClientPaymentError: {
+          errCode: Number.isFinite(rawCode) ? rawCode : 0,
+          errMsg: normalizeText(event && event.errMsg, 1000),
+          platform: normalizeText(clientInfo.platform, 50),
+          system: normalizeText(clientInfo.system, 100),
+          SDKVersion: normalizeText(clientInfo.SDKVersion, 50),
+          version: normalizeText(clientInfo.version, 50)
+        },
+        lastClientPaymentErrorAt: db.serverDate(),
+        updatedAt: db.serverDate()
+      }
+    })
+    return { code: 0 }
+  } catch (err) {
+    console.error('[createVipOrder:recordClientPaymentError] error', err)
+    return { code: -1, msg: '支付错误记录失败' }
   }
 }
 
@@ -799,10 +889,11 @@ async function handleVirtualRefundNotify(rawEvent) {
     }
 
     const config = getVirtualPayConfig({})
-    const queryRes = await queryVirtualOrder(config, order._openid, order.outTradeNo)
+    const queryRes = normalizeVirtualQueryResult(await queryVirtualOrder(config, order._openid, order.outTradeNo))
     if (queryRes.errcode) return { ErrCode: -1, ErrMsg: queryRes.errmsg || 'query order failed' }
-    const remoteOrder = queryRes.order || {}
-    const remoteStatus = Number(remoteOrder.status)
+    const remoteOrder = queryRes.order
+    const remoteStatus = getRemoteStatus(remoteOrder)
+    if (!remoteOrder || remoteStatus === null) return { ErrCode: -1, ErrMsg: 'invalid query order response' }
     if (!REFUNDED_REMOTE_STATUS.includes(remoteStatus)) {
       return { ErrCode: -1, ErrMsg: 'refund is not completed' }
     }
@@ -848,6 +939,7 @@ exports.main = async (event) => {
     }
   }
   if (action === 'list') return listMyOrders(event, wxContext)
+  if (action === 'paymentClientError') return recordClientPaymentError(event, wxContext)
   if (action === 'sync') return syncVirtualOrder(event, wxContext)
   return createVirtualOrder(event, wxContext)
 }

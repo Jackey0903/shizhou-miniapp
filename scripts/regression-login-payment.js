@@ -19,7 +19,7 @@ function loadWithCloudMock(modulePath, cloudMock) {
   }
 }
 
-function createMemoryDb(initial = {}) {
+function createMemoryDb(initial = {}, options = {}) {
   const state = {}
   Object.keys(initial).forEach((name) => {
     state[name] = initial[name].map((item, index) => ({
@@ -28,6 +28,21 @@ function createMemoryDb(initial = {}) {
     }))
   })
   let nextId = 1000
+
+  function assertValidDocumentValue(value, path = 'data') {
+    if (!options.rejectInvalidDocuments) return
+    if (value === undefined) throw new Error(`invalid document value at ${path}: undefined`)
+    if (typeof value === 'number' && !Number.isFinite(value)) {
+      throw new Error(`invalid document value at ${path}: non-finite number`)
+    }
+    if (Array.isArray(value)) {
+      value.forEach((item, index) => assertValidDocumentValue(item, `${path}[${index}]`))
+      return
+    }
+    if (value && typeof value === 'object' && !(value instanceof Date)) {
+      Object.keys(value).forEach((key) => assertValidDocumentValue(value[key], `${path}.${key}`))
+    }
+  }
 
   function matches(doc, query = {}) {
     return Object.keys(query).every((key) => doc[key] === query[key])
@@ -88,6 +103,7 @@ function createMemoryDb(initial = {}) {
             return { _id: id }
           },
           async update({ data }) {
+            assertValidDocumentValue(data)
             const index = state[name].findIndex((item) => item._id === id)
             if (index >= 0) state[name][index] = { ...state[name][index], ...data }
             return { stats: { updated: index >= 0 ? 1 : 0 } }
@@ -285,6 +301,67 @@ async function testOrderListIsScopedAndComplete() {
   assert.strictEqual(result.data[0].deliveryStatus, 'confirmed')
 }
 
+async function testSyncVirtualOrderRejectsIncompleteWechatResponseWithoutInvalidDbWrite() {
+  const db = createMemoryDb({
+    orders: [{
+      _id: 'order_pending',
+      _openid: 'openid_pay',
+      outTradeNo: 'OUT_PENDING_123',
+      status: 'pending',
+      payChannel: 'wechat_virtual',
+      price: 800
+    }]
+  }, { rejectInvalidDocuments: true })
+
+  const responses = [
+    { access_token: 'mock_access_token', expires_in: 7200 },
+    { errcode: 0, errmsg: '' }
+  ]
+  const originalRequest = require('https').request
+  require('https').request = function requestMock(url, options, callback) {
+    const listeners = {}
+    const response = responses.shift() || {}
+    const res = {
+      on(event, cb) {
+        listeners[event] = cb
+      }
+    }
+    process.nextTick(() => {
+      callback(res)
+      listeners.data && listeners.data(JSON.stringify(response))
+      listeners.end && listeners.end()
+    })
+    return {
+      on() {},
+      write() {},
+      end() {}
+    }
+  }
+
+  const cloudMock = {
+    DYNAMIC_CURRENT_ENV: 'mock-env',
+    init() {},
+    database: () => db,
+    getWXContext: () => ({ OPENID: 'openid_pay', APPID: 'wxca6ebd21699eca53' })
+  }
+  const oldEnv = { ...process.env }
+  process.env.VIRTUAL_PAY_ENV = '0'
+  process.env.VIRTUAL_PAY_OFFER_ID = '1450567889'
+  process.env.VIRTUAL_PAY_PROD_APP_KEY = 'test_app_key'
+  process.env.WECHAT_APP_SECRET = 'test_secret'
+
+  try {
+    const fn = loadWithCloudMock('cloudfunctions/createVipOrder/index.js', cloudMock)
+    const result = await fn.main({ action: 'sync', outTradeNo: 'OUT_PENDING_123' })
+    assert.strictEqual(result.code, 1, JSON.stringify(result))
+    assert.match(result.msg, /订单|支付结果/)
+    assert(!Object.prototype.hasOwnProperty.call(db.state.orders[0], 'remoteStatus'))
+  } finally {
+    require('https').request = originalRequest
+    process.env = oldEnv
+  }
+}
+
 async function main() {
   await testPhoneLoginSupportsModernCode()
   await testPhoneLoginRejectsClientProvidedPhoneData()
@@ -292,6 +369,7 @@ async function main() {
   await testCreateVipOrderCreatesMissingUser()
   await testCreateVipOrderDoesNotUseHardcodedPlanFallback()
   await testOrderListIsScopedAndComplete()
+  await testSyncVirtualOrderRejectsIncompleteWechatResponseWithoutInvalidDbWrite()
   console.log('login/payment regression checks passed')
 }
 

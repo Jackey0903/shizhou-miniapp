@@ -53,6 +53,72 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(ms) || 0)))
 }
 
+const PAYMENT_ERROR_MESSAGES = {
+  1001: '支付参数错误，请重新发起支付',
+  '-1': '支付未完成，请稍后重试',
+  '-2': '已取消支付',
+  '-4': '支付被微信风控拦截，请换个时间或联系客服',
+  '-5': '支付签约状态确认中，请稍后重试',
+  '-15001': '支付参数错误，请联系客服',
+  '-15002': '订单号已使用，请重新发起支付',
+  '-15003': '微信支付系统繁忙，请稍后重试',
+  '-15005': '支付登录态已失效，请退出当前页后重试',
+  '-15006': '支付签名校验失败，请联系客服',
+  '-15007': '支付登录态已过期，请重新发起支付',
+  '-15008': '商户支付资料尚未完成，请联系客服',
+  '-15010': '当前套餐尚未发布到微信支付，请联系客服',
+  '-15011': '支付环境配置错误，请联系客服',
+  '-15012': '微信支付下单失败，请重新发起',
+  '-15013': '套餐价格与微信支付后台不一致，请联系客服',
+  '-15014': '套餐刚发布尚未生效，请 10 分钟后重试',
+  '-15016': '支付订单格式错误，请联系客服',
+  '-15017': '商户收款功能受限，请联系客服',
+  '-15018': '当前套餐未通过微信审核，请联系客服',
+  '-15019': '商户收款功能受限，请联系客服',
+  '-15020': '操作过快，请稍后重试',
+  '-15021': '支付请求过于频繁，请稍后重试'
+}
+
+function getPaymentErrorCode(error = {}) {
+  const direct = Number(error.errCode)
+  if (Number.isFinite(direct)) return direct
+  const text = String(error.errMsg || error.message || '')
+  const match = text.match(/(?:errCode|err_code)\s*[:=]?\s*(-?\d+)/i)
+  return match ? Number(match[1]) : 0
+}
+
+function getPaymentErrorMessage(error = {}) {
+  const code = getPaymentErrorCode(error)
+  if (PAYMENT_ERROR_MESSAGES[String(code)]) return PAYMENT_ERROR_MESSAGES[String(code)]
+  const raw = String(error.message || error.errMsg || '').replace(/^requestVirtualPayment:\s*fail\s*/i, '').trim()
+  if (raw && raw !== 'fail') return raw.slice(0, 120)
+  return code ? `支付失败（错误码 ${code}）` : '支付失败，请稍后重试'
+}
+
+function reportPaymentError(outTradeNo, error = {}) {
+  if (!outTradeNo || !wx.cloud || !wx.cloud.callFunction) return Promise.resolve(null)
+  let clientInfo = {}
+  try {
+    const info = wx.getSystemInfoSync ? wx.getSystemInfoSync() : {}
+    clientInfo = {
+      platform: info.platform || '',
+      system: info.system || '',
+      SDKVersion: info.SDKVersion || '',
+      version: info.version || ''
+    }
+  } catch (err) {}
+  return wx.cloud.callFunction({
+    name: 'createVipOrder',
+    data: {
+      action: 'paymentClientError',
+      outTradeNo,
+      errCode: getPaymentErrorCode(error),
+      errMsg: String(error.errMsg || error.message || '').slice(0, 1000),
+      clientInfo
+    }
+  })
+}
+
 function loginOnce() {
   return new Promise((resolve, reject) => {
     wx.login({
@@ -125,6 +191,9 @@ module.exports = {
   login,
   createOrder,
   requestVirtualPayment,
+  reportPaymentError,
+  getPaymentErrorCode,
+  getPaymentErrorMessage,
   canUseVirtualPayment,
   getVirtualPaymentSupport
 }

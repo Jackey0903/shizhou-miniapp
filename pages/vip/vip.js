@@ -78,6 +78,7 @@ Page({
 
   async buyVip() {
     const plan = this.data.currentPlan
+    let outTradeNo = ''
     if (!plan) {
       wx.showToast({ title: '暂无可购买套餐', icon: 'none' })
       return
@@ -93,7 +94,9 @@ Page({
         throw new Error((result && result.msg) || '创建订单失败，请稍后重试')
       }
 
-      const { payment, outTradeNo } = result.data || {}
+      const orderData = result.data || {}
+      const payment = orderData.payment
+      outTradeNo = orderData.outTradeNo || ''
       if (!payment) {
         throw new Error('未获取到支付参数')
       }
@@ -148,8 +151,8 @@ Page({
     } catch (err) {
       wx.hideLoading()
       console.error(err)
-      const isCancel = err && ((err.errMsg && err.errMsg.includes('cancel')) || err.errCode === -2)
-      const msg = isCancel ? '已取消支付' : (err.message || err.errMsg || '支付失败')
+      await virtualPayment.reportPaymentError(outTradeNo, err).catch(() => null)
+      const msg = virtualPayment.getPaymentErrorMessage(err)
       wx.showToast({ title: msg, icon: 'none' })
     }
   }
