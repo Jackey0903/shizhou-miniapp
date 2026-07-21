@@ -117,6 +117,9 @@ function createMemoryDb(initial = {}, options = {}) {
   return {
     state,
     collection,
+    async runTransaction(callback) {
+      return callback({ collection })
+    },
     async createCollection(name) {
       if (!state[name]) state[name] = []
       return {}
@@ -247,16 +250,24 @@ async function testCreateVipOrderCreatesMissingUser() {
   }
 }
 
-async function testPlansRejectWechatProductIdsOverTwentyCharacters() {
+async function testPlansOnlyExposePublishedProductMappings() {
   const db = createMemoryDb({
     vip_plans: [
       {
-        code: 'valid_plan', virtualProductId: 'valid_product_20', name: '有效套餐',
-        price: 800, days: 1, supervisionDays: 0, enabled: true, sort: 1
+        code: 'basic_vip_year', virtualProductId: 'sz_basic_vip_year', name: '有效套餐',
+        price: 19800, days: 365, supervisionDays: 0, enabled: true, sort: 1
       },
       {
-        code: 'invalid_plan', virtualProductId: 'supervision_trial_day', name: '无效套餐',
+        code: 'supervision_trial_day', virtualProductId: 'supervision_trial_day', name: '错误道具ID',
         price: 800, days: 1, supervisionDays: 0, enabled: true, sort: 2
+      },
+      {
+        code: 'supervision_month', virtualProductId: 'sz_supervision_mon', name: '错误价格',
+        price: 800, days: 365, supervisionDays: 30, enabled: true, sort: 3
+      },
+      {
+        code: 'unknown_plan', virtualProductId: 'unknown_product', name: '未发布套餐',
+        price: 100, days: 1, supervisionDays: 0, enabled: true, sort: 4
       }
     ]
   })
@@ -268,7 +279,26 @@ async function testPlansRejectWechatProductIdsOverTwentyCharacters() {
   })
   const result = await fn.main({ action: 'plans' })
   assert.strictEqual(result.code, 0, JSON.stringify(result))
-  assert.deepStrictEqual(result.data.map((item) => item.code), ['valid_plan'])
+  assert.deepStrictEqual(result.data.map((item) => item.code), ['basic_vip_year'])
+}
+
+async function testCreateVipOrderNeverFallsBackToBusinessPlanCodeAsProductId() {
+  const db = createMemoryDb({
+    users: [],
+    vip_plans: [{
+      code: 'basic_vip_year', name: '基础VIP包年', price: 19800,
+      days: 365, supervisionDays: 0, enabled: true, sort: 1
+    }]
+  })
+  const fn = loadWithCloudMock('cloudfunctions/createVipOrder/index.js', {
+    DYNAMIC_CURRENT_ENV: 'mock-env',
+    init() {},
+    database: () => db,
+    getWXContext: () => ({ OPENID: 'openid_pay', APPID: 'wxca6ebd21699eca53' })
+  })
+  const result = await fn.main({ planCode: 'basic_vip_year', jsCode: 'UNUSED' })
+  assert.notStrictEqual(result.code, 0)
+  assert.strictEqual((db.state.orders || []).length, 0, 'missing product ID must never create an unpayable order')
 }
 
 async function testCreateVipOrderDoesNotUseHardcodedPlanFallback() {
@@ -386,15 +416,102 @@ async function testSyncVirtualOrderRejectsIncompleteWechatResponseWithoutInvalid
   }
 }
 
+async function testPaidOrderGrantsBenefitsAndConfirmsDeliveryOnlyOnce() {
+  const db = createMemoryDb({
+    users: [{
+      _id: 'user_paid', _openid: 'openid_pay', isVip: false,
+      vipExpireDate: new Date('2026-07-01T00:00:00.000Z')
+    }],
+    orders: [{
+      _id: 'order_paid', _openid: 'openid_pay', outTradeNo: 'OUT_PAID_123',
+      status: 'pending', payChannel: 'wechat_virtual', planCode: 'basic_vip_year',
+      planId: 'basic_vip_year', planLabel: '基础VIP包年', price: 19800,
+      days: 365, supervisionDays: 0, benefits: ['免广告学习']
+    }],
+    coin_logs: []
+  })
+  const paidOrder = {
+    errcode: 0,
+    order: {
+      order_id: 'OUT_PAID_123', wx_order_id: 'WX_ORDER_123',
+      status: 2, order_fee: 19800
+    }
+  }
+  const responses = [
+    { access_token: 'mock_access_token', expires_in: 7200 },
+    paidOrder,
+    {},
+    paidOrder
+  ]
+  const requests = []
+  const originalRequest = require('https').request
+  require('https').request = function requestMock(url, options, callback) {
+    const listeners = {}
+    const chunks = []
+    const response = responses.shift() || {}
+    requests.push({ url: String(url), chunks })
+    const res = {
+      on(event, cb) { listeners[event] = cb }
+    }
+    process.nextTick(() => {
+      callback(res)
+      listeners.data && listeners.data(JSON.stringify(response))
+      listeners.end && listeners.end()
+    })
+    return {
+      on() {},
+      write(chunk) { chunks.push(String(chunk)) },
+      end() {}
+    }
+  }
+
+  const oldEnv = { ...process.env }
+  process.env.VIRTUAL_PAY_ENV = '0'
+  process.env.VIRTUAL_PAY_OFFER_ID = '1450567889'
+  process.env.VIRTUAL_PAY_PROD_APP_KEY = 'test_app_key'
+  process.env.WECHAT_APP_SECRET = 'test_secret'
+  try {
+    const fn = loadWithCloudMock('cloudfunctions/createVipOrder/index.js', {
+      DYNAMIC_CURRENT_ENV: 'mock-env',
+      init() {}, database: () => db,
+      getWXContext: () => ({ OPENID: 'openid_pay', APPID: 'wxca6ebd21699eca53' })
+    })
+    const first = await fn.main({ action: 'sync', outTradeNo: 'OUT_PAID_123' })
+    assert.strictEqual(first.code, 0, JSON.stringify(first))
+    assert.strictEqual(db.state.orders[0].status, 'paid')
+    assert.strictEqual(db.state.orders[0].benefitsGranted, true)
+    assert.strictEqual(db.state.orders[0].deliveryStatus, 'notified')
+    assert.strictEqual(db.state.coin_logs.length, 1)
+    const firstExpiry = new Date(db.state.users[0].vipExpireDate).getTime()
+    assert(firstExpiry > new Date('2026-07-06T00:00:00.000Z').getTime())
+
+    const second = await fn.main({ action: 'sync', outTradeNo: 'OUT_PAID_123' })
+    assert.strictEqual(second.code, 0, JSON.stringify(second))
+    assert.strictEqual(new Date(db.state.users[0].vipExpireDate).getTime(), firstExpiry, 'retries must not add benefits twice')
+    assert.strictEqual(db.state.coin_logs.length, 1, 'retries must not duplicate payment logs')
+
+    const queryRequest = requests.find((item) => item.url.includes('/xpay/query_order'))
+    const deliveryRequest = requests.find((item) => item.url.includes('/xpay/notify_provide_goods'))
+    assert(queryRequest && queryRequest.url.includes('pay_sig='), 'query_order must carry its server signature')
+    assert(deliveryRequest, 'paid orders must confirm goods delivery')
+    assert.strictEqual(JSON.parse(deliveryRequest.chunks.join('')).order_id, 'OUT_PAID_123')
+  } finally {
+    require('https').request = originalRequest
+    process.env = oldEnv
+  }
+}
+
 async function main() {
   await testPhoneLoginSupportsModernCode()
   await testPhoneLoginRejectsClientProvidedPhoneData()
   testWechatLoginAvoidsDeprecatedProfileAuth()
   await testCreateVipOrderCreatesMissingUser()
   await testCreateVipOrderDoesNotUseHardcodedPlanFallback()
-  await testPlansRejectWechatProductIdsOverTwentyCharacters()
+  await testPlansOnlyExposePublishedProductMappings()
+  await testCreateVipOrderNeverFallsBackToBusinessPlanCodeAsProductId()
   await testOrderListIsScopedAndComplete()
   await testSyncVirtualOrderRejectsIncompleteWechatResponseWithoutInvalidDbWrite()
+  await testPaidOrderGrantsBenefitsAndConfirmsDeliveryOnlyOnce()
   console.log('login/payment regression checks passed')
 }
 

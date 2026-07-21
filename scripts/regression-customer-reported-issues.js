@@ -62,6 +62,9 @@ async function testVirtualPaymentReportsActionableClientError() {
     getSystemInfoSync() {
       return { platform: 'android', system: 'Android 14', SDKVersion: '3.7.8', version: '8.0.60' }
     },
+    getAccountInfoSync() {
+      return { miniProgram: { version: '1.0.18', envVersion: 'release' } }
+    },
     cloud: {
       async callFunction(options) {
         reported = options
@@ -78,6 +81,46 @@ async function testVirtualPaymentReportsActionableClientError() {
   assert.strictEqual(reported.data.action, 'paymentClientError')
   assert.strictEqual(reported.data.errCode, -15010)
   assert.strictEqual(reported.data.clientInfo.platform, 'android')
+  assert.strictEqual(reported.data.clientInfo.miniProgramVersion, '1.0.18')
+  assert.strictEqual(reported.data.clientInfo.envVersion, 'release')
+  delete global.wx
+}
+
+async function testPaymentWaitOnlyAcceptsPaidOrder() {
+  const modulePath = path.join(root, 'utils/virtualPayment.js')
+  delete require.cache[require.resolve(modulePath)]
+  const responses = [
+    { result: { code: 1, msg: '支付尚未完成' } },
+    { result: { code: 0, data: { order: { status: 'paid', outTradeNo: 'OUT_PAID' } } } }
+  ]
+  global.wx = {
+    cloud: {
+      async callFunction() {
+        return responses.shift()
+      }
+    }
+  }
+  const virtualPayment = require(modulePath)
+  const order = await virtualPayment.waitForPaidOrder('OUT_PAID', { attempts: 2, interval: 0 })
+  assert.strictEqual(order.status, 'paid')
+  delete global.wx
+}
+
+async function testPaymentWaitRejectsClosedOrder() {
+  const modulePath = path.join(root, 'utils/virtualPayment.js')
+  delete require.cache[require.resolve(modulePath)]
+  global.wx = {
+    cloud: {
+      async callFunction() {
+        return { result: { code: 0, data: { order: { status: 'closed' } } } }
+      }
+    }
+  }
+  const virtualPayment = require(modulePath)
+  await assert.rejects(
+    virtualPayment.waitForPaidOrder('OUT_CLOSED', { attempts: 1, interval: 0 }),
+    /订单已关闭/
+  )
   delete global.wx
 }
 
@@ -100,6 +143,8 @@ async function main() {
   await testVirtualPaymentLoginRetriesEmptyCode()
   await testVirtualPaymentOrderRefreshesRejectedLoginCode()
   await testVirtualPaymentReportsActionableClientError()
+  await testPaymentWaitOnlyAcceptsPaidOrder()
+  await testPaymentWaitRejectsClosedOrder()
   testCustomerServiceQrIsPackaged()
   console.log('customer-reported issue regression checks passed')
 }

@@ -60,22 +60,6 @@ Page({
     })
   },
 
-  async _pollOrderResult(outTradeNo) {
-    for (let i = 0; i < 20; i += 1) {
-      try {
-        const syncRes = await wx.cloud.callFunction({
-          name: 'createVipOrder',
-          data: { action: 'sync', outTradeNo }
-        })
-        if (syncRes.result && syncRes.result.code === 0 && syncRes.result.data && syncRes.result.data.order) {
-          return syncRes.result.data.order
-        }
-      } catch (err) {}
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-    }
-    return null
-  },
-
   async buyVip() {
     const plan = this.data.currentPlan
     let outTradeNo = ''
@@ -110,7 +94,7 @@ Page({
       await virtualPayment.requestVirtualPayment(payment)
 
       wx.showLoading({ title: '确认支付结果...', mask: true })
-      const order = await this._pollOrderResult(outTradeNo)
+      const order = await virtualPayment.waitForPaidOrder(outTradeNo)
       wx.hideLoading()
 
       if (!order) {

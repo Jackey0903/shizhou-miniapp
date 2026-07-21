@@ -145,32 +145,73 @@ async function resolveTargetBank(q = {}) {
     }
 }
 
+function getQuestionLocation(q = {}, index = 0) {
+    const row = Number(q.sourceRowNumber || q._rowNumber)
+    return Number.isInteger(row) && row > 1 ? `第 ${row} 行` : `第 ${index + 1} 题`
+}
+
+function validateQuestionInput(q = {}, index = 0) {
+    if (!q || typeof q !== 'object' || Array.isArray(q)) {
+        throw new Error(`${getQuestionLocation({}, index)}：题目格式错误`)
+    }
+    try {
+        const type = normalizeName(q.type)
+        if (!['choice', 'fill'].includes(type)) throw new Error('题型只能是 choice 或 fill')
+        const content = boundedText(q.content, '题干', 5000, true)
+        const explanation = boundedText(q.explanation, '解析', 10000)
+        const imageUrl = boundedText(q.imageUrl, '图片URL', 1000)
+        if (imageUrl && !/^(https:\/\/|cloud:\/\/)/i.test(imageUrl)) {
+            throw new Error('图片URL只支持 https:// 或 cloud://')
+        }
+
+        const targetId = normalizeName(q.bankId || q.courseId)
+        const bankName = normalizeName(q.bankName || q.courseName || q['题库名称'] || q.name)
+        if (!targetId && !bankName) throw new Error('缺少题库名称或题库ID')
+
+        const sortValue = q.sort === undefined || q.sort === null || q.sort === ''
+            ? index + 1
+            : Number(q.sort)
+        if (!Number.isInteger(sortValue) || sortValue < 1) throw new Error('序号必须是正整数')
+
+        const normalized = {
+            ...q,
+            type,
+            content,
+            explanation,
+            imageUrl,
+            sort: sortValue
+        }
+        if (type === 'choice') {
+            if (!Array.isArray(q.options)) throw new Error('选择题选项格式错误')
+            const options = q.options.map(item => boundedText(item, '选项', 1000))
+            while (options.length && !options[options.length - 1]) options.pop()
+            if (options.length < 2) throw new Error('选择题至少填写两个选项')
+            if (options.some(item => !item)) throw new Error('选择题选项不能跳项')
+            const correctIndex = Number(q.correctIndex)
+            if (!Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex >= options.length) {
+                throw new Error('请选择正确答案')
+            }
+            normalized.options = options
+            normalized.correctIndex = correctIndex
+        } else {
+            normalized.answer = boundedText(q.answer, '填空题答案', 5000, true)
+        }
+        return normalized
+    } catch (err) {
+        throw new Error(`${getQuestionLocation(q, index)}：${err.message}`)
+    }
+}
+
 async function normalizeQuestion(q = {}) {
-    const type = q.type === 'fill' ? 'fill' : 'choice'
-    const content = boundedText(q.content, '题干', 5000, true)
-    const explanation = boundedText(q.explanation, '解析', 10000)
+    const { type, content, explanation, imageUrl } = q
     const target = await resolveTargetBank(q)
     const targetId = target.id
     const importKey = crypto.createHash('sha256')
         .update(`${targetId}|${type}|${content.replace(/\s+/g, ' ')}`)
         .digest('hex')
     const documentId = `q_${importKey.slice(0, 30)}`
-    const imageUrl = boundedText(q.imageUrl, '图片URL', 1000)
-    if (imageUrl && !/^(https:\/\/|cloud:\/\/)/i.test(imageUrl)) {
-        throw new Error('图片URL只支持 https:// 或 cloud://')
-    }
-
     if (type === 'choice') {
-        const options = Array.isArray(q.options)
-            ? q.options.map(item => boundedText(item, '选项', 1000)).filter(Boolean)
-            : []
-        const correctIndex = Number(q.correctIndex)
-        if (options.length < 2) {
-            throw new Error('选择题至少填写两个选项')
-        }
-        if (!Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex >= options.length) {
-            throw new Error('请选择正确答案')
-        }
+        const { options, correctIndex } = q
         return {
             bankId: targetId,
             courseId: targetId,
@@ -187,8 +228,6 @@ async function normalizeQuestion(q = {}) {
         }
     }
 
-    const answer = boundedText(q.answer, '填空题答案', 5000, true)
-
     return {
         bankId: targetId,
         courseId: targetId,
@@ -197,7 +236,7 @@ async function normalizeQuestion(q = {}) {
         content,
         imageUrl,
         options: [],
-        answer,
+        answer: q.answer,
         explanation,
         importKey,
         documentId
@@ -222,8 +261,9 @@ exports.main = async (event, context) => {
             return { code: -1, msg: '无录题权限' }
         }
 
+        const validatedQuestions = questions.map((question, index) => validateQuestionInput(question, index))
         const normalizedQuestions = []
-        for (const question of questions) {
+        for (const question of validatedQuestions) {
             normalizedQuestions.push(await normalizeQuestion(question))
         }
         const bankCounter = {}

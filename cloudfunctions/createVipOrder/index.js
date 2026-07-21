@@ -20,6 +20,12 @@ const ACCESS_TOKEN_CACHE = {
   token: '',
   expiresAt: 0
 }
+const PUBLISHED_PLAN_CONFIG = Object.freeze({
+  basic_vip_year: { productId: 'sz_basic_vip_year', price: 19800 },
+  supervision_trial_day: { productId: 'sz_supervision_1d', price: 800 },
+  supervision_month: { productId: 'sz_supervision_mon', price: 19800 },
+  premium_vip_year: { productId: 'sz_premium_vip_year', price: 98800 }
+})
 
 function buildOutTradeNo() {
   return `VIP${Date.now()}${Math.random().toString().slice(2, 8)}`
@@ -266,18 +272,22 @@ async function listEnabledPlans() {
 }
 
 function getVirtualProductId(plan) {
-  return String(plan.virtualProductId || plan.productId || plan.code || '').trim()
+  return String(plan.virtualProductId || plan.productId || '').trim()
 }
 
 function isValidPlan(plan = {}) {
   const code = String(plan.code || '').trim()
   const productId = getVirtualProductId(plan)
+  const published = PUBLISHED_PLAN_CONFIG[code]
   const price = Number(plan.price)
   const days = Number(plan.days || 0)
   const supervisionDays = Number(plan.supervisionDays || 0)
-  return /^[A-Za-z0-9._:-]{1,128}$/.test(code)
+  return !!published
+    && /^[A-Za-z0-9._:-]{1,128}$/.test(code)
     && /^[A-Za-z0-9_-]{1,20}$/.test(productId)
+    && productId === published.productId
     && Number.isInteger(price) && price > 0 && price <= 100000000
+    && price === published.price
     && Number.isInteger(days) && days >= 0 && days <= 3650
     && Number.isInteger(supervisionDays) && supervisionDays >= 0 && supervisionDays <= 3650
     && (days > 0 || supervisionDays > 0)
@@ -762,7 +772,9 @@ async function recordClientPaymentError(event, wxContext) {
           platform: normalizeText(clientInfo.platform, 50),
           system: normalizeText(clientInfo.system, 100),
           SDKVersion: normalizeText(clientInfo.SDKVersion, 50),
-          version: normalizeText(clientInfo.version, 50)
+          version: normalizeText(clientInfo.version, 50),
+          miniProgramVersion: normalizeText(clientInfo.miniProgramVersion, 50),
+          envVersion: normalizeText(clientInfo.envVersion, 20)
         },
         lastClientPaymentErrorAt: db.serverDate(),
         updatedAt: db.serverDate()

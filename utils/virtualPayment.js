@@ -106,6 +106,12 @@ function reportPaymentError(outTradeNo, error = {}) {
       SDKVersion: info.SDKVersion || '',
       version: info.version || ''
     }
+    if (wx.getAccountInfoSync) {
+      const account = wx.getAccountInfoSync() || {}
+      const miniProgram = account.miniProgram || {}
+      clientInfo.miniProgramVersion = miniProgram.version || ''
+      clientInfo.envVersion = miniProgram.envVersion || ''
+    }
   } catch (err) {}
   return wx.cloud.callFunction({
     name: 'createVipOrder',
@@ -167,6 +173,44 @@ async function createOrder(planCode) {
   return response
 }
 
+function terminalOrderError(status) {
+  const messages = {
+    closed: '订单已关闭，未完成支付',
+    refunded: '订单已退款，未开通权益',
+    create_failed: '订单创建失败，请重新发起支付'
+  }
+  if (!messages[status]) return null
+  const error = new Error(messages[status])
+  error.paymentOrderTerminal = true
+  return error
+}
+
+async function waitForPaidOrder(outTradeNo, options = {}) {
+  if (!outTradeNo) throw new Error('缺少订单号')
+  const attempts = Math.max(1, Number(options.attempts || 20))
+  const interval = Math.max(0, Number(options.interval === undefined ? 1500 : options.interval))
+
+  for (let index = 0; index < attempts; index += 1) {
+    try {
+      const response = await wx.cloud.callFunction({
+        name: 'createVipOrder',
+        data: { action: 'sync', outTradeNo }
+      })
+      const result = response && response.result
+      const order = result && result.data && result.data.order
+      if (result && result.code === 0 && order) {
+        if (order.status === 'paid') return order
+        const terminalError = terminalOrderError(order.status)
+        if (terminalError) throw terminalError
+      }
+    } catch (err) {
+      if (err && err.paymentOrderTerminal) throw err
+    }
+    if (index < attempts - 1) await wait(interval)
+  }
+  return null
+}
+
 function requestVirtualPayment(payment) {
   const support = getVirtualPaymentSupport()
   if (!support.ok) {
@@ -190,6 +234,7 @@ function requestVirtualPayment(payment) {
 module.exports = {
   login,
   createOrder,
+  waitForPaidOrder,
   requestVirtualPayment,
   reportPaymentError,
   getPaymentErrorCode,

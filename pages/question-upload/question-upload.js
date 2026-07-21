@@ -336,7 +336,7 @@ Page({
   showCsvHelp() {
     wx.showModal({
       title: 'CSV 填写规则',
-      content: '使用固定表头，每行必填科目、题库、题型、题目和答案。题型只填选择题/填空题；选择题答案填 A-D。用 Excel/WPS 另存为“CSV UTF-8（逗号分隔）”。',
+      content: '只接收 .csv，不接收 Excel、Word 或 PDF。使用固定表头，每题一行，必填科目、题库、题型、题目和答案。题型只填选择题/填空题；选择题答案填 A-D。用 Excel/WPS 另存为“CSV UTF-8（逗号分隔）”。',
       showCancel: false,
       confirmText: '知道了'
     })
@@ -411,6 +411,7 @@ Page({
             courseId: itemCourseId,
             bankId: itemCourseId
           }, itemCourseId, item.sort || index + 1)
+          payload.sourceRowNumber = item._rowNumber || index + 2
           mappedEntries.push({ rowNumber: item._rowNumber || index + 2, payload })
         } catch (err) {
           mappingErrors.push(`第 ${item._rowNumber || index + 2} 行：${err.message}`)

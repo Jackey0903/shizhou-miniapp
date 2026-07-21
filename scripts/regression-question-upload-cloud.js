@@ -156,10 +156,56 @@ async function testLegacyQuestionWithoutImportKeyIsSkipped() {
   assert.strictEqual(db.state.questions.length, 1)
 }
 
+async function testInvalidBatchDoesNotCreateEmptySubjectOrBank() {
+  const db = createMemoryDb({
+    users: [{ _openid: 'admin_openid', role: 'admin' }],
+    subjects: [], question_banks: [], courses: [], questions: []
+  })
+  const fn = loadUploadFunction(db, 'admin_openid')
+  const result = await fn.main({
+    questions: [
+      {
+        sourceRowNumber: 2,
+        subjectName: '新科目', bankName: '新题库', type: 'choice',
+        content: '合法题目', options: ['A项', 'B项'], correctIndex: 0
+      },
+      {
+        sourceRowNumber: 3,
+        subjectName: '新科目', bankName: '新题库', type: 'fill',
+        content: '缺少答案'
+      }
+    ]
+  })
+  assert.notStrictEqual(result.code, 0)
+  assert.match(result.msg, /第 3 行/)
+  assert.strictEqual(db.state.subjects.length, 0, 'invalid batches must not leave an empty subject')
+  assert.strictEqual(db.state.question_banks.length, 0, 'invalid batches must not leave an empty bank')
+  assert.strictEqual(db.state.questions.length, 0, 'invalid batches must not write partial questions')
+}
+
+async function testUnknownQuestionTypeIsRejected() {
+  const db = createMemoryDb({
+    users: [{ _openid: 'admin_openid', role: 'admin' }],
+    subjects: [], question_banks: [], courses: [], questions: []
+  })
+  const fn = loadUploadFunction(db, 'admin_openid')
+  const result = await fn.main({
+    questions: [{
+      subjectName: '行测', bankName: '判断推理', type: 'unknown',
+      content: '错误题型', options: ['A项', 'B项'], correctIndex: 0
+    }]
+  })
+  assert.notStrictEqual(result.code, 0)
+  assert.match(result.msg, /题型只能是/)
+  assert.strictEqual(db.state.subjects.length, 0)
+}
+
 async function main() {
   await testAdminCanImportAndRetryWithoutDuplicates()
   await testNonAdminCannotImport()
   await testLegacyQuestionWithoutImportKeyIsSkipped()
+  await testInvalidBatchDoesNotCreateEmptySubjectOrBank()
+  await testUnknownQuestionTypeIsRejected()
   console.log('question upload cloud regression checks passed')
 }
 
