@@ -159,6 +159,7 @@ function main() {
   const upload = checkUploadInfo()
   run(process.execPath, ['scripts/regression-login-payment.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-customer-reported-issues.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-image-share-permission.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-question-csv-import.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-question-upload-cloud.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-plan-separation.js'], { stdio: 'pipe' })
@@ -179,6 +180,7 @@ function main() {
       'upload-size',
       'login-payment-regression',
       'customer-reported-issue-regression',
+      'image-share-permission-regression',
       'question-CSV-import-regression',
       'question-upload-cloud-regression',
       'VIP-supervision-plan-separation',

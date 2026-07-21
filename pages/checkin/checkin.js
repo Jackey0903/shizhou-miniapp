@@ -1,4 +1,5 @@
 const cloudApi = require('../../utils/cloudApi')
+const imageSharing = require('../../utils/imageSharing')
 
 const DEFAULT_BG = '/assets/images/default-checkin-bg.png'
 const DEFAULT_QUOTE = '今日完成一点点，未来上岸一大步。'
@@ -21,20 +22,6 @@ async function resolvePreferredWallpaper() {
     }
   }
   return pref.imageUrl || ''
-}
-
-function showShareImageMenu(filePath) {
-  return new Promise((resolve, reject) => {
-    if (!wx.showShareImageMenu) {
-      reject(new Error('当前微信版本不支持直接图片分享'))
-      return
-    }
-    wx.showShareImageMenu({
-      path: filePath,
-      success: resolve,
-      fail: reject
-    })
-  })
 }
 
 function getContainRect(imageWidth, imageHeight, boxX, boxY, boxWidth, boxHeight) {
@@ -105,6 +92,9 @@ Page({
     quote: DEFAULT_QUOTE,
     backgroundTitle: '今日打卡海报',
     shareReady: false,
+    sharing: false,
+    showPrivacyDialog: false,
+    privacyContractName: '《仕舟小程序隐私保护指引》',
     autoOpenedFromQuestion: false,
     enteredAfterCheckin: false,
     usingCustomWallpaper: false
@@ -327,28 +317,132 @@ Page({
     }
   },
 
+  requestPrivacyConsent(filePath, privacyContractName) {
+    this._pendingShareFilePath = filePath
+    this.setData({
+      showPrivacyDialog: true,
+      privacyContractName: privacyContractName || '《仕舟小程序隐私保护指引》'
+    })
+  },
+
+  async recoverAlbumPermission() {
+    const permission = await imageSharing.getAlbumAuthorization(wx)
+    if (permission === true) {
+      await new Promise((resolve) => {
+        wx.showModal({
+          title: '请开启系统照片权限',
+          content: '小程序权限已开启，请到手机系统设置中允许微信访问照片和视频，然后返回重试。',
+          showCancel: false,
+          success: resolve,
+          fail: resolve
+        })
+      })
+      return false
+    }
+
+    const shouldOpen = await new Promise((resolve) => {
+      wx.showModal({
+        title: '需要相册写入权限',
+        content: '保存打卡海报需要“添加到相册”权限。请在设置中开启，返回后将自动继续保存。',
+        confirmText: '去设置',
+        success: (res) => resolve(!!res.confirm),
+        fail: () => resolve(false)
+      })
+    })
+    if (!shouldOpen || typeof wx.openSetting !== 'function') return false
+
+    try {
+      const result = await new Promise((resolve, reject) => {
+        wx.openSetting({ success: resolve, fail: reject })
+      })
+      return !!(result.authSetting && result.authSetting['scope.writePhotosAlbum'])
+    } catch (error) {
+      return false
+    }
+  },
+
+  async runImageShare(filePath, skipShareMenu = false) {
+    return imageSharing.shareImageWithFallback(filePath, {
+      wxApi: wx,
+      skipShareMenu,
+      onPrivacyRequired: (pendingPath, contractName) => this.requestPrivacyConsent(pendingPath, contractName),
+      recoverAlbumPermission: () => this.recoverAlbumPermission()
+    })
+  },
+
+  async handleShareResult(result) {
+    if (!result || result.status === 'cancelled' || result.status === 'privacy-required') return
+    if (result.status === 'shared') {
+      await this.rewardShareTimeline()
+      return
+    }
+    if (result.status === 'saved') {
+      wx.showToast({ title: '已保存到相册，请去朋友圈发布', icon: 'none' })
+      return
+    }
+    if (result.status === 'permission-denied') {
+      wx.showToast({ title: '未开启相册权限，暂未保存', icon: 'none' })
+    }
+  },
+
+  async handleAgreePrivacyAuthorization() {
+    const filePath = this._pendingShareFilePath
+    this._pendingShareFilePath = ''
+    this.setData({ showPrivacyDialog: false, sharing: true })
+    if (!filePath) {
+      this.setData({ sharing: false })
+      return
+    }
+    try {
+      const result = await this.runImageShare(filePath, true)
+      await this.handleShareResult(result)
+    } catch (error) {
+      wx.showToast({ title: imageSharing.getErrorMessage(error) || '图片保存失败', icon: 'none' })
+    } finally {
+      this.setData({ sharing: false })
+    }
+  },
+
+  handleRejectPrivacyAuthorization() {
+    this._pendingShareFilePath = ''
+    this.setData({ showPrivacyDialog: false, sharing: false })
+  },
+
+  openPrivacyContract() {
+    if (typeof wx.openPrivacyContract !== 'function') {
+      wx.navigateTo({ url: '/pages/privacy/privacy' })
+      return
+    }
+    wx.openPrivacyContract({
+      fail: () => wx.navigateTo({ url: '/pages/privacy/privacy' })
+    })
+  },
+
+  noop() {},
+
   async shareFullImage() {
     if (!this.data.shareReady) {
       wx.showToast({ title: '完成今日学习任务并打卡后才能分享领奖励', icon: 'none' })
       return
     }
-    let loadingVisible = true
+    if (this.data.sharing) return
+    this.setData({ sharing: true })
     wx.showLoading({ title: '准备图片中', mask: true })
+    let loadingVisible = true
     try {
       const filePath = await this.buildShareImageFile()
       wx.hideLoading()
       loadingVisible = false
-      await showShareImageMenu(filePath)
-      await this.rewardShareTimeline()
+      const result = await this.runImageShare(filePath)
+      await this.handleShareResult(result)
     } catch (err) {
       if (loadingVisible) wx.hideLoading()
-      try {
-        const filePath = await this.buildShareImageFile()
-        await wx.saveImageToPhotosAlbum({ filePath })
-        wx.showToast({ title: '已保存到相册，请去朋友圈发布', icon: 'none' })
-      } catch (saveErr) {
-        wx.showToast({ title: '分享失败，请检查相册权限', icon: 'none' })
-      }
+      const message = err && err.code === 'PRIVACY_SCOPE_NOT_DECLARED'
+        ? '相册权限配置尚未生效，请稍后重试'
+        : (imageSharing.getErrorMessage(err) || '图片分享失败，请稍后重试')
+      wx.showToast({ title: message, icon: 'none' })
+    } finally {
+      this.setData({ sharing: false })
     }
   },
 
