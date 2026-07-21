@@ -47,4 +47,4 @@ Before every release:
 3. Confirm storage write access remains creator-only.
 4. Confirm the four payment environment variable names above are configured without printing their values.
 5. Confirm the four published product IDs and prices match `vip_plans`.
-6. Perform the real-device acceptance checklist in `release-1.0.14-verification.md`.
+6. Perform the real-device acceptance checklist in `release-1.0.18-verification.md`.

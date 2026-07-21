@@ -10,14 +10,14 @@ Before submitting review, open WeChat Public Platform -> Virtual Payment -> Basi
 2. The Mini Program short name is configured. This is required for iOS Apple Pay display name.
 3. Production virtual payment configuration is active.
 
-Create and publish these virtual products in the Mini Program virtual payment console. If WeChat generates different product IDs, update `virtualProductId` in `vip_plans` through the admin config page.
+Create and publish these virtual products in the Mini Program virtual payment console. The product IDs and prices must match both `PUBLISHED_PLAN_CONFIG` in `cloudfunctions/createVipOrder/index.js` and the corresponding `vip_plans` records. Do not replace a WeChat product ID with an internal business plan code.
 
-| Product ID | Name | Price |
-| --- | --- | --- |
-| `basic_vip_year` | 基础VIP包年 | 198 CNY |
-| `supervision_trial_day` | 督学试用1日 | 8 CNY |
-| `supervision_month` | 督学包月 | 198 CNY |
-| `premium_vip_year` | 高级VIP包年 | 988 CNY |
+| Business Plan Code | Published Product ID | Name | Price |
+| --- | --- | --- | ---: |
+| `basic_vip_year` | `sz_basic_vip_year` | 基础VIP包年 | 198 CNY |
+| `supervision_trial_day` | `sz_supervision_1d` | 督学试用1日 | 8 CNY |
+| `supervision_month` | `sz_supervision_mon` | 督学包月 | 198 CNY |
+| `premium_vip_year` | `sz_premium_vip_year` | 高级VIP/督学包年 | 988 CNY |
 
 ## Cloud Function Environment Variables
 
@@ -91,7 +91,7 @@ Before uploading a new development version:
 1. `VIRTUAL_PAY_ENV` is `0`.
 2. Mini Program short name is configured in Virtual Payment -> Basic Configuration.
 3. All products are published in the virtual payment console.
-4. Product IDs match `vip_plans.virtualProductId`.
+4. Product IDs match `PUBLISHED_PLAN_CONFIG` and `vip_plans.virtualProductId`.
 5. `createVipOrder` has all production environment variables.
 6. `createVipOrder`, `vipPayCallback`, and `adminConfigCenter` are deployed.
 7. Test purchase can create an order and call `wx.requestVirtualPayment`.
