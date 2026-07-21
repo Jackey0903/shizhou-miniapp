@@ -5,6 +5,8 @@ const db = cloud.database()
 
 const RECONCILE_MAX_AGE = 3 * 24 * 60 * 60 * 1000
 const RECONCILE_LIMIT = 10
+const RECONCILE_BASE_DELAY = 5 * 60 * 1000
+const RECONCILE_MAX_DELAY = 6 * 60 * 60 * 1000
 
 function parseSimpleXml(xml = '') {
   const data = {}
@@ -38,6 +40,35 @@ function toTimestamp(value) {
   return Number.isFinite(timestamp) ? timestamp : 0
 }
 
+function getReconcileDelay(attempts) {
+  const exponent = Math.max(0, Math.min(Number(attempts || 0), 5))
+  return Math.min(RECONCILE_BASE_DELAY * (2 ** exponent), RECONCILE_MAX_DELAY)
+}
+
+async function recordReconcileAttempt(order, result = {}, error) {
+  if (!order || !order._id) return
+  const attempts = Math.max(0, Number(order.reconcileAttempts || 0)) + 1
+  const errCode = Number(result.ErrCode)
+  const errMsg = String(
+    (error && (error.message || error))
+    || result.ErrMsg
+    || result.errmsg
+    || ''
+  ).slice(0, 300)
+  await db.collection('orders').doc(order._id).update({
+    data: {
+      reconcileAttempts: attempts,
+      reconcileLastTriedAt: db.serverDate(),
+      reconcileNextAt: new Date(Date.now() + getReconcileDelay(attempts - 1)),
+      reconcileLastResult: {
+        errCode: Number.isFinite(errCode) ? errCode : -1,
+        errMsg
+      },
+      updatedAt: db.serverDate()
+    }
+  })
+}
+
 async function reconcilePendingOrders() {
   const result = await db.collection('orders')
     .where({ status: 'pending' })
@@ -49,8 +80,12 @@ async function reconcilePendingOrders() {
       order.payChannel === 'wechat_virtual'
       && order.outTradeNo
       && toTimestamp(order.createdAt) >= now - RECONCILE_MAX_AGE
+      && (!toTimestamp(order.reconcileNextAt) || toTimestamp(order.reconcileNextAt) <= now)
     ))
-    .sort((left, right) => toTimestamp(right.createdAt) - toTimestamp(left.createdAt))
+    .sort((left, right) => {
+      const triedDiff = toTimestamp(left.reconcileLastTriedAt) - toTimestamp(right.reconcileLastTriedAt)
+      return triedDiff || (toTimestamp(right.createdAt) - toTimestamp(left.createdAt))
+    })
     .slice(0, RECONCILE_LIMIT)
 
   let reconciled = 0
@@ -66,9 +101,19 @@ async function reconcilePendingOrders() {
         }
       })
       reconciled += 1
-      if (response.result && Number(response.result.ErrCode) === 0) paid += 1
+      const reconcileResult = response.result || {}
+      if (Number(reconcileResult.ErrCode) === 0) {
+        paid += 1
+      } else {
+        await recordReconcileAttempt(order, reconcileResult)
+      }
     } catch (err) {
       console.warn('[vipPayCallback] scheduled reconcile failed', order.outTradeNo, err.message || err)
+      try {
+        await recordReconcileAttempt(order, {}, err)
+      } catch (recordErr) {
+        console.warn('[vipPayCallback] failed to record reconcile backoff', order.outTradeNo, recordErr.message || recordErr)
+      }
     }
   }
   return { code: 0, checked: candidates.length, reconciled, paid }
