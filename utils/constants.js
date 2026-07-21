@@ -39,6 +39,8 @@ const EBBINGHAUS_INTERVALS = [
 const CHECKIN_COINS = 10
 // 分享朋友圈奖励（舟币）
 const SHARE_COINS_REWARD = 10
+// 分享打卡海报消耗（舟币）
+const CHECKIN_SHARE_COINS_COST = 10
 // 看广告奖励（舟币）
 const AD_COINS_REWARD = 1
 
@@ -56,6 +58,7 @@ module.exports = {
     EBBINGHAUS_INTERVALS,
     CHECKIN_COINS,
     SHARE_COINS_REWARD,
+    CHECKIN_SHARE_COINS_COST,
     AD_COINS_REWARD,
     SUPERVISION_TYPE
 }

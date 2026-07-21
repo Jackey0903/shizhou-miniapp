@@ -71,6 +71,31 @@ async function getAlbumAuthorization(wxApi) {
   }
 }
 
+async function recoverAlbumPermission(wxApi, options = {}) {
+  const permission = await getAlbumAuthorization(wxApi)
+  if (permission === true) {
+    if (typeof wxApi.showModal === 'function') {
+      await callApi(wxApi.showModal, wxApi, {
+        title: '请开启系统照片权限',
+        content: options.systemPermissionMessage || '小程序权限已开启，请到手机系统设置中允许微信访问照片和视频，然后返回重试。',
+        showCancel: false
+      }).catch(() => null)
+    }
+    return false
+  }
+
+  if (typeof wxApi.showModal !== 'function') return false
+  const modalResult = await callApi(wxApi.showModal, wxApi, {
+    title: '需要相册写入权限',
+    content: options.albumPermissionMessage || '保存图片需要“添加到相册”权限。请在设置中开启，返回后将自动继续保存。',
+    confirmText: '去设置'
+  }).catch(() => ({ confirm: false }))
+  if (!modalResult.confirm || typeof wxApi.openSetting !== 'function') return false
+
+  const settingResult = await callApi(wxApi.openSetting, wxApi).catch(() => null)
+  return !!(settingResult && settingResult.authSetting && settingResult.authSetting['scope.writePhotosAlbum'])
+}
+
 async function requestPrivacyConsent(filePath, options) {
   if (typeof options.onPrivacyRequired === 'function') {
     const state = await getPrivacyState(options.wxApi)
@@ -144,6 +169,7 @@ module.exports = {
   isCancelError,
   isPrivacyConfigurationError,
   isPrivacyPermissionError,
+  recoverAlbumPermission,
   saveImageWithPermission,
   shareImageWithFallback
 }

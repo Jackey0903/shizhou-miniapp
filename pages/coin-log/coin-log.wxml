@@ -2,7 +2,7 @@
 <view class="coin-page">
   <view class="coin-rule-card">
     <text class="coin-rule-title">舟币获取与消耗</text>
-    <text class="coin-rule-text">领取资料每份 -5 舟币；分享朋友圈每次 +10 舟币，每天最多 +20；完整看完一个广告 +1 舟币。</text>
+    <text class="coin-rule-text">领取资料按标价消耗舟币；分享打卡海报每次 -10 舟币；完成分享任务每次 +10 舟币，每天最多 +20；完整看完一个广告 +1 舟币。</text>
     <view class="coin-task-list">
       <view class="coin-task-item">
         <view>

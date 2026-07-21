@@ -74,6 +74,26 @@ async function grantCoinReward(action) {
     return wx.cloud.callFunction({ name: 'grantCoinReward', data: { action, claimId } })
 }
 
+/**
+ * 成功分享或保存打卡海报后扣除 10 舟币。同一 claimId 重试不会重复扣款。
+ */
+async function consumeCheckinShare(claimId) {
+    const safeClaimId = String(claimId || '').trim()
+    if (!safeClaimId) throw new Error('缺少分享凭证')
+    let lastError = null
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+            return await wx.cloud.callFunction({
+                name: 'grantCoinReward',
+                data: { action: 'consumeCheckinShare', claimId: safeClaimId }
+            })
+        } catch (error) {
+            lastError = error
+        }
+    }
+    throw lastError || new Error('舟币扣除失败')
+}
+
 // ============= 课程相关 =============
 
 /**
@@ -677,7 +697,7 @@ async function getHelpConfig() {
 }
 
 module.exports = {
-    userLogin, getCurrentUser, updateUser, grantCoinReward,
+    userLogin, getCurrentUser, updateUser, grantCoinReward, consumeCheckinShare,
     getCourses, getCourse,
     getQuestions, getQuestionCount, uploadQuestions, createCourse,
     savePlan, getPlans, deletePlan,

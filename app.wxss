@@ -279,3 +279,86 @@ textarea {
 .text-sm { font-size: 24rpx; }
 .text-lg { font-size: 34rpx; }
 .text-xl { font-size: 40rpx; }
+
+/* ===== 图片写入隐私授权 ===== */
+.privacy-mask {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40rpx;
+  box-sizing: border-box;
+  background: rgba(15, 23, 42, 0.58);
+}
+
+.privacy-dialog {
+  width: 100%;
+  max-width: 640rpx;
+  padding: 40rpx 32rpx 32rpx;
+  box-sizing: border-box;
+  border-radius: 16rpx;
+  background: #ffffff;
+}
+
+.privacy-title,
+.privacy-desc {
+  display: block;
+}
+
+.privacy-title {
+  color: #111827;
+  font-size: 36rpx;
+  line-height: 1.4;
+  font-weight: 700;
+  text-align: center;
+}
+
+.privacy-desc {
+  margin-top: 20rpx;
+  color: #4b5563;
+  font-size: 27rpx;
+  line-height: 1.7;
+}
+
+.privacy-contract-btn {
+  margin-top: 12rpx;
+  padding: 0;
+  color: #2563eb;
+  font-size: 27rpx;
+  line-height: 64rpx;
+  background: transparent;
+}
+
+.privacy-contract-btn::after,
+.privacy-cancel-btn::after,
+.privacy-agree-btn::after {
+  border: 0;
+}
+
+.privacy-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 20rpx;
+}
+
+.privacy-cancel-btn,
+.privacy-agree-btn {
+  flex: 1;
+  height: 84rpx;
+  padding: 0 16rpx;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  line-height: 84rpx;
+}
+
+.privacy-cancel-btn {
+  color: #374151;
+  background: #f3f4f6;
+}
+
+.privacy-agree-btn {
+  color: #ffffff;
+  background: #2563eb;
+}

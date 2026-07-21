@@ -1,25 +1,88 @@
+const crypto = require('crypto')
 const cloud = require('wx-server-sdk')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 
-function normalizeAccessType(value) {
-  return ['free', 'vip', 'coin'].includes(value) ? value : 'coin'
+const MAX_BATCH_SIZE = 20
+const MATERIAL_TYPES = new Set(['document', 'audio', 'image'])
+const ACCESS_TYPES = new Set(['free', 'vip', 'coin'])
+
+function text(value, maxLength) {
+  return String(value || '').trim().slice(0, maxLength)
 }
 
-function normalizeCoinCost(value, accessType) {
-  if (accessType !== 'coin') return 0
-  const cost = Number(value)
-  return Number.isFinite(cost) && cost > 0 ? Math.floor(cost) : 5
+function isCloudUrl(value) {
+  return !value || /^cloud:\/\/[^\s]+$/i.test(value)
 }
 
-exports.main = async (event) => {
+function isResourceUrl(value) {
+  return !value || /^(cloud:\/\/|https:\/\/)[^\s]+$/i.test(value)
+}
+
+function stableId(prefix, source) {
+  return `${prefix}_${crypto.createHash('sha256').update(source).digest('hex').slice(0, 20)}`
+}
+
+function normalizeMaterial(item, index) {
+  if (!item || typeof item !== 'object') throw new Error(`第${index + 1}条资料格式错误`)
+  const name = text(item.name, 200)
+  const description = text(item.description, 2000)
+  const type = text(item.type, 20)
+  const accessType = text(item.accessType || 'coin', 20)
+  const fileId = text(item.fileId, 1000)
+  const fileUrl = text(item.fileUrl, 2000)
+  const linkUrl = text(item.linkUrl, 2000)
+  const coverFileId = text(item.coverFileId, 1000)
+  const coverUrl = text(item.coverUrl, 2000)
+  const imageUrl = text(item.imageUrl, 2000)
+
+  if (!name) throw new Error(`第${index + 1}条资料缺少名称`)
+  if (!MATERIAL_TYPES.has(type)) throw new Error(`第${index + 1}条资料类型无效`)
+  if (!ACCESS_TYPES.has(accessType)) throw new Error(`第${index + 1}条资料领取方式无效`)
+  if (!fileId && !fileUrl && !linkUrl) throw new Error(`第${index + 1}条资料缺少文件或链接`)
+  if (!isCloudUrl(fileId) || !isCloudUrl(coverFileId)) throw new Error(`第${index + 1}条资料云文件地址无效`)
+  if (!isResourceUrl(fileUrl) || !isResourceUrl(linkUrl) || !isResourceUrl(coverUrl) || !isResourceUrl(imageUrl)) {
+    throw new Error(`第${index + 1}条资料外部链接必须使用HTTPS`)
+  }
+
+  const rawCoinCost = Number(item.coinCost)
+  const coinCost = accessType === 'coin' ? rawCoinCost : 0
+  if (accessType === 'coin' && (!Number.isInteger(coinCost) || coinCost <= 0 || coinCost > 100000)) {
+    throw new Error(`第${index + 1}条资料舟币数无效`)
+  }
+
+  const source = fileId || fileUrl || linkUrl
+  const rawSort = Number(item.sort)
+  return {
+    id: stableId('material', `${type}:${source}`),
+    data: {
+      name,
+      description,
+      type,
+      category: type,
+      accessType,
+      coinCost,
+      fileId,
+      fileUrl,
+      linkUrl,
+      coverFileId,
+      coverUrl,
+      imageUrl,
+      enabled: true,
+      sort: Number.isFinite(rawSort) ? rawSort : Date.now() + index,
+      createdAt: db.serverDate(),
+      updatedAt: db.serverDate()
+    }
+  }
+}
+
+exports.main = async (event = {}) => {
   const { OPENID } = cloud.getWXContext()
   const materials = Array.isArray(event.materials) ? event.materials : []
 
-  if (!materials.length) {
-    return { code: -1, msg: '请先选择资料文件' }
-  }
+  if (!materials.length) return { code: -1, msg: '请先选择资料文件' }
+  if (materials.length > MAX_BATCH_SIZE) return { code: -1, msg: `单次最多上传${MAX_BATCH_SIZE}条资料` }
 
   try {
     const userRes = await db.collection('users').where({ _openid: OPENID }).limit(1).get()
@@ -28,35 +91,12 @@ exports.main = async (event) => {
       return { code: -1, msg: '仅管理员可上传资料' }
     }
 
-    let count = 0
-    for (const item of materials) {
-      if (!item.name || !item.type || (!item.fileId && !item.fileUrl && !item.linkUrl)) continue
-      const accessType = normalizeAccessType(item.accessType)
-      await db.collection('materials').add({
-        data: {
-          name: item.name,
-          description: item.description || '',
-          type: item.type,
-          category: item.type,
-          accessType,
-          coinCost: normalizeCoinCost(item.coinCost, accessType),
-          fileId: item.fileId || '',
-          fileUrl: item.fileUrl || '',
-          linkUrl: item.linkUrl || '',
-          coverFileId: item.coverFileId || '',
-          coverUrl: item.coverUrl || '',
-          imageUrl: item.imageUrl || '',
-          enabled: true,
-          sort: Number(item.sort) || Date.now() + count,
-          createdAt: db.serverDate(),
-          updatedAt: db.serverDate()
-        }
-      })
-      count += 1
+    const normalized = materials.map(normalizeMaterial)
+    for (const item of normalized) {
+      await db.collection('materials').doc(item.id).set({ data: item.data })
     }
-
-    return { code: 0, msg: '资料上传成功', count }
+    return { code: 0, msg: '资料上传成功', count: normalized.length }
   } catch (err) {
-    return { code: -1, msg: err.message }
+    return { code: -1, msg: err.message || '资料上传失败' }
   }
 }

@@ -43,4 +43,16 @@
 
   <canvas class="we-canvas" canvas-id="posterCanvas"></canvas>
   <canvas class="we-share-canvas" canvas-id="shareCanvas"></canvas>
+
+  <view wx:if="{{showPrivacyDialog}}" class="privacy-mask" catchtouchmove="noop">
+    <view class="privacy-dialog">
+      <text class="privacy-title">保存自定义壁纸</text>
+      <text class="privacy-desc">保存图片需要使用相册（仅写入）权限。请先阅读并同意{{privacyContractName}}，我们只会写入你主动生成的壁纸。</text>
+      <button class="privacy-contract-btn" bindtap="openPrivacyContract">查看隐私保护指引</button>
+      <view class="privacy-actions">
+        <button class="privacy-cancel-btn" bindtap="handleRejectPrivacyAuthorization">暂不使用</button>
+        <button id="wallpaper-editor-privacy-agree" class="privacy-agree-btn" open-type="agreePrivacyAuthorization" bindagreeprivacyauthorization="handleAgreePrivacyAuthorization">同意并继续</button>
+      </view>
+    </view>
+  </view>
 </view>

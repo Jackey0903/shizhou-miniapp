@@ -1,7 +1,7 @@
 <view class="checkin-page">
   <view class="checkin-intro card">
-    <text class="checkin-intro-title">分享朋友圈获取舟币</text>
-    <text class="checkin-intro-desc">完成当天学习目标后会自动打卡。点击下方按钮分享完整图片到朋友圈，每次获得 10 舟币，每天最多 20 舟币。</text>
+    <text class="checkin-intro-title">分享打卡海报</text>
+    <text class="checkin-intro-desc">完成当天学习目标后会自动打卡。每次成功分享到朋友圈或保存分享图片，将消耗 10 舟币；取消分享不会扣费。</text>
   </view>
 
   <view class="checkin-card-wrap" id="shareCanvas">
@@ -27,7 +27,7 @@
   </view>
 
   <view class="checkin-share-tip">
-    <button class="checkin-share-btn" bindtap="shareFullImage" loading="{{sharing}}" disabled="{{!shareReady || sharing}}">分享图片获取10舟币</button>
+    <button class="checkin-share-btn" bindtap="shareFullImage" loading="{{sharing}}" disabled="{{!shareReady || sharing}}">分享图片（消耗10舟币）</button>
     <text class="checkin-share-title">完整图片分享</text>
     <text class="checkin-share-desc">会生成朋友圈适配的正方形图片，壁纸完整显示不裁切；如果当前微信版本不支持，会自动保存到相册。</text>
   </view>

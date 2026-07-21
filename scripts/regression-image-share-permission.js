@@ -115,13 +115,17 @@ async function testPrivacyApiFailureStillShowsConsentUi() {
   assert.strictEqual(requested, true)
 }
 
-function testCheckinPageUsesRecoverablePermissionFlow() {
-  const pageJs = fs.readFileSync(path.join(root, 'pages/checkin/checkin.js'), 'utf8')
-  const pageWxml = fs.readFileSync(path.join(root, 'pages/checkin/checkin.wxml'), 'utf8')
-  assert(pageJs.includes("require('../../utils/imageSharing')"), 'check-in page must use the tested image-sharing flow')
-  assert(pageJs.includes('recoverAlbumPermission'), 'check-in page must recover a denied album permission')
-  assert(pageWxml.includes('open-type="agreePrivacyAuthorization"'), 'check-in page must expose the official privacy consent button')
-  assert(pageWxml.includes('bindagreeprivacyauthorization="handleAgreePrivacyAuthorization"'))
+function testImagePagesUseRecoverablePermissionFlow() {
+  const pageNames = ['checkin', 'wallpaper', 'wallpaper-editor']
+  pageNames.forEach((pageName) => {
+    const pageJs = fs.readFileSync(path.join(root, `pages/${pageName}/${pageName}.js`), 'utf8')
+    const pageWxml = fs.readFileSync(path.join(root, `pages/${pageName}/${pageName}.wxml`), 'utf8')
+    assert(pageJs.includes("require('../../utils/imageSharing')"), `${pageName} page must use the tested image-sharing flow`)
+    assert(pageJs.includes('recoverAlbumPermission'), `${pageName} page must recover a denied album permission`)
+    assert(!pageJs.includes('wx.saveImageToPhotosAlbum'), `${pageName} page must not bypass the tested permission flow`)
+    assert(pageWxml.includes('open-type="agreePrivacyAuthorization"'), `${pageName} page must expose the official privacy consent button`)
+    assert(pageWxml.includes('bindagreeprivacyauthorization="handleAgreePrivacyAuthorization"'))
+  })
 }
 
 async function main() {
@@ -130,7 +134,7 @@ async function main() {
   await testDeniedAlbumPermissionCanRecoverAndRetry()
   await testUnsupportedShareFallsBackToAlbum()
   await testPrivacyApiFailureStillShowsConsentUi()
-  testCheckinPageUsesRecoverablePermissionFlow()
+  testImagePagesUseRecoverablePermissionFlow()
   console.log('image share permission regression checks passed')
 }
 

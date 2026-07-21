@@ -160,8 +160,11 @@ function main() {
   run(process.execPath, ['scripts/regression-login-payment.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-customer-reported-issues.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-image-share-permission.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-checkin-share-cost.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-privacy-api-declarations.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-question-csv-import.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-question-upload-cloud.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-admin-uploads.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-plan-separation.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-learning-flow.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-release-integrity.js'], { stdio: 'pipe' })
@@ -181,8 +184,11 @@ function main() {
       'login-payment-regression',
       'customer-reported-issue-regression',
       'image-share-permission-regression',
+      'check-in-share-cost-regression',
+      'privacy-API-declaration-regression',
       'question-CSV-import-regression',
       'question-upload-cloud-regression',
+      'admin-material-audio-wallpaper-upload-regression',
       'VIP-supervision-plan-separation',
       'learning-review-checkin-regression',
       'page-route-asset-cloud-function-integrity',

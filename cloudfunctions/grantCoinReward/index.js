@@ -3,6 +3,7 @@ const crypto = require('crypto')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
+const CHECKIN_SHARE_COST = 10
 
 const REWARD_MAP = {
   shareTimeline: {
@@ -47,6 +48,69 @@ function toDate(value) {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
+async function consumeCheckinShare(openid, claimId) {
+  const userRes = await db.collection('users').where({ _openid: openid }).limit(1).get()
+  const user = userRes.data[0]
+  if (!user) return { code: -1, msg: '请先登录' }
+
+  const dateStr = formatShanghaiDate(new Date())
+  const logId = stableLogId(openid, claimId)
+  try {
+    const result = await db.runTransaction(async (transaction) => {
+      const latestUserRes = await transaction.collection('users').doc(user._id).get()
+      const latestUser = latestUserRes.data
+      if (!latestUser) throw new Error('用户不存在')
+
+      let existing = null
+      try {
+        const existingRes = await transaction.collection('coin_logs').doc(logId).get()
+        existing = existingRes.data || null
+      } catch (err) {}
+      if (existing) {
+        return {
+          duplicate: true,
+          amount: Number(existing.amount || -CHECKIN_SHARE_COST),
+          coins: Number(latestUser.coins || 0)
+        }
+      }
+
+      const coins = Number(latestUser.coins || 0)
+      if (coins < CHECKIN_SHARE_COST) {
+        const err = new Error(`舟币不足，分享打卡海报需要${CHECKIN_SHARE_COST}舟币`)
+        err.businessCode = 2
+        throw err
+      }
+
+      const remainingCoins = coins - CHECKIN_SHARE_COST
+      await transaction.collection('users').doc(latestUser._id).update({ data: { coins: remainingCoins } })
+      await transaction.collection('coin_logs').doc(logId).set({
+        data: {
+          _openid: openid,
+          type: 'checkin_share_cost',
+          action: 'consumeCheckinShare',
+          claimId,
+          title: '分享打卡海报',
+          remark: '分享打卡海报消耗舟币',
+          amount: -CHECKIN_SHARE_COST,
+          dateStr,
+          createdAt: db.serverDate()
+        }
+      })
+      return { duplicate: false, amount: -CHECKIN_SHARE_COST, coins: remainingCoins }
+    })
+
+    return {
+      code: 0,
+      msg: result.duplicate ? '本次分享已扣费' : `已消耗${CHECKIN_SHARE_COST}舟币`,
+      data: result
+    }
+  } catch (err) {
+    if (err && err.businessCode) return { code: err.businessCode, msg: err.message }
+    console.error('[grantCoinReward] consume check-in share failed', err)
+    return { code: -1, msg: '舟币扣除失败，请稍后重试' }
+  }
+}
+
 exports.main = async (event = {}) => {
   const { OPENID } = cloud.getWXContext()
   const action = event.action || ''
@@ -69,6 +133,12 @@ exports.main = async (event = {}) => {
     } catch (err) {
       return { code: -1, msg: '舟币记录加载失败' }
     }
+  }
+  if (action === 'consumeCheckinShare') {
+    if (!/^[A-Za-z0-9:_-]{12,160}$/.test(claimId)) {
+      return { code: -1, msg: '分享凭证无效，请重新分享' }
+    }
+    return consumeCheckinShare(OPENID, claimId)
   }
   if (!config) return { code: -1, msg: '未知奖励类型' }
   if (!/^[A-Za-z0-9:_-]{12,160}$/.test(claimId)) {

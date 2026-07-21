@@ -5,6 +5,7 @@ const ACTION_LABELS = {
   checkin: '每日打卡',
   ad_reward: '广告奖励',
   share_reward: '分享奖励',
+  checkin_share_cost: '打卡分享',
   material_exchange: '资料领取',
   vip_pay: 'VIP虚拟支付',
   order_pay: '课程权益记录',
@@ -61,6 +62,7 @@ Page({
 
   _buildDesc(log) {
     if (log.type === 'share_reward') return '分享朋友圈奖励'
+    if (log.type === 'checkin_share_cost') return '分享打卡海报消耗舟币'
     if (log.type === 'ad_reward') return '观看完整广告奖励'
     if (log.type === 'material_exchange') return log.title || '领取学习资料'
     if (typeof log.coinsEarned === 'number') return `获得舟币 ${log.coinsEarned}`
