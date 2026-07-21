@@ -188,7 +188,7 @@ async function testCreateVipOrderCreatesMissingUser() {
       price: 19800,
       days: 365,
       supervisionDays: 0,
-      virtualProductId: 'basic_vip_year',
+      virtualProductId: 'sz_basic_vip_year',
       benefits: [],
       enabled: true,
       sort: 1
@@ -240,11 +240,35 @@ async function testCreateVipOrderCreatesMissingUser() {
     assert(result.data.payment.signData, 'payment signData should be returned')
     const signData = JSON.parse(result.data.payment.signData)
     assert.strictEqual(signData.goodsPrice, 19800, 'price must come from the server plan')
-    assert.strictEqual(signData.productId, 'basic_vip_year')
+    assert.strictEqual(signData.productId, 'sz_basic_vip_year')
   } finally {
     require('https').request = originalRequest
     process.env = oldEnv
   }
+}
+
+async function testPlansRejectWechatProductIdsOverTwentyCharacters() {
+  const db = createMemoryDb({
+    vip_plans: [
+      {
+        code: 'valid_plan', virtualProductId: 'valid_product_20', name: '有效套餐',
+        price: 800, days: 1, supervisionDays: 0, enabled: true, sort: 1
+      },
+      {
+        code: 'invalid_plan', virtualProductId: 'supervision_trial_day', name: '无效套餐',
+        price: 800, days: 1, supervisionDays: 0, enabled: true, sort: 2
+      }
+    ]
+  })
+  const fn = loadWithCloudMock('cloudfunctions/createVipOrder/index.js', {
+    DYNAMIC_CURRENT_ENV: 'mock-env',
+    init() {},
+    database: () => db,
+    getWXContext: () => ({ OPENID: 'openid_pay', APPID: 'wxca6ebd21699eca53' })
+  })
+  const result = await fn.main({ action: 'plans' })
+  assert.strictEqual(result.code, 0, JSON.stringify(result))
+  assert.deepStrictEqual(result.data.map((item) => item.code), ['valid_plan'])
 }
 
 async function testCreateVipOrderDoesNotUseHardcodedPlanFallback() {
@@ -368,6 +392,7 @@ async function main() {
   testWechatLoginAvoidsDeprecatedProfileAuth()
   await testCreateVipOrderCreatesMissingUser()
   await testCreateVipOrderDoesNotUseHardcodedPlanFallback()
+  await testPlansRejectWechatProductIdsOverTwentyCharacters()
   await testOrderListIsScopedAndComplete()
   await testSyncVirtualOrderRejectsIncompleteWechatResponseWithoutInvalidDbWrite()
   console.log('login/payment regression checks passed')

@@ -276,7 +276,7 @@ function isValidPlan(plan = {}) {
   const days = Number(plan.days || 0)
   const supervisionDays = Number(plan.supervisionDays || 0)
   return /^[A-Za-z0-9._:-]{1,128}$/.test(code)
-    && /^[A-Za-z0-9._:-]{1,128}$/.test(productId)
+    && /^[A-Za-z0-9_-]{1,20}$/.test(productId)
     && Number.isInteger(price) && price > 0 && price <= 100000000
     && Number.isInteger(days) && days >= 0 && days <= 3650
     && Number.isInteger(supervisionDays) && supervisionDays >= 0 && supervisionDays <= 3650
