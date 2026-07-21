@@ -449,7 +449,7 @@ async function testPaidOrderGrantsBenefitsAndConfirmsDeliveryOnlyOnce() {
     const listeners = {}
     const chunks = []
     const response = responses.shift() || {}
-    requests.push({ url: String(url), chunks })
+    requests.push({ url: String(url), chunks, headers: options.headers || {} })
     const res = {
       on(event, cb) { listeners[event] = cb }
     }
@@ -493,6 +493,7 @@ async function testPaidOrderGrantsBenefitsAndConfirmsDeliveryOnlyOnce() {
     const queryRequest = requests.find((item) => item.url.includes('/xpay/query_order'))
     const deliveryRequest = requests.find((item) => item.url.includes('/xpay/notify_provide_goods'))
     assert(queryRequest && queryRequest.url.includes('pay_sig='), 'query_order must carry its server signature')
+    assert(Number(queryRequest.headers['Content-Length']) > 0, 'server POST requests must include Content-Length')
     assert(deliveryRequest, 'paid orders must confirm goods delivery')
     assert.strictEqual(JSON.parse(deliveryRequest.chunks.join('')).order_id, 'OUT_PAID_123')
   } finally {

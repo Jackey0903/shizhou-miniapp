@@ -158,6 +158,7 @@ function main() {
   checkCloudFunctionDeps()
   const upload = checkUploadInfo()
   run(process.execPath, ['scripts/regression-login-payment.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-vip-reconcile.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-customer-reported-issues.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-image-share-permission.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-checkin-share-cost.js'], { stdio: 'pipe' })
@@ -182,6 +183,7 @@ function main() {
       'cloud-function-dependencies',
       'upload-size',
       'login-payment-regression',
+      'VIP-payment-scheduled-reconciliation-regression',
       'customer-reported-issue-regression',
       'image-share-permission-regression',
       'check-in-share-cost-regression',

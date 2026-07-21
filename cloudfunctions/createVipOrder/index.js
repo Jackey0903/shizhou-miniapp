@@ -37,9 +37,13 @@ function hmacSha256Hex(key, message) {
 
 function requestJson(url, options = {}, body = '') {
   return new Promise((resolve, reject) => {
+    const headers = { ...(options.headers || {}) }
+    if (body && headers['Content-Length'] === undefined && headers['content-length'] === undefined) {
+      headers['Content-Length'] = Buffer.byteLength(body)
+    }
     const req = https.request(url, {
       method: options.method || 'GET',
-      headers: options.headers || {}
+      headers
     }, (res) => {
       let data = ''
       res.on('data', (chunk) => { data += chunk })
@@ -862,6 +866,15 @@ async function handleVirtualDeliverNotify(rawEvent) {
     if (queryRes.errcode) return { ErrCode: -1, ErrMsg: queryRes.errmsg || 'query order failed' }
     const remoteOrder = queryRes.order || {}
     const remoteStatus = Number(remoteOrder.status)
+    console.log('[createVipOrder:deliverNotify] reconciled order status', JSON.stringify({
+      outTradeNo,
+      errcode: Number(queryRes.errcode || 0),
+      errmsg: normalizeText(queryRes.errmsg, 100),
+      responseKeys: Object.keys(queryRes || {}).sort(),
+      remoteStatus: Number.isFinite(remoteStatus) ? remoteStatus : null,
+      remoteOrderId: normalizeText(remoteOrder.order_id, 64),
+      remoteOrderFee: Number(remoteOrder.order_fee || 0)
+    }))
     if (!PAID_REMOTE_STATUS.includes(remoteStatus)) {
       return { ErrCode: -1, ErrMsg: 'order is not paid' }
     }
