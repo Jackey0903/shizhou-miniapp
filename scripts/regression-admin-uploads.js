@@ -86,13 +86,16 @@ async function testUpload(name, eventKey, collectionName, validItem, invalidItem
   const forbidden = await userFunction.main({ [eventKey]: [validItem] })
   assert.notStrictEqual(forbidden.code, 0)
   assert.strictEqual((userDb.state[collectionName] || []).length, 0)
+  return adminDb
 }
 
 async function main() {
-  await testUpload('uploadMaterials', 'materials', 'materials', {
-    name: '测试资料', type: 'document', accessType: 'coin', coinCost: 5,
+  const materialDb = await testUpload('uploadMaterials', 'materials', 'materials', {
+    name: '测试资料', type: 'document', accessType: 'free', coinCost: 0,
     fileId: 'cloud://test/materials/test.pdf'
   }, { name: '', type: 'document' })
+  assert.strictEqual(materialDb.state.materials[0].accessType, 'coin', 'admin input must not bypass the fixed coin rule')
+  assert.strictEqual(materialDb.state.materials[0].coinCost, 10, 'uploaded materials must always cost 10 coins')
   await testUpload('uploadAudios', 'audios', 'audios', {
     title: '测试音频', category: '常识', type: '晨听',
     fileId: 'cloud://test/audios/test.mp3'

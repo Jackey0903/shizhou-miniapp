@@ -2,7 +2,7 @@
   <view class="mat-hero card">
     <view>
       <text class="mat-title">领取学习资料</text>
-      <text class="mat-sub">支持免费、VIP免费和舟币兑换资料，领取后可反复打开，不重复扣费</text>
+      <text class="mat-sub">首次领取每份资料消耗10舟币，领取后可反复打开，不重复扣费</text>
     </view>
     <view class="mat-coins">
       <text class="mat-coins-num">{{userCoins}}</text>

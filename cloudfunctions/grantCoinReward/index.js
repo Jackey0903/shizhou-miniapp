@@ -3,9 +3,17 @@ const crypto = require('crypto')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
-const CHECKIN_SHARE_COST = 10
 
 const REWARD_MAP = {
+  checkinShareReward: {
+    type: 'checkin_share_reward',
+    amount: 10,
+    dailyLimit: 20,
+    minIntervalMs: 0,
+    title: '打卡分享奖励',
+    remark: '分享或保存打卡海报获得舟币',
+    requiresTodayCheckin: true
+  },
   shareTimeline: {
     type: 'share_reward',
     amount: 10,
@@ -48,72 +56,11 @@ function toDate(value) {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
-async function consumeCheckinShare(openid, claimId) {
-  const userRes = await db.collection('users').where({ _openid: openid }).limit(1).get()
-  const user = userRes.data[0]
-  if (!user) return { code: -1, msg: '请先登录' }
-
-  const dateStr = formatShanghaiDate(new Date())
-  const logId = stableLogId(openid, claimId)
-  try {
-    const result = await db.runTransaction(async (transaction) => {
-      const latestUserRes = await transaction.collection('users').doc(user._id).get()
-      const latestUser = latestUserRes.data
-      if (!latestUser) throw new Error('用户不存在')
-
-      let existing = null
-      try {
-        const existingRes = await transaction.collection('coin_logs').doc(logId).get()
-        existing = existingRes.data || null
-      } catch (err) {}
-      if (existing) {
-        return {
-          duplicate: true,
-          amount: Number(existing.amount || -CHECKIN_SHARE_COST),
-          coins: Number(latestUser.coins || 0)
-        }
-      }
-
-      const coins = Number(latestUser.coins || 0)
-      if (coins < CHECKIN_SHARE_COST) {
-        const err = new Error(`舟币不足，分享打卡海报需要${CHECKIN_SHARE_COST}舟币`)
-        err.businessCode = 2
-        throw err
-      }
-
-      const remainingCoins = coins - CHECKIN_SHARE_COST
-      await transaction.collection('users').doc(latestUser._id).update({ data: { coins: remainingCoins } })
-      await transaction.collection('coin_logs').doc(logId).set({
-        data: {
-          _openid: openid,
-          type: 'checkin_share_cost',
-          action: 'consumeCheckinShare',
-          claimId,
-          title: '分享打卡海报',
-          remark: '分享打卡海报消耗舟币',
-          amount: -CHECKIN_SHARE_COST,
-          dateStr,
-          createdAt: db.serverDate()
-        }
-      })
-      return { duplicate: false, amount: -CHECKIN_SHARE_COST, coins: remainingCoins }
-    })
-
-    return {
-      code: 0,
-      msg: result.duplicate ? '本次分享已扣费' : `已消耗${CHECKIN_SHARE_COST}舟币`,
-      data: result
-    }
-  } catch (err) {
-    if (err && err.businessCode) return { code: err.businessCode, msg: err.message }
-    console.error('[grantCoinReward] consume check-in share failed', err)
-    return { code: -1, msg: '舟币扣除失败，请稍后重试' }
-  }
-}
-
 exports.main = async (event = {}) => {
   const { OPENID } = cloud.getWXContext()
-  const action = event.action || ''
+  const requestedAction = event.action || ''
+  // 已发布旧客户端仍会发送 consumeCheckinShare；统一映射到新奖励规则，禁止继续扣币。
+  const action = requestedAction === 'consumeCheckinShare' ? 'checkinShareReward' : requestedAction
   const claimId = String(event.claimId || '').trim()
   const config = REWARD_MAP[action]
 
@@ -134,12 +81,6 @@ exports.main = async (event = {}) => {
       return { code: -1, msg: '舟币记录加载失败' }
     }
   }
-  if (action === 'consumeCheckinShare') {
-    if (!/^[A-Za-z0-9:_-]{12,160}$/.test(claimId)) {
-      return { code: -1, msg: '分享凭证无效，请重新分享' }
-    }
-    return consumeCheckinShare(OPENID, claimId)
-  }
   if (!config) return { code: -1, msg: '未知奖励类型' }
   if (!/^[A-Za-z0-9:_-]{12,160}$/.test(claimId)) {
     return { code: -1, msg: '奖励凭证无效，请重新完成任务' }
@@ -151,6 +92,15 @@ exports.main = async (event = {}) => {
     if (!user) return { code: -1, msg: '请先登录' }
 
     const dateStr = formatShanghaiDate(new Date())
+    if (config.requiresTodayCheckin) {
+      const checkinRes = await db.collection('checkins')
+        .where({ _openid: OPENID, dateStr })
+        .limit(1)
+        .get()
+      if (!(checkinRes.data || []).length) {
+        return { code: 4, msg: '完成今日学习任务并打卡后才能获得分享奖励' }
+      }
+    }
     const logId = stableLogId(OPENID, claimId)
     const result = await db.runTransaction(async (transaction) => {
       const latestUserRes = await transaction.collection('users').doc(user._id).get()

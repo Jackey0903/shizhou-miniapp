@@ -161,7 +161,8 @@ function main() {
   run(process.execPath, ['scripts/regression-vip-reconcile.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-customer-reported-issues.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-image-share-permission.js'], { stdio: 'pipe' })
-  run(process.execPath, ['scripts/regression-checkin-share-cost.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-checkin-share-reward.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-material-redemption.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-privacy-api-declarations.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-question-csv-import.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-question-upload-cloud.js'], { stdio: 'pipe' })
@@ -186,7 +187,8 @@ function main() {
       'VIP-payment-scheduled-reconciliation-regression',
       'customer-reported-issue-regression',
       'image-share-permission-regression',
-      'check-in-share-cost-regression',
+      'check-in-share-reward-regression',
+      'material-fixed-cost-idempotence-regression',
       'privacy-API-declaration-regression',
       'question-CSV-import-regression',
       'question-upload-cloud-regression',

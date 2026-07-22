@@ -3,22 +3,7 @@ const crypto = require('crypto')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
-const MATERIAL_COST = 5
-
-function normalizeAccessType(value) {
-  return ['free', 'vip', 'coin'].includes(value) ? value : 'coin'
-}
-
-function getCoinCost(material) {
-  const cost = Number(material.coinCost)
-  return Number.isFinite(cost) && cost > 0 ? Math.floor(cost) : MATERIAL_COST
-}
-
-function isVipActive(user) {
-  if (!user || !user.isVip) return false
-  if (!user.vipExpireDate) return true
-  return new Date(user.vipExpireDate).getTime() > Date.now()
-}
+const MATERIAL_COST = 10
 
 function stableId(prefix, openid, materialId) {
   const hash = crypto.createHash('sha256').update(`${openid}:${materialId}`).digest('hex')
@@ -56,59 +41,51 @@ exports.main = async (event = {}) => {
     const redemptionId = stableId('material', OPENID, materialId)
     const logId = stableId('material_log', OPENID, materialId)
     const result = await db.runTransaction(async (transaction) => {
+      const latestUserRes = await transaction.collection('users').doc(user._id).get()
+      const latestUser = latestUserRes.data
+      if (!latestUser) throw new Error('用户不存在')
+
       let existingRedemption = null
       try {
         const existingRes = await transaction.collection('material_redemptions').doc(redemptionId).get()
         existingRedemption = existingRes.data || null
       } catch (err) {}
       if (existingRedemption) {
-        return { alreadyOwned: true, remainingCoins: Number(user.coins || 0), material }
+        return { alreadyOwned: true, remainingCoins: Number(latestUser.coins || 0), material }
       }
 
-      const latestUserRes = await transaction.collection('users').doc(user._id).get()
-      const latestUser = latestUserRes.data
-      if (!latestUser) throw new Error('用户不存在')
-      const accessType = normalizeAccessType(material.accessType)
-      const cost = accessType === 'coin' ? getCoinCost(material) : 0
-      if (accessType === 'vip' && !isVipActive(latestUser)) {
-        const err = new Error('该资料为VIP免费领取，请先开通VIP')
-        err.businessCode = 3
-        throw err
-      }
-      if (Number(latestUser.coins || 0) < cost) {
+      if (Number(latestUser.coins || 0) < MATERIAL_COST) {
         const err = new Error('舟币不足，请先完成任务赚取舟币')
         err.businessCode = 2
         throw err
       }
 
-      if (cost > 0) {
-        await transaction.collection('users').doc(latestUser._id).update({
-          data: { coins: Number(latestUser.coins || 0) - cost }
-        })
-        await transaction.collection('coin_logs').doc(logId).set({
-          data: {
-            _openid: OPENID,
-            type: 'material_exchange',
-            title: `兑换资料：${material.name || '未命名资料'}`,
-            amount: -cost,
-            materialId,
-            createdAt: db.serverDate()
-          }
-        })
-      }
+      await transaction.collection('users').doc(latestUser._id).update({
+        data: { coins: Number(latestUser.coins || 0) - MATERIAL_COST }
+      })
+      await transaction.collection('coin_logs').doc(logId).set({
+        data: {
+          _openid: OPENID,
+          type: 'material_exchange',
+          title: `兑换资料：${material.name || '未命名资料'}`,
+          amount: -MATERIAL_COST,
+          materialId,
+          createdAt: db.serverDate()
+        }
+      })
       await transaction.collection('material_redemptions').doc(redemptionId).set({
         data: {
           _openid: OPENID,
           materialId,
           materialName: material.name || '',
-          accessType,
-          cost,
+          accessType: 'coin',
+          cost: MATERIAL_COST,
           createdAt: db.serverDate()
         }
       })
       return {
         alreadyOwned: false,
-        remainingCoins: Number(latestUser.coins || 0) - cost,
+        remainingCoins: Number(latestUser.coins || 0) - MATERIAL_COST,
         material
       }
     })

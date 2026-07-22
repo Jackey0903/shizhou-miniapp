@@ -5,8 +5,9 @@ const auth = require('../../utils/auth')
 const DEFAULT_BG = '/assets/images/default-checkin-bg.png'
 const DEFAULT_QUOTE = '今日完成一点点，未来上岸一大步。'
 const SHARE_CANVAS_SIZE = 1080
-const CHECKIN_SHARE_COST = 10
-const PENDING_SHARE_CLAIM_KEY = 'pendingCheckinShareClaimId'
+const CHECKIN_SHARE_REWARD = 10
+const PENDING_SHARE_REWARD_KEY = 'pendingCheckinShareRewardClaimId'
+const LEGACY_PENDING_SHARE_CHARGE_KEY = 'pendingCheckinShareClaimId'
 
 function formatDateKey(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -104,9 +105,13 @@ Page({
   },
 
   onLoad(options = {}) {
+    const enteredAfterCheckin = options.alreadyChecked === '1'
+    wx.removeStorageSync(LEGACY_PENDING_SHARE_CHARGE_KEY)
     this.setData({
       autoOpenedFromQuestion: options.from === 'question',
-      enteredAfterCheckin: options.alreadyChecked === '1'
+      enteredAfterCheckin,
+      checkedToday: enteredAfterCheckin,
+      shareReady: enteredAfterCheckin
     })
     wx.showShareMenu({
       withShareTicket: true,
@@ -210,7 +215,7 @@ Page({
           app.globalData.userInfo.streak = streak
           app.globalData.userInfo.totalCheckins = totalCheckins
         }
-        wx.showToast({ title: '已打卡，可消耗10舟币分享图片', icon: 'none' })
+        wx.showToast({ title: '已打卡，可分享图片赚10舟币', icon: 'none' })
       } else {
         wx.showToast({ title: res.result.msg || '今日已打卡', icon: 'none' })
         const alreadyChecked = res.result.code === 1
@@ -309,55 +314,51 @@ Page({
     }
   },
 
-  async consumeShareCoins(claimId) {
+  async rewardShareCoins(claimId) {
     const safeClaimId = String(claimId || '').trim()
     if (!safeClaimId) throw new Error('分享凭证缺失，请重新分享')
-    wx.setStorageSync(PENDING_SHARE_CLAIM_KEY, safeClaimId)
-    const response = await cloudApi.consumeCheckinShare(safeClaimId)
+    wx.setStorageSync(PENDING_SHARE_REWARD_KEY, safeClaimId)
+    const response = await cloudApi.grantCheckinShareReward(safeClaimId)
     const result = response.result || {}
     if (result.code !== 0) {
-      if (result.code === 2) wx.removeStorageSync(PENDING_SHARE_CLAIM_KEY)
-      throw new Error(result.msg || '舟币扣除失败，请稍后重试')
+      if ([2, 3, 4].includes(result.code)) wx.removeStorageSync(PENDING_SHARE_REWARD_KEY)
+      const error = new Error(result.msg || '舟币奖励发放失败，请稍后重试')
+      error.businessCode = result.code
+      throw error
     }
-    wx.removeStorageSync(PENDING_SHARE_CLAIM_KEY)
+    wx.removeStorageSync(PENDING_SHARE_REWARD_KEY)
     const coins = result.data && Number(result.data.coins)
     if (Number.isFinite(coins)) this.updateCoinBalance(coins)
     return result
   },
 
-  async reconcilePendingShareCharge() {
-    const pendingClaimId = wx.getStorageSync(PENDING_SHARE_CLAIM_KEY)
+  async reconcilePendingShareReward() {
+    const pendingClaimId = wx.getStorageSync(PENDING_SHARE_REWARD_KEY)
     if (!pendingClaimId) return true
     try {
-      await this.consumeShareCoins(pendingClaimId)
+      await this.rewardShareCoins(pendingClaimId)
       return true
     } catch (error) {
-      wx.showToast({ title: error.message || '上次分享扣费确认中，请稍后重试', icon: 'none' })
+      wx.showToast({ title: error.message || '上次分享奖励确认中，请稍后重试', icon: 'none' })
       return false
     }
   },
 
-  async ensureShareCoinBalance() {
+  async ensureShareReady() {
+    if (this.data.checkedToday || this.data.shareReady || this.data.enteredAfterCheckin) return true
+    const today = formatDateKey(new Date())
     try {
-      const user = await cloudApi.getCurrentUser()
-      const coins = Number(user && user.coins || 0)
-      this.updateCoinBalance(coins)
-      if (coins >= CHECKIN_SHARE_COST) return true
-      const result = await new Promise((resolve) => {
-        wx.showModal({
-          title: '舟币不足',
-          content: `分享打卡海报需要 ${CHECKIN_SHARE_COST} 舟币，当前余额 ${coins} 舟币。可通过任务获取舟币。`,
-          confirmText: '去赚舟币',
-          success: resolve,
-          fail: () => resolve({ confirm: false })
-        })
-      })
-      if (result.confirm) wx.navigateTo({ url: '/pages/coin-log/coin-log' })
-      return false
+      const now = new Date()
+      const checkins = await cloudApi.getCheckins(now.getFullYear(), now.getMonth() + 1)
+      const checkedToday = checkins.some((item) => item.dateStr === today)
+      this.setData({ checkedToday, shareReady: checkedToday })
+      if (checkedToday) return true
     } catch (error) {
-      wx.showToast({ title: '舟币余额加载失败，请稍后重试', icon: 'none' })
+      wx.showToast({ title: '打卡状态加载失败，请稍后重试', icon: 'none' })
       return false
     }
+    wx.showToast({ title: '完成今日学习任务并打卡后才能分享海报', icon: 'none' })
+    return false
   },
 
   requestPrivacyConsent(filePath, privacyContractName) {
@@ -390,10 +391,11 @@ Page({
       return
     }
     if (result.status === 'shared' || result.status === 'saved') {
-      await this.consumeShareCoins(this._shareClaimId)
+      const reward = await this.rewardShareCoins(this._shareClaimId)
       this._shareClaimId = ''
+      const amount = Number(reward.data && reward.data.amount) || CHECKIN_SHARE_REWARD
       wx.showToast({
-        title: result.status === 'shared' ? '分享成功，已消耗10舟币' : '已保存图片，消耗10舟币',
+        title: result.status === 'shared' ? `分享成功，+${amount}舟币` : `图片已保存，+${amount}舟币`,
         icon: 'none'
       })
       return
@@ -416,7 +418,7 @@ Page({
       const result = await this.runImageShare(filePath, true)
       await this.handleShareResult(result)
     } catch (error) {
-      if (!wx.getStorageSync(PENDING_SHARE_CLAIM_KEY)) this._shareClaimId = ''
+      if (!wx.getStorageSync(PENDING_SHARE_REWARD_KEY)) this._shareClaimId = ''
       wx.showToast({ title: imageSharing.getErrorMessage(error) || '图片保存失败', icon: 'none' })
     } finally {
       this.setData({ sharing: false })
@@ -442,27 +444,13 @@ Page({
   noop() {},
 
   async shareFullImage() {
-    if (!this.data.shareReady) {
-      wx.showToast({ title: '完成今日学习任务并打卡后才能分享海报', icon: 'none' })
-      return
-    }
     if (this.data.sharing) return
     const loggedIn = await auth.requireLogin('分享打卡海报前请先登录账号。')
     if (!loggedIn) return
-    const pendingReconciled = await this.reconcilePendingShareCharge()
+    const shareReady = await this.ensureShareReady()
+    if (!shareReady) return
+    const pendingReconciled = await this.reconcilePendingShareReward()
     if (!pendingReconciled) return
-    const hasEnoughCoins = await this.ensureShareCoinBalance()
-    if (!hasEnoughCoins) return
-    const confirmed = await new Promise((resolve) => {
-      wx.showModal({
-        title: '分享打卡海报',
-        content: '成功分享到朋友圈或保存分享图片后，将消耗 10 舟币。是否继续？',
-        confirmText: '继续分享',
-        success: (res) => resolve(!!res.confirm),
-        fail: () => resolve(false)
-      })
-    })
-    if (!confirmed) return
     this._shareClaimId = `checkinShare:${Date.now()}:${Math.random().toString(36).slice(2, 12)}`
     this.setData({ sharing: true })
     wx.showLoading({ title: '准备图片中', mask: true })
@@ -475,7 +463,7 @@ Page({
       await this.handleShareResult(result)
     } catch (err) {
       if (loadingVisible) wx.hideLoading()
-      if (!wx.getStorageSync(PENDING_SHARE_CLAIM_KEY)) this._shareClaimId = ''
+      if (!wx.getStorageSync(PENDING_SHARE_REWARD_KEY)) this._shareClaimId = ''
       const message = err && err.code === 'PRIVACY_SCOPE_NOT_DECLARED'
         ? '相册权限配置尚未生效，请稍后重试'
         : (imageSharing.getErrorMessage(err) || '图片分享失败，请稍后重试')

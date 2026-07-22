@@ -192,10 +192,10 @@ Object.keys(EXTRA_TEST_QUESTIONS).forEach((key) => {
 })
 
 const VIP_PLANS = [
-  { code: 'basic_vip_year', tag: '基础VIP', name: '基础VIP包年', price: 19800, days: 365, supervisionDays: 0, virtualProductId: 'basic_vip_year', sort: 1, enabled: true, benefits: ['免广告学习', '免费领取学习资料'] },
-  { code: 'supervision_trial_day', tag: '督学试用', name: '督学试用1日', price: 800, days: 365, supervisionDays: 1, virtualProductId: 'supervision_trial_day', sort: 2, enabled: true, benefits: ['督学试用1天', '赠送1年免广告学习', '免费领取学习资料'] },
-  { code: 'supervision_month', tag: '督学包月', name: '督学包月', price: 19800, days: 365, supervisionDays: 30, virtualProductId: 'supervision_month', sort: 3, enabled: true, benefits: ['督学包月服务', '赠送1年免广告学习', '免费领取学习资料'] },
-  { code: 'premium_vip_year', tag: '高级VIP', name: '高级VIP包年', price: 98800, days: 365, supervisionDays: 365, virtualProductId: 'premium_vip_year', sort: 4, enabled: true, benefits: ['免广告学习', '免费领取学习资料', '督学包年服务'] }
+  { code: 'basic_vip_year', tag: '基础VIP', name: '基础VIP包年', price: 19800, days: 365, supervisionDays: 0, virtualProductId: 'basic_vip_year', sort: 1, enabled: true, benefits: ['免广告学习'] },
+  { code: 'supervision_trial_day', tag: '督学试用', name: '督学试用1日', price: 800, days: 365, supervisionDays: 1, virtualProductId: 'supervision_trial_day', sort: 2, enabled: true, benefits: ['督学试用1天', '赠送1年免广告学习'] },
+  { code: 'supervision_month', tag: '督学包月', name: '督学包月', price: 19800, days: 365, supervisionDays: 30, virtualProductId: 'supervision_month', sort: 3, enabled: true, benefits: ['督学包月服务', '赠送1年免广告学习'] },
+  { code: 'premium_vip_year', tag: '高级VIP', name: '高级VIP包年', price: 98800, days: 365, supervisionDays: 365, virtualProductId: 'premium_vip_year', sort: 4, enabled: true, benefits: ['免广告学习', '督学包年服务'] }
 ]
 
 const PUNCH_QUOTES = [
@@ -203,9 +203,9 @@ const PUNCH_QUOTES = [
 ]
 
 const MATERIALS = [
-  { name: '定义判断可能涉及常识141条', type: 'document', category: '判断推理', description: '定义判断可能涉及常识141条 PDF资料。', accessType: 'coin', coinCost: 5, sort: 1, fileUrl: 'https://636c-cloud-2ge02vrucaf8a6ab-1398720138.tcb.qcloud.la/client-assets/20260514/docs/document-001.pdf' },
-  { name: '数量关系知识点185式', type: 'document', category: '数量关系', description: '数量关系知识点185式 PDF资料。', accessType: 'coin', coinCost: 5, sort: 2, fileUrl: 'https://636c-cloud-2ge02vrucaf8a6ab-1398720138.tcb.qcloud.la/client-assets/20260514/docs/document-003.pdf' },
-  { name: '言语理解知识点37式', type: 'document', category: '言语理解', description: '言语理解知识点37式 PDF资料。', accessType: 'coin', coinCost: 5, sort: 3, fileUrl: 'https://636c-cloud-2ge02vrucaf8a6ab-1398720138.tcb.qcloud.la/client-assets/20260514/docs/document-006.pdf' }
+  { name: '定义判断可能涉及常识141条', type: 'document', category: '判断推理', description: '定义判断可能涉及常识141条 PDF资料。', accessType: 'coin', coinCost: 10, sort: 1, fileUrl: 'https://636c-cloud-2ge02vrucaf8a6ab-1398720138.tcb.qcloud.la/client-assets/20260514/docs/document-001.pdf' },
+  { name: '数量关系知识点185式', type: 'document', category: '数量关系', description: '数量关系知识点185式 PDF资料。', accessType: 'coin', coinCost: 10, sort: 2, fileUrl: 'https://636c-cloud-2ge02vrucaf8a6ab-1398720138.tcb.qcloud.la/client-assets/20260514/docs/document-003.pdf' },
+  { name: '言语理解知识点37式', type: 'document', category: '言语理解', description: '言语理解知识点37式 PDF资料。', accessType: 'coin', coinCost: 10, sort: 3, fileUrl: 'https://636c-cloud-2ge02vrucaf8a6ab-1398720138.tcb.qcloud.la/client-assets/20260514/docs/document-006.pdf' }
 ]
 
 const AUDIOS = [

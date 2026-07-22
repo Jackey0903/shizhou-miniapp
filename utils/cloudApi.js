@@ -69,29 +69,27 @@ async function updateUser(data) {
 /**
  * 赚取舟币（朋友圈分享 / 激励广告）
  */
-async function grantCoinReward(action) {
-    const claimId = `${action}:${Date.now()}:${Math.random().toString(36).slice(2, 12)}`
-    return wx.cloud.callFunction({ name: 'grantCoinReward', data: { action, claimId } })
+async function grantCoinReward(action, claimId = '') {
+    const safeClaimId = String(claimId || '').trim()
+        || `${action}:${Date.now()}:${Math.random().toString(36).slice(2, 12)}`
+    return wx.cloud.callFunction({ name: 'grantCoinReward', data: { action, claimId: safeClaimId } })
 }
 
 /**
- * 成功分享或保存打卡海报后扣除 10 舟币。同一 claimId 重试不会重复扣款。
+ * 成功分享或保存打卡海报后奖励 10 舟币。同一 claimId 重试不会重复发放。
  */
-async function consumeCheckinShare(claimId) {
+async function grantCheckinShareReward(claimId) {
     const safeClaimId = String(claimId || '').trim()
     if (!safeClaimId) throw new Error('缺少分享凭证')
     let lastError = null
     for (let attempt = 0; attempt < 2; attempt += 1) {
         try {
-            return await wx.cloud.callFunction({
-                name: 'grantCoinReward',
-                data: { action: 'consumeCheckinShare', claimId: safeClaimId }
-            })
+            return await grantCoinReward('checkinShareReward', safeClaimId)
         } catch (error) {
             lastError = error
         }
     }
-    throw lastError || new Error('舟币扣除失败')
+    throw lastError || new Error('舟币奖励发放失败')
 }
 
 // ============= 课程相关 =============
@@ -697,7 +695,7 @@ async function getHelpConfig() {
 }
 
 module.exports = {
-    userLogin, getCurrentUser, updateUser, grantCoinReward, consumeCheckinShare,
+    userLogin, getCurrentUser, updateUser, grantCoinReward, grantCheckinShareReward,
     getCourses, getCourse,
     getQuestions, getQuestionCount, uploadQuestions, createCourse,
     savePlan, getPlans, deletePlan,

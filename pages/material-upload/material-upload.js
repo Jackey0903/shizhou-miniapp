@@ -6,22 +6,12 @@ const TYPES = [
   { key: 'image', label: '图片' }
 ]
 
-const ACCESS_TYPES = [
-  { key: 'free', label: '免费领取' },
-  { key: 'vip', label: 'VIP免费领取' },
-  { key: 'coin', label: '舟币兑换领取' }
-]
-
 Page({
   data: {
     types: TYPES,
-    accessTypes: ACCESS_TYPES,
     typeIndex: 0,
-    accessTypeIndex: 2,
-    selectedAccessType: 'coin',
     name: '',
     description: '',
-    coinCost: '5',
     linkUrl: '',
     selectedFile: null,
     coverFile: null,
@@ -35,17 +25,6 @@ Page({
 
   onTypeChange(e) {
     this.setData({ typeIndex: Number(e.detail.value), selectedFile: null })
-  },
-
-  onAccessTypeChange(e) {
-    const accessTypeIndex = Number(e.detail.value)
-    const nextAccessType = ACCESS_TYPES[accessTypeIndex].key
-    const nextCoinCost = nextAccessType === 'coin' && Number(this.data.coinCost) > 0 ? this.data.coinCost : '5'
-    this.setData({
-      accessTypeIndex,
-      selectedAccessType: nextAccessType,
-      coinCost: nextAccessType === 'coin' ? nextCoinCost : '0'
-    })
   },
 
   async chooseFile() {
@@ -118,12 +97,6 @@ Page({
     }
     const type = TYPES[this.data.typeIndex].key
     const title = this.data.name.trim() || ((this.data.selectedFile && this.data.selectedFile.name) || '资料').replace(/\.[^.]+$/, '')
-    const accessType = this.data.selectedAccessType
-    const coinCost = accessType === 'coin' ? Number(this.data.coinCost || 5) : 0
-    if (accessType === 'coin' && (!Number.isFinite(coinCost) || coinCost <= 0)) {
-      wx.showToast({ title: '请填写正确舟币数', icon: 'none' })
-      return
-    }
     this.setData({ uploading: true })
     wx.showLoading({ title: '上传中', mask: true })
     try {
@@ -152,8 +125,8 @@ Page({
         name: title,
         description: this.data.description,
         type,
-        accessType,
-        coinCost,
+        accessType: 'coin',
+        coinCost: 10,
         fileId: uploadRes ? uploadRes.fileID : '',
         fileUrl: linkUrl,
         linkUrl,
@@ -168,7 +141,7 @@ Page({
 
       const res = await cloudApi.uploadMaterials([payload])
       if (res.result && res.result.code === 0) {
-        this.setData({ name: '', description: '', coinCost: '5', linkUrl: '', selectedFile: null, coverFile: null, accessTypeIndex: 2, selectedAccessType: 'coin' })
+        this.setData({ name: '', description: '', linkUrl: '', selectedFile: null, coverFile: null })
         wx.showToast({ title: '资料已上传', icon: 'success' })
       } else {
         throw new Error((res.result && res.result.msg) || '上传失败')

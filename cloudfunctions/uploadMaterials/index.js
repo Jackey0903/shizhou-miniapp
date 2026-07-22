@@ -6,7 +6,7 @@ const db = cloud.database()
 
 const MAX_BATCH_SIZE = 20
 const MATERIAL_TYPES = new Set(['document', 'audio', 'image'])
-const ACCESS_TYPES = new Set(['free', 'vip', 'coin'])
+const MATERIAL_COST = 10
 
 function text(value, maxLength) {
   return String(value || '').trim().slice(0, maxLength)
@@ -29,7 +29,6 @@ function normalizeMaterial(item, index) {
   const name = text(item.name, 200)
   const description = text(item.description, 2000)
   const type = text(item.type, 20)
-  const accessType = text(item.accessType || 'coin', 20)
   const fileId = text(item.fileId, 1000)
   const fileUrl = text(item.fileUrl, 2000)
   const linkUrl = text(item.linkUrl, 2000)
@@ -39,17 +38,10 @@ function normalizeMaterial(item, index) {
 
   if (!name) throw new Error(`第${index + 1}条资料缺少名称`)
   if (!MATERIAL_TYPES.has(type)) throw new Error(`第${index + 1}条资料类型无效`)
-  if (!ACCESS_TYPES.has(accessType)) throw new Error(`第${index + 1}条资料领取方式无效`)
   if (!fileId && !fileUrl && !linkUrl) throw new Error(`第${index + 1}条资料缺少文件或链接`)
   if (!isCloudUrl(fileId) || !isCloudUrl(coverFileId)) throw new Error(`第${index + 1}条资料云文件地址无效`)
   if (!isResourceUrl(fileUrl) || !isResourceUrl(linkUrl) || !isResourceUrl(coverUrl) || !isResourceUrl(imageUrl)) {
     throw new Error(`第${index + 1}条资料外部链接必须使用HTTPS`)
-  }
-
-  const rawCoinCost = Number(item.coinCost)
-  const coinCost = accessType === 'coin' ? rawCoinCost : 0
-  if (accessType === 'coin' && (!Number.isInteger(coinCost) || coinCost <= 0 || coinCost > 100000)) {
-    throw new Error(`第${index + 1}条资料舟币数无效`)
   }
 
   const source = fileId || fileUrl || linkUrl
@@ -61,8 +53,8 @@ function normalizeMaterial(item, index) {
       description,
       type,
       category: type,
-      accessType,
-      coinCost,
+      accessType: 'coin',
+      coinCost: MATERIAL_COST,
       fileId,
       fileUrl,
       linkUrl,

@@ -2,13 +2,9 @@ const cloudApi = require('../../utils/cloudApi')
 const auth = require('../../utils/auth')
 
 let audioCtx = null
-const MATERIAL_COST = 5
+const MATERIAL_COST = 10
 const AUDIO_EXT_RE = /\.(mp3|m4a|aac|wav|flac|ogg)(\?|#|$)/i
 const DOC_EXT_RE = /\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt)(\?|#|$)/i
-
-function getAccessType(item = {}) {
-  return ['free', 'vip', 'coin'].includes(item.accessType) ? item.accessType : 'coin'
-}
 
 function getMaterialType(item = {}) {
   const type = item.type || item.categoryType
@@ -17,30 +13,13 @@ function getMaterialType(item = {}) {
   return 'document'
 }
 
-function getCoinCost(item = {}) {
-  const cost = Number(item.coinCost)
-  return Number.isFinite(cost) && cost > 0 ? Math.floor(cost) : MATERIAL_COST
-}
-
 function getAccessLabel(item, owned) {
   if (owned) return '已领取'
-  const accessType = getAccessType(item)
-  if (accessType === 'free') return '免费领取'
-  if (accessType === 'vip') return 'VIP免费'
-  return `${getCoinCost(item)}舟币`
+  return `${MATERIAL_COST}舟币`
 }
 
-function getConfirmText(item, isVip) {
-  const accessType = getAccessType(item)
-  if (accessType === 'free') {
-    return `确认领取《${item.name}》吗？领取后可反复打开。`
-  }
-  if (accessType === 'vip') {
-    return isVip
-      ? `确认领取VIP资料《${item.name}》吗？领取后可反复打开。`
-      : `《${item.name}》为VIP免费资料，开通VIP后即可领取。`
-  }
-  return `确认消耗 ${getCoinCost(item)} 舟币领取《${item.name}》吗？领取后可反复打开，不会重复扣费。`
+function getConfirmText(item) {
+  return `确认消耗 ${MATERIAL_COST} 舟币领取《${item.name}》吗？领取后可反复打开，不会重复扣费。`
 }
 
 function wxPromise(api, options = {}) {
@@ -65,7 +44,6 @@ Page({
     filteredMaterials: [],
     ownedMap: {},
     userCoins: 0,
-    isVip: false,
     loading: true
   },
 
@@ -92,12 +70,10 @@ Page({
       ;(normalizedMaterials || []).forEach((item) => {
         if (item.owned) ownedMap[item._id] = true
       })
-      const vipExpireTime = user && user.vipExpireDate ? new Date(user.vipExpireDate).getTime() : 0
       this.setData({
         materials: normalizedMaterials,
         ownedMap,
         userCoins: (user && user.coins) || 0,
-        isVip: !!(user && user.isVip && (!vipExpireTime || vipExpireTime > Date.now())),
         loading: false
       })
       this.applyFilter()
@@ -146,7 +122,6 @@ Page({
       return getMaterialType(item) === key
     }).map((item) => {
       const type = getMaterialType(item)
-      const accessType = getAccessType(item)
       const owned = !!this.data.ownedMap[item._id]
       const actionLabel = owned
         ? (type === 'audio' ? '播放' : '打开/下载')
@@ -154,7 +129,8 @@ Page({
       return {
         ...item,
         type,
-        accessType,
+        accessType: 'coin',
+        coinCost: MATERIAL_COST,
         accessLabel: getAccessLabel(item, owned),
         actionLabel,
         owned,
@@ -167,7 +143,6 @@ Page({
   async onActionTap(e) {
     const item = e.currentTarget.dataset.item
     if (!item || !item._id) return
-    const accessType = getAccessType(item)
     const alreadyOwned = !!this.data.ownedMap[item._id]
 
     if (alreadyOwned) {
@@ -178,17 +153,13 @@ Page({
     if (!(await auth.requireLogin('领取学习资料前请先登录账号'))) return
 
     const actionText = '领取'
-    const confirmText = getConfirmText(item, this.data.isVip)
+    const confirmText = getConfirmText(item)
 
     wx.showModal({
       title: `${actionText}资料`,
       content: confirmText,
       success: async (res) => {
         if (!res.confirm) return
-        if (accessType === 'vip' && !this.data.isVip) {
-          wx.navigateTo({ url: '/pages/vip/vip' })
-          return
-        }
         try {
           wx.showLoading({ title: `${actionText}中`, mask: true })
           const redeemRes = await cloudApi.exchangeMaterial(item._id)
@@ -206,15 +177,6 @@ Page({
             this.applyFilter()
             wx.showToast({ title: result.data && result.data.alreadyOwned ? '已领取' : '领取成功', icon: 'success' })
             await this.openMaterial(grantedMaterial)
-          } else if (result.code === 3) {
-            wx.showModal({
-              title: 'VIP资料',
-              content: result.msg || '该资料需要开通VIP后领取',
-              confirmText: '去开通',
-              success: (modalRes) => {
-                if (modalRes.confirm) wx.navigateTo({ url: '/pages/vip/vip' })
-              }
-            })
           } else {
             wx.showToast({ title: result.msg || `${actionText}失败`, icon: 'none' })
           }

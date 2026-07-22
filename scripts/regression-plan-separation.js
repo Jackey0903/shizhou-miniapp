@@ -6,10 +6,10 @@ const path = require('path')
 const root = path.resolve(__dirname, '..')
 
 const plans = [
-  { code: 'basic_vip_year', name: '基础VIP包年', tag: '基础VIP', price: 19800, days: 365, supervisionDays: 0, benefits: [] },
-  { code: 'supervision_trial_day', name: '督学试用1日', tag: '督学试用', price: 800, days: 365, supervisionDays: 1, benefits: [] },
-  { code: 'supervision_month', name: '督学包月', tag: '督学包月', price: 19800, days: 365, supervisionDays: 30, benefits: [] },
-  { code: 'premium_vip_year', name: '高级VIP包年', tag: '高级VIP', price: 98800, days: 365, supervisionDays: 365, benefits: [] }
+  { code: 'basic_vip_year', name: '基础VIP包年', tag: '基础VIP', price: 19800, days: 365, supervisionDays: 0, benefits: ['免广告学习', '免费领取学习资料'] },
+  { code: 'supervision_trial_day', name: '督学试用1日', tag: '督学试用', price: 800, days: 365, supervisionDays: 1, benefits: ['督学试用1天', '免费领取学习资料'] },
+  { code: 'supervision_month', name: '督学包月', tag: '督学包月', price: 19800, days: 365, supervisionDays: 30, benefits: ['督学包月服务', '免费领取学习资料'] },
+  { code: 'premium_vip_year', name: '高级VIP包年', tag: '高级VIP', price: 98800, days: 365, supervisionDays: 365, benefits: ['免广告学习', '免费领取学习资料'] }
 ]
 
 function loadPage(relativePath) {
@@ -52,6 +52,7 @@ async function main() {
     ['basic_vip_year', 'premium_vip_year'],
     'VIP page must only show basic and premium VIP'
   )
+  assert(vip.data.plans.every((plan) => !plan.benefits.includes('免费领取学习资料')), 'VIP page must hide the obsolete free-material benefit')
 
   const supervision = createPageContext(loadPage('pages/supervision-pay/supervision-pay.js'))
   await supervision.loadPlans()
@@ -63,6 +64,7 @@ async function main() {
   const annual = supervision.data.plans.find((item) => item.code === 'premium_vip_year')
   assert.strictEqual(annual.title, '督学包年')
   assert.strictEqual(annual.price, 98800)
+  assert(supervision.data.plans.every((plan) => !plan.benefits.includes('免费领取学习资料')), 'supervision page must hide the obsolete free-material benefit')
 
   const supervisionEntry = fs.readFileSync(path.join(root, 'pages/supervision/supervision.js'), 'utf8')
   const supervisionPlan = fs.readFileSync(path.join(root, 'pages/supervision-plan/supervision-plan.js'), 'utf8')

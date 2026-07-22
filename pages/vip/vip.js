@@ -4,12 +4,16 @@ const auth = require('../../utils/auth')
 
 const VIP_PLAN_CODES = ['basic_vip_year', 'premium_vip_year']
 
+function normalizeBenefits(benefits) {
+  return (Array.isArray(benefits) ? benefits : []).filter((item) => !String(item).includes('免费领取学习资料'))
+}
+
 function normalizeVipPlan(item) {
   return {
     ...item,
     title: item.name || item.tag || 'VIP套餐',
     priceLabel: `¥${((item.price || 0) / 100).toFixed(item.price % 100 === 0 ? 0 : 2)}`,
-    benefits: item.benefits || []
+    benefits: normalizeBenefits(item.benefits)
   }
 }
 

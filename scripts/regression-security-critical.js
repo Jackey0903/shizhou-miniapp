@@ -50,7 +50,9 @@ function main() {
 
   assert(materials.includes('delete safe[field]'), 'unowned material resource URLs must be hidden')
   assert(exchange.includes('runTransaction'), 'material redemption and coin deduction must be atomic')
-  assert(exchange.includes('isVipActive'), 'VIP materials must check current entitlement on the server')
+  assert(exchange.includes('MATERIAL_COST = 10'), 'every first material redemption must cost exactly 10 coins')
+  assert(exchange.includes('amount: -MATERIAL_COST'), 'material deductions must be written to the coin ledger')
+  assert(!exchange.includes('isVipActive'), 'VIP status must not bypass the fixed material redemption price')
   assert(oldReward.includes('已停用'), 'legacy reward endpoint must remain disabled')
 
   assert(supervision.includes('pending_payment'), 'unpaid supervision profiles must not enter the active matching pool')

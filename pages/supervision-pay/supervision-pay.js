@@ -4,6 +4,10 @@ const auth = require('../../utils/auth')
 
 const SUPERVISION_PLAN_CODES = ['supervision_trial_day', 'supervision_month', 'premium_vip_year']
 
+function normalizeBenefits(benefits) {
+  return (Array.isArray(benefits) ? benefits : []).filter((item) => !String(item).includes('免费领取学习资料'))
+}
+
 function normalizeSupervisionPlan(item) {
   const isAnnual = item.code === 'premium_vip_year'
   return {
@@ -11,7 +15,7 @@ function normalizeSupervisionPlan(item) {
     tag: isAnnual ? '督学包年' : item.tag,
     title: isAnnual ? '督学包年' : (item.name || item.tag || '督学套餐'),
     priceLabel: `¥${((item.price || 0) / 100).toFixed(item.price % 100 === 0 ? 0 : 2)}`,
-    benefits: item.benefits || []
+    benefits: normalizeBenefits(item.benefits)
   }
 }
 
