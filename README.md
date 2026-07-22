@@ -7,13 +7,14 @@
 | 项目 | 状态 |
 | --- | --- |
 | 线上小程序版本 | `1.0.18` |
+| 最新开发版本 | `1.0.20`（已上传，待提交审核） |
 | 默认分支 | `main` |
 | 云开发环境 | `cloud-2ge02vrucaf8a6ab` |
 | 小程序 AppID | `wxca6ebd21699eca53` |
 | 支付方式 | 微信官方小程序虚拟支付 |
 | 订单中心路径 | `pages/order-center/order-center` |
 
-`1.0.18` 已完成真实支付、权益发放、发货确认、题库导入及全页面回归验证。详细记录见 [1.0.18 发布与验收记录](docs/release-1.0.18-verification.md)。
+`1.0.20` 修复复习本“顺选/随机”进入答题页后题目不显示的问题，并增加全页面控件清单、226 条事件隔离执行和真实开发者工具回归。详细记录见 [1.0.20 发布与验收记录](docs/release-1.0.20-verification.md)。
 
 ## 主要功能
 
@@ -231,7 +232,7 @@ VIRTUAL_PAY_ENV=0
 node scripts/verify-release-readiness.js
 ```
 
-该命令覆盖 JavaScript 语法、登录、虚拟支付、支付补偿、VIP/督学套餐隔离、分享权限、打卡舟币、题库 CSV、管理员上传、学习流程、路由资源和关键安全规则。
+该命令覆盖 JavaScript 语法、登录、虚拟支付、支付补偿、VIP/督学套餐隔离、分享权限、打卡舟币、题库 CSV、管理员上传、学习流程、顺选/随机复习、全部页面控件、路由资源和关键安全规则。
 
 需要单独定位问题时，可执行：
 
@@ -243,6 +244,9 @@ node scripts/regression-question-upload-cloud.js
 node scripts/regression-admin-uploads.js
 node scripts/regression-image-share-permission.js
 node scripts/regression-learning-flow.js
+node scripts/regression-review-navigation.js
+node scripts/regression-control-inventory.js
+node scripts/regression-control-handlers.js
 node scripts/regression-security-critical.js
 ```
 
@@ -258,7 +262,7 @@ node scripts/regression-security-critical.js
 6. 在微信公众平台提交审核，交易类小程序填写订单中心路径 `pages/order-center/order-center`。
 7. 审核通过后发布，并在微信中重新进入小程序确认线上版本和支付。
 
-版本说明、审核备注和验收证据参考 [1.0.18 发布与验收记录](docs/release-1.0.18-verification.md)。
+版本说明、审核备注和验收证据参考 [1.0.20 发布与验收记录](docs/release-1.0.20-verification.md)。
 
 ## 常见问题
 
@@ -285,6 +289,7 @@ node scripts/regression-security-critical.js
 ## 文档索引
 
 - [1.0.18 发布与验收记录](docs/release-1.0.18-verification.md)
+- [1.0.20 发布与验收记录](docs/release-1.0.20-verification.md)
 - [虚拟支付部署检查](docs/virtual-payment-deploy.md)
 - [虚拟支付现网配置](docs/虚拟支付现网配置.md)
 - [客户题库交付与导入](docs/客户题库交付与导入.md)

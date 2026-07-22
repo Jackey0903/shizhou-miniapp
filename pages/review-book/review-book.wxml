@@ -26,7 +26,18 @@
     </view>
   </view>
 
-  <view class="rb-group-list" wx:if="{{records.length > 0}}">
+  <view class="rb-loading" wx:if="{{loading}}">
+    <text class="rb-loading-text">正在加载复习记录...</text>
+  </view>
+
+  <view class="empty" wx:elif="{{loadError}}">
+    <text class="empty-icon">!</text>
+    <text class="empty-text">复习记录加载失败</text>
+    <text class="empty-desc">请检查网络后重新加载</text>
+    <button class="btn btn-primary rb-retry" bindtap="retryLoad">重新加载</button>
+  </view>
+
+  <view class="rb-group-list" wx:elif="{{records.length > 0}}">
     <view class="rb-category-card" wx:for="{{recordGroups}}" wx:key="name">
       <view class="rb-category-head">
         <text class="rb-category-name">{{item.name}}</text>
@@ -56,7 +67,7 @@
     <text class="empty-text">{{activeTab === 'none' ? '还没有不会的题目' : activeTab === 'maybe' ? '还没有不太会的题目' : '暂无已掌握题目'}}</text>
   </view>
 
-  <view class="rb-bottom-bar" wx:if="{{records.length > 0}}">
+  <view class="rb-bottom-bar" wx:if="{{!loading && !loadError && records.length > 0}}">
     <button class="btn btn-outline btn-sm" bindtap="startOrdered">顺选</button>
     <button class="btn btn-outline btn-sm" bindtap="startRandom">随机</button>
   </view>

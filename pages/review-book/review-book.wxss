@@ -189,6 +189,24 @@
   flex: 1;
 }
 
+.rb-loading {
+  min-height: 360rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rb-loading-text,
+.empty-desc {
+  color: var(--text-muted);
+  font-size: 26rpx;
+}
+
+.rb-retry {
+  margin-top: 32rpx;
+  min-width: 280rpx;
+}
+
 .rb-item-text-wrap { flex: 1; display: flex; flex-direction: column; gap: 6rpx; }
 .rb-item-text--missing { color: #94a3b8; }
 .rb-item-note { font-size: 22rpx; color: #ef4444; }

@@ -169,6 +169,9 @@ function main() {
   run(process.execPath, ['scripts/regression-admin-uploads.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-plan-separation.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-learning-flow.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-review-navigation.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-control-inventory.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-control-handlers.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-release-integrity.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-security-critical.js'], { stdio: 'pipe' })
 
@@ -195,6 +198,9 @@ function main() {
       'admin-material-audio-wallpaper-upload-regression',
       'VIP-supervision-plan-separation',
       'learning-review-checkin-regression',
+      'review-ordered-random-navigation-regression',
+      'all-page-control-inventory-regression',
+      'all-control-handler-isolated-execution-regression',
       'page-route-asset-cloud-function-integrity',
       'critical-security-business-invariants'
     ]

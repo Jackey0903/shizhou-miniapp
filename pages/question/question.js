@@ -58,6 +58,28 @@ function shuffle(list = []) {
     return arr
 }
 
+function normalizeReviewQuestion(question = {}) {
+    const rawCorrectIndex = question.correctIndex
+    const correctIndex = rawCorrectIndex === '' || rawCorrectIndex === null || rawCorrectIndex === undefined
+        ? -1
+        : Number(rawCorrectIndex)
+    return {
+        _id: String(question._id || question.questionId || ''),
+        type: question.type || question.questionType || 'fill',
+        content: question.content || question.questionContent || '',
+        options: Array.isArray(question.options || question.questionOptions)
+            ? (question.options || question.questionOptions)
+            : [],
+        answer: question.answer || question.questionAnswer || '',
+        explanation: question.explanation || question.questionExplanation || '',
+        correctIndex: Number.isInteger(correctIndex) && correctIndex >= 0
+            ? correctIndex
+            : getCorrectIndex({ answer: question.answer || question.questionAnswer }),
+        imageUrl: question.imageUrl || question.questionImageUrl || '',
+        fromRecord: true
+    }
+}
+
 Page({
     data: {
         courseId: '',
@@ -94,17 +116,30 @@ Page({
     },
 
     onLoad(options = {}) {
-        const { courseId, planId, mode = 'new', questionIds = '' } = options
+        let courseId = String(options.courseId || '')
+        const planId = String(options.planId || '')
+        const mode = options.mode === 'review' ? 'review' : 'new'
+        const questionIds = String(options.questionIds || '')
         const courseName = decodeRouteParam(options.courseName)
         let ids = questionIds
             ? questionIds.split(',').filter(Boolean)
             : []
         if (options.reviewSessionKey) {
-            const storageKey = `reviewQuestionIds:${options.reviewSessionKey}`
-            const storedIds = wx.getStorageSync(storageKey)
+            const sessionKey = `reviewSession:${options.reviewSessionKey}`
+            const idsKey = `reviewQuestionIds:${options.reviewSessionKey}`
+            const storedSession = wx.getStorageSync(sessionKey)
+            const storedIds = wx.getStorageSync(idsKey)
+            if (storedSession && typeof storedSession === 'object') {
+                courseId = String(storedSession.courseId || courseId)
+                this._reviewSessionQuestions = Array.isArray(storedSession.questions)
+                    ? storedSession.questions.map(normalizeReviewQuestion).filter((item) => item._id && item.content)
+                    : []
+            }
             if (Array.isArray(storedIds) && storedIds.length) ids = storedIds.filter(Boolean)
-            wx.removeStorageSync(storageKey)
+            wx.removeStorageSync(sessionKey)
+            wx.removeStorageSync(idsKey)
         }
+        if (!Array.isArray(this._reviewSessionQuestions)) this._reviewSessionQuestions = []
         this._answerSessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
         this.setData({ courseId, courseName, planId, mode, questionIds: ids })
         wx.setNavigationBarTitle({ title: courseName || '学习' })
@@ -144,37 +179,24 @@ Page({
             }
 
             if (this.data.mode === 'review') {
-                let ids = this.data.questionIds
-                if (!ids || ids.length === 0) {
-                    const records = await cloudApi.getTodayReviews(this.data.courseId)
-                    ids = records.map(r => r.questionId)
-                }
-
-                // 云端会校验当前访问权限，并为旧记录补齐题目快照。
-                const records = await cloudApi.getStudyRecords(this.data.courseId)
-                const recordMap = {}
-                records.forEach(r => { recordMap[r.questionId] = r })
-
-                const promises = ids.map(async id => {
-                    const cached = recordMap[id]
-                    if (cached && cached.questionContent) {
-                        return {
-                            _id: id,
-                            type: cached.questionType || 'fill',
-                            content: cached.questionContent,
-                            options: cached.questionOptions || [],
-                            answer: cached.questionAnswer || '',
-                            explanation: cached.questionExplanation || '',
-                            correctIndex: Number.isInteger(Number(cached.questionCorrectIndex))
-                                ? Number(cached.questionCorrectIndex)
-                                : getCorrectIndex({ answer: cached.questionAnswer }),
-                            imageUrl: cached.questionImageUrl || '',
-                            fromRecord: true
-                        }
+                questions = this._reviewSessionQuestions || []
+                if (questions.length === 0) {
+                    let ids = this.data.questionIds
+                    if (!ids || ids.length === 0) {
+                        const records = await cloudApi.getTodayReviews(this.data.courseId)
+                        ids = records.map(r => r.questionId).filter(Boolean)
                     }
-                    return null
-                })
-                questions = (await Promise.all(promises)).filter(Boolean)
+
+                    // 云端会校验当前访问权限，并为旧记录补齐题目快照。
+                    const records = await cloudApi.getStudyRecords(this.data.courseId)
+                    const recordMap = {}
+                    records.forEach(r => { recordMap[r.questionId] = r })
+                    questions = ids
+                        .map((id) => recordMap[id])
+                        .filter(Boolean)
+                        .map(normalizeReviewQuestion)
+                        .filter((item) => item._id && item.content)
+                }
                 if (questions.length === 0) {
                     emptyState = {
                         title: '今天暂无复习题',
@@ -264,9 +286,20 @@ Page({
                 emptyState
             })
         } catch (err) {
-            console.error('加载题目失败', err)
-            this.setData({ loading: false })
-            wx.showToast({ title: '加载失败', icon: 'none' })
+            const message = (err && (err.message || err.errMsg)) || '题目加载失败'
+            console.error('加载题目失败', message, err)
+            this.setData({
+                questions: [],
+                currentQuestion: null,
+                total: 0,
+                loading: false,
+                emptyState: {
+                    title: '题目加载失败',
+                    desc: '请检查网络后重新加载。若持续失败，请联系管理员。',
+                    actionText: '重新加载',
+                    actionType: 'retry'
+                }
+            })
         }
     },
 
@@ -504,6 +537,10 @@ Page({
 
     handleEmptyAction() {
         const actionType = this.data.emptyState && this.data.emptyState.actionType
+        if (actionType === 'retry') {
+            this._loadQuestions()
+            return
+        }
         if (actionType === 'review') {
             wx.redirectTo({
                 url: `/pages/question/question?courseId=${encodeURIComponent(this.data.courseId)}&courseName=${encodeURIComponent(this.data.courseName)}&planId=${encodeURIComponent(this.data.planId || '')}&mode=review`

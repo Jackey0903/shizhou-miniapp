@@ -23,7 +23,7 @@
 
   <!-- 无题目 -->
   <view class="empty" wx:if="{{!loading && questions.length === 0}}">
-    <text class="empty-icon">🎉</text>
+    <text class="empty-icon">{{emptyState.actionType === 'retry' ? '!' : '🎉'}}</text>
     <text class="empty-text">{{emptyState.title || '当前暂无题目'}}</text>
     <text class="empty-desc" wx:if="{{emptyState.desc}}">{{emptyState.desc}}</text>
     <button class="btn btn-primary" style="margin-top:40rpx;" bindtap="handleEmptyAction">{{emptyState.actionText || '返回课程'}}</button>

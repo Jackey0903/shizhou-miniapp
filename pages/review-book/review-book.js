@@ -2,6 +2,35 @@ const cloudApi = require('../../utils/cloudApi')
 
 const stripPrefix = (name = '') => name.replace(/^(([0-9]+|[一二三四五六七八九十]{1,3})[\.、\s]*)/, '')
 
+function shuffle(list = []) {
+  const result = [...list]
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const target = Math.floor(Math.random() * (index + 1))
+    const current = result[index]
+    result[index] = result[target]
+    result[target] = current
+  }
+  return result
+}
+
+function toReviewQuestion(record = {}) {
+  const rawCorrectIndex = record.questionCorrectIndex
+  const correctIndex = rawCorrectIndex === '' || rawCorrectIndex === null || rawCorrectIndex === undefined
+    ? -1
+    : Number(rawCorrectIndex)
+  return {
+    _id: String(record.questionId || ''),
+    type: record.questionType || 'fill',
+    content: record.questionContent || '',
+    options: Array.isArray(record.questionOptions) ? record.questionOptions : [],
+    answer: record.questionAnswer || '',
+    explanation: record.questionExplanation || '',
+    correctIndex: Number.isInteger(correctIndex) && correctIndex >= 0 ? correctIndex : -1,
+    imageUrl: record.questionImageUrl || '',
+    fromRecord: true
+  }
+}
+
 Page({
   data: {
     courseId: '',
@@ -14,16 +43,19 @@ Page({
     records: [],
     allRecords: [],
     recordGroups: [],
-    keyword: ''
+    keyword: '',
+    loading: true,
+    loadError: ''
   },
 
-  onLoad(options) {
-    const { courseId } = options
+  onLoad(options = {}) {
+    const courseId = String(options.courseId || '')
     this.setData({ courseId })
     this._loadRecords()
   },
 
   async _loadRecords() {
+    this.setData({ loading: true, loadError: '' })
     wx.showLoading({ title: '加载中', mask: true })
     try {
       const [rawRecords, courses] = await Promise.all([
@@ -38,8 +70,16 @@ Page({
       this.setData({ allRecords })
       this._filterRecords()
     } catch (e) {
-      console.error(e)
+      const message = (e && (e.message || e.errMsg)) || '复习记录加载失败'
+      console.error('复习记录加载失败', message, e)
+      this.setData({
+        allRecords: [],
+        records: [],
+        recordGroups: [],
+        loadError: message
+      })
     } finally {
+      this.setData({ loading: false })
       wx.hideLoading()
     }
   },
@@ -60,7 +100,7 @@ Page({
         bankName: courseName,
         bankSeries: course.series || '',
         missingQuestion,
-        reviewable: !!item.questionContent
+        reviewable: !!(item.questionId && item.questionContent)
       }
     })
   },
@@ -121,32 +161,55 @@ Page({
     this._filterRecords()
   },
 
-  startOrdered() {
-    const validRecords = this.data.records.filter((item) => item.reviewable)
+  retryLoad() {
+    this._loadRecords()
+  },
+
+  _startReview(records) {
+    if (this._openingReview) return
+    const validRecords = records.filter((item) => item.reviewable)
     if (!validRecords.length) {
       wx.showToast({ title: '暂无可复习题目', icon: 'none' })
       return
     }
-    const ids = validRecords.map((item) => item.questionId)
+
+    const questions = validRecords.map(toReviewQuestion).filter((item) => item._id && item.content)
+    const ids = questions.map((item) => item._id)
     const reviewSessionKey = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
-    wx.setStorageSync(`reviewQuestionIds:${reviewSessionKey}`, ids)
+    const sessionStorageKey = `reviewSession:${reviewSessionKey}`
+    const idsStorageKey = `reviewQuestionIds:${reviewSessionKey}`
+
+    try {
+      wx.setStorageSync(idsStorageKey, ids)
+      const session = { courseId: this.data.courseId, questions }
+      // 单键同步缓存有容量限制；超大复习集仍可通过题目 ID 从云端恢复。
+      if (JSON.stringify(session).length <= 800 * 1024) {
+        wx.setStorageSync(sessionStorageKey, session)
+      }
+    } catch (err) {
+      console.warn('复习会话缓存失败，将从云端重新加载', err)
+    }
+
+    this._openingReview = true
     wx.navigateTo({
-      url: `/pages/question/question?courseId=${this.data.courseId}&mode=review&reviewSessionKey=${reviewSessionKey}`
+      url: `/pages/question/question?courseId=${encodeURIComponent(this.data.courseId)}&mode=review&reviewSessionKey=${encodeURIComponent(reviewSessionKey)}`,
+      fail: (err) => {
+        console.error('打开复习题失败', err)
+        wx.removeStorageSync(sessionStorageKey)
+        wx.removeStorageSync(idsStorageKey)
+        wx.showToast({ title: '打开失败，请重试', icon: 'none' })
+      },
+      complete: () => {
+        this._openingReview = false
+      }
     })
   },
 
+  startOrdered() {
+    this._startReview(this.data.records)
+  },
+
   startRandom() {
-    const validRecords = this.data.records.filter((item) => item.reviewable)
-    if (!validRecords.length) {
-      wx.showToast({ title: '暂无可复习题目', icon: 'none' })
-      return
-    }
-    const shuffled = [...validRecords].sort(() => Math.random() - 0.5)
-    const ids = shuffled.map((item) => item.questionId)
-    const reviewSessionKey = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
-    wx.setStorageSync(`reviewQuestionIds:${reviewSessionKey}`, ids)
-    wx.navigateTo({
-      url: `/pages/question/question?courseId=${this.data.courseId}&mode=review&reviewSessionKey=${reviewSessionKey}`
-    })
+    this._startReview(shuffle(this.data.records))
   }
 })
