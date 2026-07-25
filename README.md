@@ -45,11 +45,14 @@
 
 ### 管理员后台
 
+- 统一“管理员工作台”，客户日常运营不需要修改代码或数据库
 - 单题录入和 CSV 题库批量导入
-- 课程、资料、音频和壁纸上传
-- 会员套餐、广告位、消息、提醒、帮助内容配置
+- 模块与题库新增、编辑、排序、安全上下线
+- 资料、音频和壁纸批量上传及上下线
+- 固定正式会员套餐、广告位、站内群发、提醒和帮助内容配置
 - 打卡背景和打卡文案配置
-- 上传内容格式、大小、权限和重复数据校验
+- 指定用户检索、一键赠送 VIP/督学权限和审计记录
+- 自动生成、预览和保存正式小程序码
 
 客户和运营管理员的完整操作说明见 [仕舟小程序管理员运营操作手册](docs/仕舟小程序管理员运营操作手册.md)。
 
@@ -125,6 +128,7 @@ npx @cloudbase/cli login
 npx @cloudbase/cli fn deploy createVipOrder -e cloud-2ge02vrucaf8a6ab --force
 npx @cloudbase/cli fn deploy vipPayCallback -e cloud-2ge02vrucaf8a6ab --force
 npx @cloudbase/cli fn deploy uploadQuestions -e cloud-2ge02vrucaf8a6ab --force
+npx @cloudbase/cli fn deploy adminOperations -e cloud-2ge02vrucaf8a6ab --force
 ```
 
 修改前端代码后需要重新上传小程序版本；只修改云函数时，部署对应云函数即可，不需要重新提交小程序审核。
@@ -137,17 +141,17 @@ npx @cloudbase/cli fn deploy uploadQuestions -e cloud-2ge02vrucaf8a6ab --force
 
 | 范围 | 集合 |
 | --- | --- |
-| 用户与身份 | `users`、`tokens` |
+| 用户与身份 | `users`、`tokens`、`manual_grants`、`admin_audit_logs` |
 | 题库 | `subjects`、`question_banks`、`questions`、`courses` |
 | 学习 | `plans`、`study_records`、`checkins`、`study_reminders` |
 | 支付与权益 | `vip_plans`、`orders`、`coin_logs` |
 | 资料与内容 | `materials`、`audios`、`wallpapers`、`user_wallpapers` |
 | 消息与督学 | `messages`、`user_messages`、`supervision_profiles` |
-| 运营配置 | `ad_slots`、`punch_backgrounds`、`punch_quotes`、`notification_settings` |
+| 运营配置 | `ad_slots`、`punch_backgrounds`、`punch_quotes`、`notification_settings`、`mini_program_codes` |
 
 生产数据库集合使用 `ADMINONLY`。小程序页面不直接读写生产数据库，统一通过云函数校验当前微信 `OPENID`、管理员身份和字段白名单。云存储保持公开读取、创建者写入，不得将生产写权限放宽为所有用户可写。
 
-管理员用户需要在云数据库 `users` 文档中由运维人员设置以下任一字段：
+首个管理员账号由软件服务商在交付时初始化。管理员用户需要在云数据库 `users` 文档中由运维人员设置以下任一字段：
 
 ```json
 {
@@ -234,7 +238,7 @@ VIRTUAL_PAY_ENV=0
 node scripts/verify-release-readiness.js
 ```
 
-该命令覆盖 JavaScript 语法、登录、虚拟支付、支付补偿、VIP/督学套餐隔离、分享权限、打卡舟币、题库 CSV、管理员上传、学习流程、顺选/随机复习、全部页面控件、路由资源和关键安全规则。
+该命令覆盖 JavaScript 语法、登录、虚拟支付、支付补偿、VIP/督学套餐隔离、分享权限、打卡舟币、题库 CSV、管理员上传与授权、管理员工作台结构、学习流程、顺选/随机复习、全部页面控件、路由资源和关键安全规则。
 
 需要单独定位问题时，可执行：
 

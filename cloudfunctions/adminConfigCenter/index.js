@@ -3,6 +3,13 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 
+const PUBLISHED_PLANS = Object.freeze({
+  basic_vip_year: { price: 19800, days: 365, supervisionDays: 0, virtualProductId: 'sz_basic_vip_year' },
+  supervision_trial_day: { price: 800, days: 365, supervisionDays: 1, virtualProductId: 'sz_supervision_1d' },
+  supervision_month: { price: 19800, days: 365, supervisionDays: 30, virtualProductId: 'sz_supervision_mon' },
+  premium_vip_year: { price: 98800, days: 365, supervisionDays: 365, virtualProductId: 'sz_premium_vip_year' }
+})
+
 const ALLOWED = {
   messages: ['title', 'content', 'icon', 'scope', 'enabled', 'sort'],
   ad_slots: ['name', 'position', 'unitId', 'adUnitId', 'enabled', 'sort', 'remark'],
@@ -39,6 +46,43 @@ function validateVipPlan(data = {}) {
   if (!Number.isInteger(days) || days < 0 || days > 3650) return '会员天数无效'
   if (!Number.isInteger(supervisionDays) || supervisionDays < 0 || supervisionDays > 3650) return '督学天数无效'
   if (days === 0 && supervisionDays === 0) return '套餐至少需要配置一项有效权益'
+  const published = PUBLISHED_PLANS[code]
+  if (!published) return '仅支持系统内置的四个正式套餐'
+  if (
+    published.price !== price
+    || published.days !== days
+    || published.supervisionDays !== supervisionDays
+    || published.virtualProductId !== virtualProductId
+  ) {
+    return '套餐金额、有效期或微信道具ID与正式发布配置不一致'
+  }
+  return ''
+}
+
+function validateConfig(target, data = {}) {
+  if (target === 'ad_slots') {
+    const position = String(data.position || '').trim()
+    const unitId = String(data.unitId || data.adUnitId || '').trim()
+    if (!['study-plan-banner', 'question-banner', 'coin-reward-video'].includes(position)) {
+      return '广告位类型无效'
+    }
+    if (unitId && !/^adunit-[A-Za-z0-9_-]{6,100}$/.test(unitId)) {
+      return '广告 unitId 格式无效，应以 adunit- 开头'
+    }
+  }
+  if (target === 'messages') {
+    if (!String(data.title || '').trim()) return '请填写消息标题'
+    if (!String(data.content || '').trim()) return '请填写消息内容'
+    if (!['all', 'vip', 'new', 'supervision'].includes(String(data.scope || 'all'))) {
+      return '消息接收范围无效'
+    }
+  }
+  if (['punch_backgrounds', 'punch_quotes'].includes(target)) {
+    const activeDate = String(data.activeDate || 'default')
+    if (activeDate !== 'default' && !/^\d{4}-\d{2}-\d{2}$/.test(activeDate)) {
+      return '生效日期格式应为 YYYY-MM-DD 或 default'
+    }
+  }
   return ''
 }
 
@@ -105,6 +149,8 @@ exports.main = async (event) => {
     if (action === 'save') {
       const data = sanitize(target, payload)
       let targetId = payload.id || ''
+      const configValidationError = validateConfig(target, { ...payload, ...data })
+      if (configValidationError) return { code: -1, msg: configValidationError }
       if (target === 'vip_plans') {
         let current = {}
         if (targetId) {
@@ -120,6 +166,14 @@ exports.main = async (event) => {
           if (targetId) return { code: -1, msg: '该套餐 code 已存在' }
           targetId = duplicate._id
         }
+      }
+      if (target === 'ad_slots' && !targetId) {
+        const existed = await db.collection(target).where({ position: data.position }).limit(1).get()
+        targetId = ((existed.data || [])[0] || {})._id || ''
+      }
+      if (target === 'help_config' && !targetId) {
+        const existed = await db.collection(target).limit(1).get()
+        targetId = ((existed.data || [])[0] || {})._id || ''
       }
       data.updatedAt = db.serverDate()
       if (targetId) {

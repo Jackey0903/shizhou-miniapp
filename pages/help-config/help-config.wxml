@@ -14,8 +14,9 @@
     </view>
 
     <view class="cfg-block">
-      <text class="cfg-label">客服二维码路径</text>
-      <input class="cfg-input" value="{{qrCodePath}}" data-field="qrCodePath" bindinput="onInput" placeholder="如 /QRcode.png 或云图片地址"/>
+      <text class="cfg-label">客服二维码</text>
+      <button class="btn btn-secondary btn-full" bindtap="chooseQrCode">从相册选择客服二维码</button>
+      <image class="cfg-preview" src="{{qrCodePath}}" mode="aspectFit"/>
     </view>
 
     <view class="cfg-block">

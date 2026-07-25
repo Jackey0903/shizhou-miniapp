@@ -8,3 +8,4 @@
 .cfg-item-content { display: block; margin-top: 8rpx; font-size: 24rpx; line-height: 1.6; color: var(--text-secondary); }
 .cfg-item-meta { display: block; margin-top: 8rpx; font-size: 22rpx; color: var(--text-muted); }
 .cfg-toggle { border-radius: 999rpx; background: #eff6ff; color: var(--primary); }
+.cfg-picker { display: flex; align-items: center; }

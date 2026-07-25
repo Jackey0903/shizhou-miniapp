@@ -1,11 +1,13 @@
 <view class="cfg-page">
   <view class="card cfg-form">
-    <text class="cfg-title">新增推荐消息</text>
+    <text class="cfg-title">发布站内群发消息</text>
     <input class="cfg-input" placeholder="消息标题" value="{{title}}" data-field="title" bindinput="onInput"/>
     <textarea class="cfg-textarea" placeholder="消息内容" value="{{content}}" data-field="content" bindinput="onInput"/>
-    <input class="cfg-input" placeholder="推送范围，如 all / vip / 新用户" value="{{scope}}" data-field="scope" bindinput="onInput"/>
+    <picker range="{{scopeOptions}}" range-key="label" value="{{scopeIndex}}" bindchange="onScopeChange">
+      <view class="cfg-input cfg-picker">接收范围：{{scopeOptions[scopeIndex].label}}</view>
+    </picker>
     <input class="cfg-input" placeholder="图标，例如 📢" value="{{icon}}" data-field="icon" bindinput="onInput"/>
-    <button class="btn btn-primary btn-full" bindtap="submit" loading="{{loading}}">保存消息</button>
+    <button class="btn btn-primary btn-full" bindtap="submit" loading="{{loading}}">立即发布</button>
   </view>
 
   <view class="cfg-list">
@@ -13,9 +15,9 @@
       <view class="cfg-main">
         <text class="cfg-item-title">{{item.icon}} {{item.title}}</text>
         <text class="cfg-item-content">{{item.content}}</text>
-        <text class="cfg-item-meta">范围：{{item.scope || 'all'}} · {{item.enabled ? '启用中' : '已停用'}}</text>
+        <text class="cfg-item-meta">范围：{{item.scope === 'vip' ? 'VIP用户' : item.scope === 'supervision' ? '督学用户' : item.scope === 'new' ? '新用户' : '全部用户'}} · {{item.enabled ? '展示中' : '已撤回'}}</text>
       </view>
-      <button class="cfg-toggle" size="mini" bindtap="toggle" data-id="{{item._id}}" data-enabled="{{item.enabled}}">{{item.enabled ? '停用' : '启用'}}</button>
+      <button class="cfg-toggle" size="mini" bindtap="toggle" data-id="{{item._id}}" data-enabled="{{item.enabled}}">{{item.enabled ? '撤回' : '恢复'}}</button>
     </view>
   </view>
 </view>

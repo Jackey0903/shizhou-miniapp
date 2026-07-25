@@ -1,49 +1,93 @@
 <view class="cu-page">
-  <view class="card empty" wx:if="{{loading}}">
-    <text class="empty-text">加载中...</text>
+  <view class="empty" wx:if="{{loading}}">
+    <text class="empty-text">正在加载模块与题库...</text>
   </view>
 
-  <view class="card empty" wx:elif="{{!hasAccess}}">
-    <text class="empty-icon">🔒</text>
-    <text class="empty-text">当前账号没有题库管理权限，请在 users 集合中给该账号加上 isAdmin: true。</text>
+  <view class="empty" wx:elif="{{!hasAccess}}">
+    <text class="empty-text">当前账号没有管理员权限</text>
   </view>
 
-  <view class="card cu-card" wx:else>
-    <view class="cu-head">
-      <text class="cu-title">新增科目 / 题库</text>
-      <text class="cu-sub">首页固定显示前 8 个科目，新增后会自动进入课程列表与查看更多。</text>
+  <block wx:else>
+    <view class="cu-toolbar">
+      <view>
+        <text class="cu-title">模块与题库</text>
+        <text class="cu-sub">下线只隐藏内容，不删除题目和学习记录。</text>
+      </view>
+      <view class="cu-toolbar-actions">
+        <button class="cu-action cu-action--secondary" bindtap="openSubjectForm">新增模块</button>
+        <button class="cu-action" bindtap="openBankForm" disabled="{{!subjectOptions.length}}">新增题库</button>
+      </view>
     </view>
 
-    <view class="cu-field">
-      <text class="cu-label">科目名称</text>
-      <input class="cu-input" placeholder="例如：常识、判断推理、时事政治" value="{{form.category}}" data-field="category" bindinput="onInput"/>
-    </view>
-
-    <view class="cu-field">
-      <text class="cu-label">题库名称</text>
-      <input class="cu-input" placeholder="例如：题库A、真题卷一、专项训练" value="{{form.name}}" data-field="name" bindinput="onInput"/>
-    </view>
-
-    <view class="cu-field">
-      <text class="cu-label">题库标签</text>
-      <input class="cu-input" placeholder="例如：基础题库 / 高频真题" value="{{form.series}}" data-field="series" bindinput="onInput"/>
-    </view>
-
-    <view class="cu-field">
-      <text class="cu-label">题库说明</text>
-      <textarea class="cu-textarea" placeholder="简单说明这个题库适合刷什么内容" value="{{form.description}}" data-field="description" bindinput="onInput" maxlength="300" auto-height></textarea>
-    </view>
-
-    <view class="cu-field">
-      <text class="cu-label">VIP 题库</text>
-      <checkbox-group bindchange="onLockChange">
-        <label class="cu-check">
-          <checkbox value="1" checked="{{form.isLocked}}" color="#2563EB"/>
-          <text>勾选后仅 VIP 用户可见</text>
-        </label>
+    <view class="cu-form" wx:if="{{showSubjectForm}}">
+      <view class="cu-form-head">
+        <text class="cu-form-title">{{subjectForm.id ? '编辑模块' : '新增模块'}}</text>
+        <text class="cu-close" bindtap="closeForms">关闭</text>
+      </view>
+      <input class="cu-input" placeholder="模块名称，如 常识、申论、面试" value="{{subjectForm.name}}" data-field="name" bindinput="onSubjectInput"/>
+      <textarea class="cu-textarea" placeholder="模块说明（可选）" value="{{subjectForm.description}}" data-field="description" bindinput="onSubjectInput" maxlength="300"/>
+      <view class="cu-form-row">
+        <input class="cu-input cu-input--half" type="number" placeholder="排序数字，越小越靠前" value="{{subjectForm.sort}}" data-field="sort" bindinput="onSubjectInput"/>
+        <input class="cu-input cu-input--half" placeholder="主题色，如 #2563EB" value="{{subjectForm.color}}" data-field="color" bindinput="onSubjectInput"/>
+      </view>
+      <checkbox-group bindchange="onSubjectEnabledChange">
+        <label class="cu-check"><checkbox value="1" checked="{{subjectForm.enabled}}" color="#2563EB"/>保存后立即上线</label>
       </checkbox-group>
+      <button class="btn btn-primary btn-full" loading="{{saving}}" bindtap="saveSubject">保存模块</button>
     </view>
 
-    <button class="btn btn-primary btn-full" loading="{{saving}}" bindtap="submitCourse">创建题库</button>
-  </view>
+    <view class="cu-form" wx:if="{{showBankForm}}">
+      <view class="cu-form-head">
+        <text class="cu-form-title">{{bankForm.id ? '编辑题库' : '新增题库'}}</text>
+        <text class="cu-close" bindtap="closeForms">关闭</text>
+      </view>
+      <picker range="{{subjectOptions}}" range-key="name" value="{{subjectIndex}}" bindchange="onSubjectChange">
+        <view class="cu-picker">所属模块：{{subjectOptions[subjectIndex].name}}</view>
+      </picker>
+      <input class="cu-input" placeholder="题库名称" value="{{bankForm.name}}" data-field="name" bindinput="onBankInput"/>
+      <input class="cu-input" placeholder="题库标签，如 基础题库 / 高频真题" value="{{bankForm.series}}" data-field="series" bindinput="onBankInput"/>
+      <textarea class="cu-textarea" placeholder="题库说明（可选）" value="{{bankForm.description}}" data-field="description" bindinput="onBankInput" maxlength="500"/>
+      <input class="cu-input" type="number" placeholder="排序数字，越小越靠前" value="{{bankForm.sort}}" data-field="sort" bindinput="onBankInput"/>
+      <view class="cu-options">
+        <checkbox-group bindchange="onLockChange">
+          <label class="cu-check"><checkbox value="1" checked="{{bankForm.isLocked}}" color="#2563EB"/>仅VIP可用</label>
+        </checkbox-group>
+        <checkbox-group bindchange="onBankEnabledChange">
+          <label class="cu-check"><checkbox value="1" checked="{{bankForm.enabled}}" color="#2563EB"/>保存后立即上线</label>
+        </checkbox-group>
+      </view>
+      <button class="btn btn-primary btn-full" loading="{{saving}}" bindtap="saveBank">保存题库</button>
+    </view>
+
+    <view class="cu-list">
+      <view class="cu-subject" wx:for="{{tree}}" wx:key="_id" wx:for-item="subject">
+        <view class="cu-subject-head">
+          <view class="cu-subject-main">
+            <view class="cu-color" style="background: {{subject.color || '#2563EB'}}"></view>
+            <view>
+              <text class="cu-subject-name">{{subject.name}}</text>
+              <text class="cu-meta">{{subject.banks.length}}个题库 · 排序{{subject.sort || 0}} · {{subject.enabled ? '已上线' : '已下线'}}</text>
+            </view>
+          </view>
+          <view class="cu-inline-actions" wx:if="{{!subject.virtual}}">
+            <button class="cu-mini" data-id="{{subject._id}}" bindtap="openSubjectForm">编辑</button>
+            <button class="cu-mini {{subject.enabled ? 'cu-mini--danger' : 'cu-mini--success'}}" data-id="{{subject._id}}" data-enabled="{{subject.enabled}}" bindtap="toggleSubject">{{subject.enabled ? '下线' : '上线'}}</button>
+          </view>
+        </view>
+
+        <view class="cu-bank" wx:for="{{subject.banks}}" wx:key="_id" wx:for-item="bank">
+          <view class="cu-bank-main">
+            <text class="cu-bank-name">{{bank.name}}</text>
+            <text class="cu-meta">{{bank.totalCount || 0}}题 · {{bank.series || '基础题库'}} · {{bank.isLocked ? 'VIP' : '公开'}} · {{bank.enabled ? '已上线' : '已下线'}}</text>
+          </view>
+          <view class="cu-inline-actions">
+            <button class="cu-mini" data-id="{{bank._id}}" bindtap="openBankForm">编辑</button>
+            <button class="cu-mini {{bank.enabled ? 'cu-mini--danger' : 'cu-mini--success'}}" data-id="{{bank._id}}" data-enabled="{{bank.enabled}}" bindtap="toggleBank">{{bank.enabled ? '下线' : '上线'}}</button>
+          </view>
+        </view>
+
+        <button class="cu-add-bank" data-subjectid="{{subject._id}}" bindtap="openBankForm" wx:if="{{!subject.virtual}}">在此模块新增题库</button>
+      </view>
+    </view>
+  </block>
 </view>

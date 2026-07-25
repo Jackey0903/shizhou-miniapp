@@ -1,16 +1,32 @@
-<view class="upload-page">
-  <view class="card upload-card">
-    <text class="upload-title">上传平台壁纸</text>
-    <text class="upload-sub">上传后的壁纸会出现在屏保壁纸页，用户可下载或编辑分享。</text>
+<view class="wallpaper-page">
+  <view class="wallpaper-panel">
+    <text class="wallpaper-title">批量上传平台壁纸</text>
+    <text class="wallpaper-sub">单次最多9张。建议竖版1080×1920，JPG/PNG，单张不超过5MB。</text>
+    <button class="btn btn-secondary btn-full" bindtap="chooseImages">从相册选择壁纸</button>
 
-    <view class="form-item">
-      <text class="form-label">壁纸标题</text>
-      <input class="form-input" placeholder="例如 清晨上岸" value="{{title}}" bindinput="onInput"/>
+    <view class="wallpaper-files" wx:if="{{files.length}}">
+      <view class="wallpaper-file" wx:for="{{files}}" wx:key="path">
+        <image class="wallpaper-preview" src="{{item.path}}" mode="aspectFill"/>
+        <view class="wallpaper-file-main">
+          <input class="wallpaper-input" value="{{item.title}}" data-index="{{index}}" bindinput="onTitleInput" placeholder="壁纸标题"/>
+          <text class="wallpaper-name">{{item.name}}</text>
+        </view>
+        <button class="wallpaper-remove" data-index="{{index}}" bindtap="removeFile">移除</button>
+      </view>
     </view>
 
-    <button class="btn btn-secondary btn-full" bindtap="chooseImage">选择壁纸图片</button>
-    <image wx:if="{{selectedFile}}" class="preview" src="{{selectedFile.preview}}" mode="aspectFill"/>
+    <button class="btn btn-primary btn-full upload-button" bindtap="submit" loading="{{uploading}}">{{progressText || '开始上传'}}</button>
+  </view>
 
-    <button class="btn btn-primary btn-full" bindtap="submit" loading="{{uploading}}">上传壁纸</button>
+  <view class="wallpaper-manage">
+    <text class="manage-title">平台壁纸管理</text>
+    <view class="manage-item" wx:for="{{list}}" wx:key="_id">
+      <image class="manage-image" src="{{item.fileId || item.imageUrl}}" mode="aspectFill"/>
+      <view class="manage-main">
+        <text class="manage-name">{{item.title}}</text>
+        <text class="manage-meta">{{item.enabled ? '已上线' : '已下线'}}</text>
+      </view>
+      <button class="manage-toggle" data-id="{{item._id}}" data-enabled="{{item.enabled}}" bindtap="toggle">{{item.enabled ? '下线' : '上线'}}</button>
+    </view>
   </view>
 </view>

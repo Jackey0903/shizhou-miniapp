@@ -1,10 +1,218 @@
-.upload-page { min-height: 100vh; background: var(--bg-page); padding: 24rpx; box-sizing: border-box; }
-.upload-title { display: block; font-size: 34rpx; font-weight: 800; }
-.upload-sub { display: block; margin-top: 8rpx; font-size: 24rpx; color: var(--text-secondary); line-height: 1.6; }
-.form-item { margin-top: 24rpx; }
-.form-label { display: block; font-size: 26rpx; font-weight: 700; margin-bottom: 12rpx; }
-.form-picker, .form-input, .form-textarea { min-height: 92rpx; border-radius: 24rpx; background: #f8fafc; padding: 0 24rpx; display: flex; align-items: center; font-size: 28rpx; color: #0f172a; box-sizing: border-box; }
-.form-textarea { min-height: 180rpx; padding: 24rpx; line-height: 1.7; }
-.file-box { margin: 24rpx 0; padding: 20rpx 24rpx; border-radius: 24rpx; background: #eff6ff; }
-.file-name { font-size: 24rpx; color: var(--primary); line-height: 1.8; }
-.upload-cover-btn { margin-top: 18rpx; }
+.upload-page {
+  min-height: 100vh;
+  padding: 24rpx 24rpx 80rpx;
+  box-sizing: border-box;
+  background: var(--bg-page);
+}
+
+.upload-panel {
+  padding: 28rpx;
+  background: #fff;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+}
+
+.upload-title,
+.upload-sub,
+.form-label,
+.file-name,
+.cover-state,
+.size-hint,
+.link-title,
+.manage-title,
+.manage-name,
+.manage-meta {
+  display: block;
+}
+
+.upload-title {
+  font-size: 34rpx;
+  font-weight: 800;
+}
+
+.upload-sub,
+.size-hint {
+  margin-top: 8rpx;
+  color: var(--text-secondary);
+  font-size: 23rpx;
+  line-height: 1.6;
+}
+
+.form-item {
+  margin: 22rpx 0;
+}
+
+.form-label,
+.link-title {
+  margin-bottom: 10rpx;
+  font-size: 25rpx;
+  font-weight: 700;
+}
+
+.form-picker,
+.form-input,
+.form-textarea {
+  width: 100%;
+  min-height: 88rpx;
+  box-sizing: border-box;
+  padding: 20rpx 22rpx;
+  background: #f8fafc;
+  border: 2rpx solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 27rpx;
+}
+
+.form-picker {
+  display: flex;
+  align-items: center;
+}
+
+.form-textarea {
+  min-height: 150rpx;
+}
+
+.file-list {
+  margin-top: 18rpx;
+  border-top: 1rpx solid var(--border);
+}
+
+.file-row {
+  min-height: 112rpx;
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  padding: 14rpx 0;
+  border-bottom: 1rpx solid var(--border);
+}
+
+.file-preview,
+.file-type {
+  width: 76rpx;
+  height: 76rpx;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.file-type {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eff6ff;
+  color: var(--primary);
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.file-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-title {
+  min-height: 56rpx;
+  padding: 0 12rpx;
+  background: #f8fafc;
+  border-radius: var(--radius-sm);
+  font-size: 25rpx;
+}
+
+.file-name,
+.cover-state {
+  margin-top: 4rpx;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 20rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cover-state {
+  color: #047857;
+}
+
+.file-remove,
+.cover-button,
+.manage-toggle {
+  margin: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-size: 22rpx;
+}
+
+.file-remove {
+  padding: 0 14rpx;
+  background: #fef2f2;
+  color: var(--danger);
+}
+
+.cover-button {
+  width: 100%;
+  margin-top: 16rpx;
+  background: #eff6ff;
+  color: var(--primary);
+}
+
+.file-remove::after,
+.cover-button::after,
+.manage-toggle::after {
+  border: 0;
+}
+
+.link-section {
+  padding: 20rpx 0 22rpx;
+  border-top: 1rpx solid var(--border);
+}
+
+.link-input {
+  margin-top: 12rpx;
+}
+
+.manage-section {
+  margin-top: 32rpx;
+}
+
+.manage-title {
+  margin: 0 4rpx 14rpx;
+  font-size: 27rpx;
+  font-weight: 800;
+}
+
+.manage-loading {
+  color: var(--text-secondary);
+  font-size: 24rpx;
+}
+
+.manage-item {
+  min-height: 104rpx;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 18rpx 22rpx;
+  margin-bottom: 12rpx;
+  box-sizing: border-box;
+  background: #fff;
+  border-radius: var(--radius-md);
+}
+
+.manage-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.manage-name {
+  font-size: 27rpx;
+  font-weight: 700;
+}
+
+.manage-meta {
+  margin-top: 5rpx;
+  color: var(--text-secondary);
+  font-size: 21rpx;
+}
+
+.manage-toggle {
+  min-width: 92rpx;
+  padding: 0 14rpx;
+  background: #eff6ff;
+  color: var(--primary);
+}

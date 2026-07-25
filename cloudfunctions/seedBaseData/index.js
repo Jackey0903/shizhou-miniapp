@@ -192,10 +192,10 @@ Object.keys(EXTRA_TEST_QUESTIONS).forEach((key) => {
 })
 
 const VIP_PLANS = [
-  { code: 'basic_vip_year', tag: '基础VIP', name: '基础VIP包年', price: 19800, days: 365, supervisionDays: 0, virtualProductId: 'basic_vip_year', sort: 1, enabled: true, benefits: ['免广告学习'] },
-  { code: 'supervision_trial_day', tag: '督学试用', name: '督学试用1日', price: 800, days: 365, supervisionDays: 1, virtualProductId: 'supervision_trial_day', sort: 2, enabled: true, benefits: ['督学试用1天', '赠送1年免广告学习'] },
-  { code: 'supervision_month', tag: '督学包月', name: '督学包月', price: 19800, days: 365, supervisionDays: 30, virtualProductId: 'supervision_month', sort: 3, enabled: true, benefits: ['督学包月服务', '赠送1年免广告学习'] },
-  { code: 'premium_vip_year', tag: '高级VIP', name: '高级VIP包年', price: 98800, days: 365, supervisionDays: 365, virtualProductId: 'premium_vip_year', sort: 4, enabled: true, benefits: ['免广告学习', '督学包年服务'] }
+  { code: 'basic_vip_year', tag: '基础VIP', name: '基础VIP包年', price: 19800, days: 365, supervisionDays: 0, virtualProductId: 'sz_basic_vip_year', sort: 1, enabled: true, benefits: ['免广告学习', '免费领取学习资料'] },
+  { code: 'supervision_trial_day', tag: '督学试用', name: '督学试用1日', price: 800, days: 365, supervisionDays: 1, virtualProductId: 'sz_supervision_1d', sort: 2, enabled: true, benefits: ['督学试用1天', '赠送1年免广告学习'] },
+  { code: 'supervision_month', tag: '督学包月', name: '督学包月', price: 19800, days: 365, supervisionDays: 30, virtualProductId: 'sz_supervision_mon', sort: 3, enabled: true, benefits: ['督学包月服务', '赠送1年免广告学习'] },
+  { code: 'premium_vip_year', tag: '高级VIP', name: '高级VIP/督学包年', price: 98800, days: 365, supervisionDays: 365, virtualProductId: 'sz_premium_vip_year', sort: 4, enabled: true, benefits: ['免广告学习', '督学包年服务'] }
 ]
 
 const PUNCH_QUOTES = [

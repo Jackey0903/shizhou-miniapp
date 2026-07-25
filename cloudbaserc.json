@@ -32,6 +32,7 @@
     { "name": "dispatchStudyReminders", "runtime": "Nodejs16.13", "handler": "index.main", "timeout": 20, "memorySize": 256, "installDependency": true },
     { "name": "supervisionMatch", "runtime": "Nodejs16.13", "handler": "index.main", "timeout": 15, "memorySize": 256, "installDependency": true },
     { "name": "adminConfigCenter", "runtime": "Nodejs16.13", "handler": "index.main", "timeout": 15, "memorySize": 256, "installDependency": true },
+    { "name": "adminOperations", "runtime": "Nodejs16.13", "handler": "index.main", "timeout": 30, "memorySize": 256, "installDependency": true },
     { "name": "uploadAudios", "runtime": "Nodejs16.13", "handler": "index.main", "timeout": 20, "memorySize": 256, "installDependency": true },
     { "name": "uploadWallpapers", "runtime": "Nodejs16.13", "handler": "index.main", "timeout": 20, "memorySize": 256, "installDependency": true },
     { "name": "messageCenter", "runtime": "Nodejs16.13", "handler": "index.main", "timeout": 10, "memorySize": 256, "installDependency": true },

@@ -1,0 +1,27 @@
+<view class="admin-page">
+  <view class="admin-loading" wx:if="{{checking}}">正在核验管理员权限...</view>
+
+  <block wx:elif="{{authorized}}">
+    <view class="admin-summary">
+      <text class="admin-summary-title">运营工作台</text>
+      <text class="admin-summary-sub">上传前请核对内容，发布后可随时下线或撤回。</text>
+    </view>
+
+    <view class="admin-group" wx:for="{{groups}}" wx:key="title" wx:for-item="group">
+      <text class="admin-group-title">{{group.title}}</text>
+      <view class="admin-list">
+        <navigator
+          class="admin-item"
+          wx:for="{{group.items}}"
+          wx:key="url"
+          wx:for-item="entry"
+          url="{{entry.url}}"
+        >
+          <view class="admin-icon">{{entry.icon}}</view>
+          <text class="admin-item-title">{{entry.title}}</text>
+          <text class="admin-arrow">›</text>
+        </navigator>
+      </view>
+    </view>
+  </block>
+</view>

@@ -1,0 +1,12 @@
+<view class="code-page">
+  <view class="card code-card">
+    <text class="code-title">仕舟公考正式小程序码</text>
+    <text class="code-status">{{generated ? '已连接线上正式版本' : '尚未生成，请点击下方按钮'}}</text>
+    <image wx:if="{{generated}}" class="code-image" src="{{imageUrl}}" mode="aspectFit" bindtap="preview" show-menu-by-longpress/>
+    <view wx:else class="code-empty">生成后可在这里预览、长按或保存正式小程序码</view>
+    <view class="code-actions">
+      <button class="btn btn-primary code-button" loading="{{generating}}" bindtap="generate">{{generated ? '重新生成' : '生成正式码'}}</button>
+      <button wx:if="{{generated}}" class="btn btn-outline code-button" loading="{{saving}}" bindtap="save">保存到相册</button>
+    </view>
+  </view>
+</view>

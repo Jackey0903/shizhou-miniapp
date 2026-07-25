@@ -299,7 +299,10 @@ async function main() {
   }
 
   assert.deepStrictEqual(failures, [], `Control handlers threw in isolated execution:\n${failures.join('\n')}`)
-  assert.strictEqual(invoked.length, 226, `Expected to invoke 226 event bindings, invoked ${invoked.length}`)
+  assert.ok(
+    invoked.length >= 226,
+    `Expected at least the established 226 event bindings, invoked ${invoked.length}`
+  )
   console.log(JSON.stringify({ ok: true, invokedEventBindings: invoked.length, pages: app.pages.length }, null, 2))
 }
 

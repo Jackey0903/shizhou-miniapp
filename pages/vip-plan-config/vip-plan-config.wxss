@@ -8,3 +8,9 @@
 .cfg-item-content { display: block; margin-top: 8rpx; font-size: 24rpx; line-height: 1.6; color: var(--text-secondary); }
 .cfg-item-meta { display: block; margin-top: 8rpx; font-size: 22rpx; color: var(--text-muted); }
 .cfg-toggle { border-radius: 999rpx; background: #eff6ff; color: var(--primary); }
+.cfg-sub { display: block; margin-bottom: 18rpx; color: var(--text-secondary); font-size: 23rpx; line-height: 1.6; }
+.cfg-picker { min-height: 92rpx; display: flex; align-items: center; padding: 0 24rpx; margin-bottom: 16rpx; box-sizing: border-box; background: #f8fafc; border-radius: var(--radius-md); }
+.plan-summary { padding: 22rpx; margin-bottom: 16rpx; background: #eff6ff; border-radius: var(--radius-md); }
+.plan-price, .plan-meta { display: block; }
+.plan-price { color: var(--primary); font-size: 34rpx; font-weight: 800; }
+.plan-meta { margin-top: 5rpx; color: var(--text-secondary); font-size: 22rpx; }

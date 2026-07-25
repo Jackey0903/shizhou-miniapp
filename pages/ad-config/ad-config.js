@@ -94,16 +94,20 @@ Page({
       } else {
         wx.showToast({ title: (res.result && res.result.msg) || '保存失败', icon: 'none' })
       }
+    } catch (err) {
+      wx.showToast({ title: err.message || '保存失败', icon: 'none' })
     } finally {
       this.setData({ loading: false })
     }
   },
 
   async toggle(e) {
-    const { id, enabled } = e.currentTarget.dataset
-    const res = await cloudApi.toggleAdminConfig('ad_slots', id, !enabled)
-    if (res.result && res.result.code === 0) {
-      await this.loadList()
+    try {
+      const { id, enabled } = e.currentTarget.dataset
+      const res = await cloudApi.toggleAdminConfig('ad_slots', id, !enabled)
+      if (res.result && res.result.code === 0) await this.loadList()
+    } catch (err) {
+      wx.showToast({ title: err.message || '操作失败', icon: 'none' })
     }
   }
 })

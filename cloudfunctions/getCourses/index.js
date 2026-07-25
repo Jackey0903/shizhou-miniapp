@@ -35,7 +35,8 @@ async function enrichBanks(banks) {
             ...bank,
             category: bank.category || subject.name || '综合题库',
             subjectName: bank.subjectName || subject.name || bank.category || '综合题库',
-            color: bank.color || subject.color || ''
+            color: bank.color || subject.color || '',
+            subjectEnabled: !['disabled', 'offline'].includes(subject.status)
         }
     })
 }
@@ -48,7 +49,9 @@ exports.main = async (event, context) => {
         try {
             const banks = await readAll('question_banks')
             if (banks.length > 0) {
-                courses = await enrichBanks(banks.filter((item) => !['disabled', 'offline'].includes(item.status)))
+                courses = (await enrichBanks(
+                    banks.filter((item) => !['disabled', 'offline'].includes(item.status))
+                )).filter((item) => item.subjectEnabled)
                 return { code: 0, data: courses, source: 'question_banks' }
             }
         } catch (err) {}

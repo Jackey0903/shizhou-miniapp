@@ -1,0 +1,51 @@
+<view class="access-page">
+  <view class="card access-search">
+    <text class="access-title">查找用户</text>
+    <view class="search-row">
+      <input class="access-input" placeholder="输入完整手机号或昵称" value="{{keyword}}" bindinput="onKeywordInput" confirm-type="search" bindconfirm="search"/>
+      <button class="search-button" loading="{{searching}}" bindtap="search">搜索</button>
+    </view>
+  </view>
+
+  <view class="user-list" wx:if="{{users.length}}">
+    <view
+      class="user-item {{selectedUser && selectedUser._id === item._id ? 'user-item--selected' : ''}}"
+      wx:for="{{users}}"
+      wx:key="_id"
+      data-id="{{item._id}}"
+      bindtap="selectUser"
+    >
+      <image class="user-avatar" src="{{item.avatarUrl || '/assets/images/default-avatar.png'}}" mode="aspectFill"/>
+      <view class="user-main">
+        <text class="user-name">{{item.nickName}}</text>
+        <text class="user-phone">{{item.phone || '未绑定手机号'}}</text>
+        <text class="user-meta">VIP至 {{item.vipExpireText}} · 督学至 {{item.supervisionExpireText}}</text>
+      </view>
+      <view class="user-check">{{selectedUser && selectedUser._id === item._id ? '已选' : '选择'}}</view>
+    </view>
+  </view>
+
+  <view class="card grant-form" wx:if="{{selectedUser}}">
+    <text class="access-title">开通权限</text>
+    <text class="selected-label">当前用户：{{selectedUser.nickName}} {{selectedUser.phone}}</text>
+    <picker range="{{plans}}" range-key="label" value="{{planIndex}}" bindchange="onPlanChange">
+      <view class="access-picker">
+        <text>{{plans[planIndex].label}}</text>
+        <text class="picker-detail">{{plans[planIndex].detail}}</text>
+      </view>
+    </picker>
+    <textarea class="access-textarea" placeholder="必填：赠送原因或审批备注" value="{{reason}}" bindinput="onReasonInput" maxlength="200"/>
+    <button class="btn btn-primary btn-full" loading="{{granting}}" bindtap="grant">确认开通</button>
+  </view>
+
+  <view class="log-section" wx:if="{{logs.length}}">
+    <text class="log-title">最近赠送记录</text>
+    <view class="log-item" wx:for="{{logs}}" wx:key="_id">
+      <view>
+        <text class="log-name">{{item.userNickName}} · {{item.planLabel}}</text>
+        <text class="log-meta">{{item.userPhone || '无手机号'}} · {{item.createdText}}</text>
+      </view>
+      <text class="log-reason">{{item.reason}}</text>
+    </view>
+  </view>
+</view>

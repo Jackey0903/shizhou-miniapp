@@ -6,3 +6,12 @@
 .form-picker, .form-input { min-height: 92rpx; border-radius: 24rpx; background: #f8fafc; padding: 0 24rpx; display: flex; align-items: center; font-size: 28rpx; color: #0f172a; box-sizing: border-box; }
 .file-list { margin: 24rpx 0; padding: 20rpx 24rpx; border-radius: 24rpx; background: #fff7ed; }
 .file-item { font-size: 24rpx; color: #9a3412; line-height: 1.8; }
+.audio-manage { margin-top: 32rpx; }
+.manage-title, .manage-name, .manage-meta { display: block; }
+.manage-title { margin: 0 4rpx 14rpx; font-size: 27rpx; font-weight: 800; }
+.manage-item { min-height: 104rpx; display: flex; align-items: center; gap: 16rpx; padding: 18rpx 22rpx; margin-bottom: 12rpx; box-sizing: border-box; background: #fff; border-radius: var(--radius-md); }
+.manage-main { flex: 1; min-width: 0; }
+.manage-name { font-size: 27rpx; font-weight: 700; }
+.manage-meta { margin-top: 5rpx; color: var(--text-secondary); font-size: 21rpx; }
+.manage-toggle { min-width: 92rpx; margin: 0; padding: 0 14rpx; border: 0; border-radius: var(--radius-sm); background: #eff6ff; color: var(--primary); font-size: 22rpx; }
+.manage-toggle::after { border: 0; }

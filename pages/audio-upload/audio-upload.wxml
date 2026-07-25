@@ -28,6 +28,17 @@
       <view class="file-item" wx:for="{{files}}" wx:key="name">{{item.name}}</view>
     </view>
 
-    <button class="btn btn-primary btn-full" bindtap="submit" loading="{{uploading}}">开始批量上传</button>
+    <button class="btn btn-primary btn-full" bindtap="submit" loading="{{uploading}}">{{progressText || '开始批量上传'}}</button>
+  </view>
+
+  <view class="audio-manage">
+    <text class="manage-title">最近音频</text>
+    <view class="manage-item" wx:for="{{list}}" wx:key="_id">
+      <view class="manage-main">
+        <text class="manage-name">{{item.title}}</text>
+        <text class="manage-meta">{{item.category}} · {{item.type}} · {{item.enabled ? '已上线' : '已下线'}}</text>
+      </view>
+      <button class="manage-toggle" data-id="{{item._id}}" data-enabled="{{item.enabled}}" bindtap="toggle">{{item.enabled ? '下线' : '上线'}}</button>
+    </view>
   </view>
 </view>

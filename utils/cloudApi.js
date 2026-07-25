@@ -694,6 +694,63 @@ async function getHelpConfig() {
     })
 }
 
+async function callAdminOperation(action, payload = {}) {
+    const res = await wx.cloud.callFunction({
+        name: 'adminOperations',
+        data: { action, payload }
+    })
+    if (!res.result || res.result.code !== 0) {
+        throw new Error((res.result && res.result.msg) || '管理员操作失败')
+    }
+    return res.result
+}
+
+async function getAdminCourseTree() {
+    const result = await callAdminOperation('listCourseTree')
+    return result.data || []
+}
+
+async function saveAdminSubject(payload) {
+    return callAdminOperation('saveSubject', payload)
+}
+
+async function saveAdminQuestionBank(payload) {
+    return callAdminOperation('saveBank', payload)
+}
+
+async function listAdminContent(target, keyword = '', limit = 100) {
+    const result = await callAdminOperation('listContent', { target, keyword, limit })
+    return result.data || []
+}
+
+async function toggleAdminContent(target, id, enabled) {
+    return callAdminOperation('toggleContent', { target, id, enabled })
+}
+
+async function searchAdminUsers(keyword) {
+    const result = await callAdminOperation('searchUsers', { keyword })
+    return result.data || []
+}
+
+async function grantAdminUserAccess(payload) {
+    return callAdminOperation('grantAccess', payload)
+}
+
+async function getAdminGrantLogs() {
+    const result = await callAdminOperation('listGrants')
+    return result.data || []
+}
+
+async function getAdminMiniProgramCode() {
+    const result = await callAdminOperation('getMiniProgramCode')
+    return result.data || null
+}
+
+async function generateAdminMiniProgramCode(payload = {}) {
+    const result = await callAdminOperation('generateMiniProgramCode', payload)
+    return result.data || null
+}
+
 module.exports = {
     userLogin, getCurrentUser, updateUser, grantCoinReward, grantCheckinShareReward,
     getCourses, getCourse,
@@ -709,5 +766,9 @@ module.exports = {
     getSupervisionMatches, joinSupervisionMatch, leaveSupervisionMatch,
     getReminderConfig, getStudyReminders, saveStudyReminder, removeStudyReminder, dispatchStudyReminders,
     getCoinLogs, getVipPlans, getMyOrders,
-    assertAdmin, listAdminConfigs, saveAdminConfig, toggleAdminConfig, getHelpConfig
+    assertAdmin, listAdminConfigs, saveAdminConfig, toggleAdminConfig, getHelpConfig,
+    callAdminOperation, getAdminCourseTree, saveAdminSubject, saveAdminQuestionBank,
+    listAdminContent, toggleAdminContent,
+    searchAdminUsers, grantAdminUserAccess, getAdminGrantLogs,
+    getAdminMiniProgramCode, generateAdminMiniProgramCode
 }

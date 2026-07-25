@@ -60,6 +60,32 @@ Page({
     this.setData({ [field]: e.detail.value })
   },
 
+  async chooseQrCode() {
+    try {
+      const res = await wx.chooseMedia({
+        count: 1,
+        mediaType: ['image'],
+        sourceType: ['album']
+      })
+      const file = (res.tempFiles || [])[0]
+      if (!file || !file.tempFilePath) return
+      wx.showLoading({ title: '上传中', mask: true })
+      const ext = file.tempFilePath.split('.').pop() || 'jpg'
+      const uploaded = await wx.cloud.uploadFile({
+        cloudPath: `help/customer-service-${Date.now()}.${ext}`,
+        filePath: file.tempFilePath
+      })
+      this.setData({ qrCodePath: uploaded.fileID })
+      wx.showToast({ title: '二维码已选择', icon: 'success' })
+    } catch (err) {
+      if (!String(err && err.errMsg || '').includes('cancel')) {
+        wx.showToast({ title: '上传失败', icon: 'none' })
+      }
+    } finally {
+      wx.hideLoading()
+    }
+  },
+
   async submit() {
     const faqList = parseFaqText(this.data.faqText)
     if (!faqList.length) {
@@ -84,6 +110,8 @@ Page({
       } else {
         wx.showToast({ title: (res.result && res.result.msg) || '保存失败', icon: 'none' })
       }
+    } catch (err) {
+      wx.showToast({ title: err.message || '保存失败', icon: 'none' })
     } finally {
       this.setData({ loading: false })
     }

@@ -1,7 +1,7 @@
 <view class="upload-page">
-  <view class="card upload-card">
-    <text class="upload-title">上传学习资料</text>
-    <text class="upload-sub">支持文档、音频、图片三类资料；用户首次领取每份资料固定消耗10舟币。</text>
+  <view class="upload-panel">
+    <text class="upload-title">批量上传领取资料</text>
+    <text class="upload-sub">单次最多9份；每份首次领取固定消耗10舟币，已领取用户可重复打开。</text>
 
     <view class="form-item">
       <text class="form-label">资料类型</text>
@@ -10,31 +10,47 @@
       </picker>
     </view>
 
-    <view class="form-item">
-      <text class="form-label">资料标题</text>
-      <input class="form-input" placeholder="不填则默认取文件名" value="{{name}}" data-field="name" bindinput="onInput"/>
+    <button class="btn btn-secondary btn-full" bindtap="chooseFiles">选择{{types[typeIndex].label}}文件（最多9份）</button>
+
+    <view class="file-list" wx:if="{{files.length}}">
+      <view class="file-row" wx:for="{{files}}" wx:key="path">
+        <image wx:if="{{types[typeIndex].key === 'image'}}" class="file-preview" src="{{item.preview}}" mode="aspectFill"/>
+        <view wx:else class="file-type">{{types[typeIndex].label}}</view>
+        <view class="file-main">
+          <input class="file-title" value="{{item.title}}" data-index="{{index}}" bindinput="onFileTitleInput" placeholder="资料标题"/>
+          <text class="file-name">{{item.name}}</text>
+          <text class="cover-state" wx:if="{{item.coverPath}}">已匹配第{{index + 1}}张封面</text>
+        </view>
+        <button class="file-remove" data-index="{{index}}" bindtap="removeFile">移除</button>
+      </view>
     </view>
+
+    <button class="cover-button" wx:if="{{files.length && types[typeIndex].key !== 'image'}}" bindtap="chooseCovers">按文件顺序选择封面（可选）</button>
+    <text class="size-hint">图片资料建议1080×1080或更高；列表封面建议800×800，JPG/PNG，单张不超过5MB。</text>
 
     <view class="form-item">
-      <text class="form-label">资料说明</text>
-      <textarea class="form-textarea" placeholder="可选，展示在资料列表里" value="{{description}}" data-field="description" bindinput="onInput"/>
+      <text class="form-label">统一资料说明（可选）</text>
+      <textarea class="form-textarea" placeholder="应用到本次选择的全部资料" value="{{description}}" data-field="description" bindinput="onInput"/>
     </view>
 
-    <view class="form-item">
-      <text class="form-label">资料链接</text>
-      <input class="form-input" placeholder="可填文件外链或跳转链接；有文件时可不填" value="{{linkUrl}}" data-field="linkUrl" bindinput="onInput"/>
+    <view class="link-section" wx:if="{{!files.length}}">
+      <text class="link-title">也可以发布一个外部链接</text>
+      <input class="form-input" placeholder="资料标题" value="{{linkTitle}}" data-field="linkTitle" bindinput="onInput"/>
+      <input class="form-input link-input" placeholder="https:// 开头的文件或页面链接" value="{{linkUrl}}" data-field="linkUrl" bindinput="onInput"/>
     </view>
 
-    <button class="btn btn-secondary btn-full" bindtap="chooseFile">选择资料文件</button>
-    <view class="file-box" wx:if="{{selectedFile}}">
-      <text class="file-name">{{selectedFile.name}}</text>
-    </view>
+    <button class="btn btn-primary btn-full" bindtap="submit" loading="{{uploading}}">{{progressText || '开始上传'}}</button>
+  </view>
 
-    <button class="btn btn-secondary btn-full upload-cover-btn" bindtap="chooseCover">选择资料封面</button>
-    <view class="file-box" wx:if="{{coverFile}}">
-      <text class="file-name">{{coverFile.name}}</text>
+  <view class="manage-section">
+    <text class="manage-title">最近资料</text>
+    <text class="manage-loading" wx:if="{{listLoading}}">加载中...</text>
+    <view class="manage-item" wx:for="{{list}}" wx:key="_id">
+      <view class="manage-main">
+        <text class="manage-name">{{item.name}}</text>
+        <text class="manage-meta">{{item.type === 'document' ? '文档' : item.type === 'audio' ? '音频' : '图片'}} · 10舟币 · {{item.enabled ? '已上线' : '已下线'}}</text>
+      </view>
+      <button class="manage-toggle" data-id="{{item._id}}" data-enabled="{{item.enabled}}" bindtap="toggle">{{item.enabled ? '下线' : '上线'}}</button>
     </view>
-
-    <button class="btn btn-primary btn-full" bindtap="submit" loading="{{uploading}}">上传资料</button>
   </view>
 </view>

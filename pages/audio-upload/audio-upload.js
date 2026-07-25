@@ -11,7 +11,27 @@ Page({
     typeIndex: 0,
     duration: '',
     files: [],
-    uploading: false
+    uploading: false,
+    progressText: '',
+    list: []
+  },
+
+  async onShow() {
+    try {
+      await cloudApi.assertAdmin()
+      const [tree, list] = await Promise.all([
+        cloudApi.getAdminCourseTree(),
+        cloudApi.listAdminContent('audios', '', 100)
+      ])
+      const categories = tree.filter((item) => item.enabled !== false).map((item) => item.name)
+      this.setData({
+        categories: categories.length ? categories : CATEGORIES,
+        categoryIndex: 0,
+        list
+      })
+    } catch (err) {
+      wx.showToast({ title: err.message || '加载失败', icon: 'none' })
+    }
   },
 
   chooseFiles() {
@@ -52,6 +72,7 @@ Page({
       const type = this.data.types[this.data.typeIndex]
       const uploaded = []
       for (const [index, file] of this.data.files.entries()) {
+        this.setData({ progressText: `正在上传 ${index + 1}/${this.data.files.length}` })
         const ext = (file.path || file.name || '').split('.').pop() || 'mp3'
         const uploadRes = await wx.cloud.uploadFile({
           cloudPath: `audios/${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}.${ext}`,
@@ -70,7 +91,8 @@ Page({
       const res = await cloudApi.uploadAudios(uploaded)
       if (res.result && res.result.code === 0) {
         wx.showToast({ title: `已上传${res.result.count}个音频`, icon: 'success' })
-        this.setData({ files: [], duration: '' })
+        this.setData({ files: [], duration: '', progressText: '' })
+        this.setData({ list: await cloudApi.listAdminContent('audios', '', 100) })
       } else {
         throw new Error((res.result && res.result.msg) || '上传失败')
       }
@@ -78,7 +100,18 @@ Page({
       wx.showToast({ title: err.message || '上传失败', icon: 'none' })
     } finally {
       wx.hideLoading()
-      this.setData({ uploading: false })
+      this.setData({ uploading: false, progressText: '' })
+    }
+  },
+
+  async toggle(e) {
+    const { id, enabled } = e.currentTarget.dataset
+    try {
+      await cloudApi.toggleAdminContent('audios', id, !enabled)
+      this.setData({ list: await cloudApi.listAdminContent('audios', '', 100) })
+      wx.showToast({ title: enabled ? '已下线' : '已上线', icon: 'success' })
+    } catch (err) {
+      wx.showToast({ title: err.message || '操作失败', icon: 'none' })
     }
   }
 })

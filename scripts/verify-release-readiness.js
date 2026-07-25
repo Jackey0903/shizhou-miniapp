@@ -174,6 +174,8 @@ function main() {
   run(process.execPath, ['scripts/regression-control-handlers.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-release-integrity.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-security-critical.js'], { stdio: 'pipe' })
+  run(process.execPath, ['--test', 'scripts/admin-core.test.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/validate-admin-console.js'], { stdio: 'pipe' })
 
   console.log(JSON.stringify({
     ok: true,
@@ -202,7 +204,9 @@ function main() {
       'all-page-control-inventory-regression',
       'all-control-handler-isolated-execution-regression',
       'page-route-asset-cloud-function-integrity',
-      'critical-security-business-invariants'
+      'critical-security-business-invariants',
+      'administrator-operation-core-tests',
+      'administrator-console-structure'
     ]
   }, null, 2))
 }

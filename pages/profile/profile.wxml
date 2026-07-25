@@ -82,75 +82,9 @@
       <text class="menu-arrow">›</text>
     </navigator>
 
-    <navigator class="menu-item" url="/pages/question-upload/question-upload" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
-      <text class="menu-icon">✍️</text>
-      <text class="menu-title">题目录入</text>
-      <text class="menu-arrow">›</text>
-    </navigator>
-
-    <navigator class="menu-item" url="/pages/course-upload/course-upload" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
-      <text class="menu-icon">🗂️</text>
-      <text class="menu-title">题库管理</text>
-      <text class="menu-arrow">›</text>
-    </navigator>
-
-    <navigator class="menu-item" url="/pages/audio-upload/audio-upload" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
-      <text class="menu-icon">🎧</text>
-      <text class="menu-title">音频上传</text>
-      <text class="menu-arrow">›</text>
-    </navigator>
-
-    <navigator class="menu-item" url="/pages/material-upload/material-upload" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
-      <text class="menu-icon">📦</text>
-      <text class="menu-title">资料上传</text>
-      <text class="menu-arrow">›</text>
-    </navigator>
-
-    <navigator class="menu-item" url="/pages/wallpaper-upload/wallpaper-upload" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
-      <text class="menu-icon">🖼️</text>
-      <text class="menu-title">壁纸上传</text>
-      <text class="menu-arrow">›</text>
-    </navigator>
-
-    <navigator class="menu-item" url="/pages/reminder-config/reminder-config" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
-      <text class="menu-icon">⏰</text>
-      <text class="menu-title">提醒配置</text>
-      <text class="menu-arrow">›</text>
-    </navigator>
-
-    <navigator class="menu-item" url="/pages/vip-plan-config/vip-plan-config" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
-      <text class="menu-icon">💠</text>
-      <text class="menu-title">VIP套餐管理</text>
-      <text class="menu-arrow">›</text>
-    </navigator>
-
-    <navigator class="menu-item" url="/pages/message-config/message-config" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
-      <text class="menu-icon">📣</text>
-      <text class="menu-title">消息推荐管理</text>
-      <text class="menu-arrow">›</text>
-    </navigator>
-
-    <navigator class="menu-item" url="/pages/ad-config/ad-config" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
-      <text class="menu-icon">🧩</text>
-      <text class="menu-title">广告位管理</text>
-      <text class="menu-arrow">›</text>
-    </navigator>
-
-    <navigator class="menu-item" url="/pages/help-config/help-config" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
-      <text class="menu-icon">💬</text>
-      <text class="menu-title">帮助反馈配置</text>
-      <text class="menu-arrow">›</text>
-    </navigator>
-
-    <navigator class="menu-item" url="/pages/punch-background-config/punch-background-config" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
-      <text class="menu-icon">🖼️</text>
-      <text class="menu-title">打卡背景管理</text>
-      <text class="menu-arrow">›</text>
-    </navigator>
-
-    <navigator class="menu-item" url="/pages/punch-quote-config/punch-quote-config" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
-      <text class="menu-icon">✒️</text>
-      <text class="menu-title">打卡文案管理</text>
+    <navigator class="menu-item admin-entry" url="/pages/admin-center/admin-center" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}">
+      <text class="menu-icon">管</text>
+      <text class="menu-title">管理员工作台</text>
       <text class="menu-arrow">›</text>
     </navigator>
 

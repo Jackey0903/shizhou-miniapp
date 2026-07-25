@@ -6,3 +6,4 @@
 .cfg-input, .cfg-textarea { width: 100%; min-height: 88rpx; background: #f8fafc; border-radius: 22rpx; padding: 0 24rpx; box-sizing: border-box; font-size: 28rpx; }
 .cfg-textarea { min-height: 160rpx; padding: 22rpx 24rpx; line-height: 1.6; }
 .cfg-textarea--faq { min-height: 320rpx; }
+.cfg-preview { width: 320rpx; height: 320rpx; display: block; margin: 18rpx auto 0; background: #f8fafc; border-radius: var(--radius-md); }
