@@ -6,15 +6,15 @@
 
 | 项目 | 状态 |
 | --- | --- |
-| 线上小程序版本 | `1.0.18` |
-| 最新开发版本 | `1.0.20`（已上传，待提交审核） |
+| 线上小程序版本 | `1.0.19` |
+| 最新开发版本 | `1.0.21`（已提交审核） |
 | 默认分支 | `main` |
 | 云开发环境 | `cloud-2ge02vrucaf8a6ab` |
 | 小程序 AppID | `wxca6ebd21699eca53` |
 | 支付方式 | 微信官方小程序虚拟支付 |
 | 订单中心路径 | `pages/order-center/order-center` |
 
-`1.0.20` 修复复习本“顺选/随机”进入答题页后题目不显示的问题，并增加全页面控件清单、226 条事件隔离执行和真实开发者工具回归。详细记录见 [1.0.20 发布与验收记录](docs/release-1.0.20-verification.md)。
+`1.0.21` 新增客户可直接使用的零代码管理员工作台，支持批量内容管理、模块与题库管理、运营配置、用户权限赠送和正式小程序码。详细记录见 [1.0.21 发布与验收记录](docs/release-1.0.21-verification.md)。
 
 ## 主要功能
 
@@ -296,6 +296,7 @@ node scripts/regression-security-critical.js
 
 - [1.0.18 发布与验收记录](docs/release-1.0.18-verification.md)
 - [1.0.20 发布与验收记录](docs/release-1.0.20-verification.md)
+- [1.0.21 发布与验收记录](docs/release-1.0.21-verification.md)
 - [虚拟支付部署检查](docs/virtual-payment-deploy.md)
 - [虚拟支付现网配置](docs/虚拟支付现网配置.md)
 - [客户题库交付与导入](docs/客户题库交付与导入.md)
