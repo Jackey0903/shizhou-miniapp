@@ -15,7 +15,7 @@
       data-id="{{item._id}}"
       bindtap="selectUser"
     >
-      <image class="user-avatar" src="{{item.avatarUrl || '/assets/images/default-avatar.png'}}" mode="aspectFill"/>
+      <image class="user-avatar" src="{{item.avatarUrl || '/assets/images/default-avatar.webp'}}" mode="aspectFill"/>
       <view class="user-main">
         <text class="user-name">{{item.nickName}}</text>
         <text class="user-phone">{{item.phone || '未绑定手机号'}}</text>

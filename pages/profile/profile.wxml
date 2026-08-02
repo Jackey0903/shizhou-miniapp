@@ -2,7 +2,7 @@
 <view class="profile-page">
   <!-- 用户信息卡 -->
   <view class="profile-hero" wx:if="{{isLogin}}">
-    <image class="profile-avatar" src="{{userInfo.avatarUrl || '/assets/images/default-avatar.png'}}" mode="aspectFill"/>
+    <image class="profile-avatar" src="{{userInfo.avatarUrl || '/assets/images/default-avatar.webp'}}" mode="aspectFill"/>
     <view class="profile-info">
       <text class="profile-name">{{userInfo.nickName}}</text>
       <view class="profile-vip-tag" wx:if="{{isVip}}">
@@ -13,7 +13,7 @@
 
   <!-- 未登录 -->
   <view class="profile-login-prompt" wx:else bindtap="goLogin">
-    <image class="profile-avatar-placeholder" src="/assets/images/default-avatar.png" mode="aspectFill"/>
+    <image class="profile-avatar-placeholder" src="/assets/images/default-avatar.webp" mode="aspectFill"/>
     <text class="profile-login-text">点击登录 ›</text>
   </view>
 

@@ -101,7 +101,7 @@ Page({
     return {
       title: '仕舟公考',
       path: '/pages/home/home',
-      imageUrl: '/assets/images/logo.png'
+      imageUrl: '/assets/images/logo.webp'
     }
   }
 })

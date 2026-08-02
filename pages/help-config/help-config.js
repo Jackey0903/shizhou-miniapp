@@ -30,7 +30,7 @@ Page({
     id: '',
     title: '帮助与反馈',
     desc: '遇到页面打不开、数据异常、提醒未送达等问题，可以先看下方说明，再联系客服处理。',
-    qrCodePath: '/QRcode.png',
+    qrCodePath: '/QRcode.webp',
     copyGuide: '请添加仕舟客服，并附上问题截图、页面名称、复现步骤。',
     faqText: DEFAULT_FAQ_TEXT,
     loading: false

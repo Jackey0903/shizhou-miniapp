@@ -1,7 +1,7 @@
 <view class="home-container">
   <view class="home-header">
     <view class="header-left">
-      <image class="header-logo" src="/assets/images/logo.png" mode="aspectFit"/>
+      <image class="header-logo" src="/assets/images/logo.webp" mode="aspectFit"/>
       <text class="header-slogan">日积月累，仕舟渡你上岸</text>
     </view>
     <view class="header-right">
@@ -10,7 +10,7 @@
         <view class="header-badge" wx:if="{{unreadCount > 0}}">{{unreadCount}}</view>
       </navigator>
       <navigator url="/pages/profile/profile" class="header-icon">
-        <image class="header-avatar" src="{{userInfo.avatarUrl || '/assets/images/default-avatar.png'}}" mode="aspectFill"/>
+        <image class="header-avatar" src="{{userInfo.avatarUrl || '/assets/images/default-avatar.webp'}}" mode="aspectFill"/>
       </navigator>
     </view>
   </view>

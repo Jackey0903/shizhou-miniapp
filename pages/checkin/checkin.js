@@ -2,7 +2,7 @@ const cloudApi = require('../../utils/cloudApi')
 const imageSharing = require('../../utils/imageSharing')
 const auth = require('../../utils/auth')
 
-const DEFAULT_BG = '/assets/images/default-checkin-bg.png'
+const DEFAULT_BG = '/assets/images/default-checkin-bg.webp'
 const DEFAULT_QUOTE = '今日完成一点点，未来上岸一大步。'
 const SHARE_CANVAS_SIZE = 1080
 const CHECKIN_SHARE_REWARD = 10

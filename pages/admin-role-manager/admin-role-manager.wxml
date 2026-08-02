@@ -41,7 +41,7 @@
         data-source="users"
         bindtap="selectUser"
       >
-        <image class="role-avatar" src="{{item.avatarUrl || '/assets/images/default-avatar.png'}}" mode="aspectFill"/>
+        <image class="role-avatar" src="{{item.avatarUrl || '/assets/images/default-avatar.webp'}}" mode="aspectFill"/>
         <view class="role-user-main">
           <text class="role-user-name">{{item.nickName}}</text>
           <text class="role-user-hint">{{item.identityHint}}</text>
@@ -72,7 +72,7 @@
         data-source="administrators"
         bindtap="selectUser"
       >
-        <image class="role-avatar" src="{{item.avatarUrl || '/assets/images/default-avatar.png'}}" mode="aspectFill"/>
+        <image class="role-avatar" src="{{item.avatarUrl || '/assets/images/default-avatar.webp'}}" mode="aspectFill"/>
         <view class="role-user-main">
           <text class="role-user-name">{{item.nickName}}</text>
           <text class="role-user-hint">{{item.identityHint}}</text>

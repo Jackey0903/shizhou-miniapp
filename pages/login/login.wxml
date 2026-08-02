@@ -1,7 +1,7 @@
 <!--pages/login/login.wxml-->
 <view class="login-page">
   <view class="login-hero">
-    <image class="login-logo" src="/assets/images/logo.png" mode="aspectFit"/>
+    <image class="login-logo" src="/assets/images/logo.webp" mode="aspectFit"/>
     <text class="login-app-name">仕舟公考</text>
     <text class="login-tagline">日积月累，仕舟渡你上岸</text>
   </view>

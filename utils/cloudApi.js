@@ -1,13 +1,13 @@
 // utils/cloudApi.js — 封装所有云函数调用
-const DEFAULT_COURSE_COVER = '/assets/images/default-course-cover.png'
-const DEFAULT_CHECKIN_BG = '/assets/images/default-checkin-bg.png'
+const DEFAULT_COURSE_COVER = '/assets/images/default-course-cover.webp'
+const DEFAULT_CHECKIN_BG = '/assets/images/default-checkin-bg.webp'
 const DEFAULT_WALLPAPERS = [
-    '/assets/images/default-wallpaper-1.png',
-    '/assets/images/default-wallpaper-2.png',
-    '/assets/images/default-wallpaper-3.png',
-    '/assets/images/default-wallpaper-4.png'
+    '/assets/images/default-wallpaper-1.webp',
+    '/assets/images/default-wallpaper-2.webp',
+    '/assets/images/default-wallpaper-3.webp',
+    '/assets/images/default-wallpaper-4.webp'
 ]
-const DEFAULT_IMAGE_MATERIAL = '/assets/images/default-wallpaper-3.png'
+const DEFAULT_IMAGE_MATERIAL = '/assets/images/default-wallpaper-3.webp'
 
 function isLegacyExternalImage(url = '') {
     return typeof url === 'string' && (

@@ -1,6 +1,6 @@
 Page({
   data: {
-    qrCodePath: '/QRcode.png',
+    qrCodePath: '/QRcode.webp',
     qrLoadFailed: false
   },
 

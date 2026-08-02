@@ -2,10 +2,10 @@ const cloudApi = require('../../utils/cloudApi')
 const imageSharing = require('../../utils/imageSharing')
 
 const DEFAULT_WALLPAPERS = [
-  { _id: 'local-1', imageUrl: '/assets/images/default-wallpaper-1.png', source: 'system' },
-  { _id: 'local-2', imageUrl: '/assets/images/default-wallpaper-2.png', source: 'system' },
-  { _id: 'local-3', imageUrl: '/assets/images/default-wallpaper-3.png', source: 'system' },
-  { _id: 'local-4', imageUrl: '/assets/images/default-wallpaper-4.png', source: 'system' }
+  { _id: 'local-1', imageUrl: '/assets/images/default-wallpaper-1.webp', source: 'system' },
+  { _id: 'local-2', imageUrl: '/assets/images/default-wallpaper-2.webp', source: 'system' },
+  { _id: 'local-3', imageUrl: '/assets/images/default-wallpaper-3.webp', source: 'system' },
+  { _id: 'local-4', imageUrl: '/assets/images/default-wallpaper-4.webp', source: 'system' }
 ]
 const SHARE_IMAGE_SIZE = 1080
 

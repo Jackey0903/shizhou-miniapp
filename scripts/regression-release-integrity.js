@@ -54,7 +54,7 @@ function checkRoutesAndAssets() {
         if (!registered.has(match[1].slice(1))) invalidRoutes.push(`${page}.${ext}: ${match[1]}`)
       }
       if (ext === 'wxml') {
-        const assetPattern = /\bsrc=["'](\/(?:assets|QRcode\.png)[^"'{}]*)["']/g
+        const assetPattern = /\bsrc=["'](\/(?:assets|QRcode\.webp)[^"'{}]*)["']/g
         while ((match = assetPattern.exec(text))) {
           const asset = match[1].split('?')[0].slice(1)
           if (!fs.existsSync(path.join(root, asset))) missingAssets.push(`${page}: /${asset}`)
@@ -98,14 +98,15 @@ function checkCloudFunctionReferences() {
 }
 
 function checkPackagingAndQr() {
+  const maxPackagedMediaBytes = 200 * 1024
   const config = JSON.parse(read('project.config.json'))
   const ignored = new Set(((config.packOptions || {}).ignore || []).map((item) => `${item.type}:${item.value}`))
   for (const folder of ['cloudfunctions', 'docs', 'samples', 'scripts', 'tmp']) {
     assert(ignored.has(`folder:${folder}`), `${folder} must not be included in the mini program package`)
   }
-  const qrPath = path.join(root, 'QRcode.png')
+  const qrPath = path.join(root, 'QRcode.webp')
   assert(fs.existsSync(qrPath) && fs.statSync(qrPath).size > 1024, 'Customer-service QR image is missing or empty')
-  assert(!ignored.has('file:QRcode.png'), 'Customer-service QR image is excluded from upload')
+  assert(!ignored.has('file:QRcode.webp'), 'Customer-service QR image is excluded from upload')
 
   const mediaExtensions = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.mp3', '.wav', '.m4a'])
   const packageMediaRoots = ['assets', 'pages', 'components', 'custom-tab-bar']
@@ -115,10 +116,12 @@ function checkPackagingAndQr() {
   for (const dir of packageMediaRoots) {
     mediaFiles.push(...walk(dir, (file) => mediaExtensions.has(path.extname(file).toLowerCase())))
   }
-  const oversized = [...new Set(mediaFiles)]
-    .filter((file) => fs.statSync(file).size > 200 * 1024)
-    .map((file) => `${path.relative(root, file)}: ${fs.statSync(file).size} bytes`)
-  assert.deepStrictEqual(oversized, [], `Packaged image/audio assets exceed 200 KB:\n${oversized.join('\n')}`)
+  const uniqueMediaFiles = [...new Set(mediaFiles)]
+  const packagedMediaBytes = uniqueMediaFiles.reduce((total, file) => total + fs.statSync(file).size, 0)
+  assert(
+    packagedMediaBytes < maxPackagedMediaBytes,
+    `Packaged image/audio assets total ${packagedMediaBytes} bytes; WeChat DevTools requires less than ${maxPackagedMediaBytes} bytes`
+  )
 }
 
 function checkNoClientDatabaseAccess() {

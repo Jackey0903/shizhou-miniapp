@@ -24,7 +24,7 @@ function requestSubscribeMessage(templateId) {
 Page({
   data: {
     mode: 'full',
-    supervisorQrCode: '/QRcode.png',
+    supervisorQrCode: '/QRcode.webp',
     showSupervisorQrGuide: false,
     reminderTime: '20:00',
     reminderContent: '',
