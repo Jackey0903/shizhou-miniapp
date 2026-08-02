@@ -166,7 +166,27 @@ exports.main = async (event = {}, context) => {
         }
 
         if (loginType !== 'phone' || !(phoneCode || code)) {
-            return { code: PHONE_REQUIRED_CODE, errorCode: 'PHONE_REQUIRED', msg: '登录必须授权并绑定手机号' }
+            // 兼容旧线上版本：仅已完成手机号绑定的账号可以恢复登录。
+            // 新用户和历史未绑定账号仍必须使用 getPhoneNumber 授权。
+            const existing = await db.collection('users').where({ _openid: OPENID }).limit(1).get()
+            const boundUser = (existing.data || [])[0] || null
+            const boundPhone = normalizePhone(boundUser && boundUser.phone)
+            if (!boundUser || !boundPhone) {
+                return { code: PHONE_REQUIRED_CODE, errorCode: 'PHONE_REQUIRED', msg: '登录必须授权并绑定手机号' }
+            }
+            const phoneOwners = await db.collection('users').where({ phone: boundPhone }).limit(2).get()
+            const conflictingOwner = (phoneOwners.data || []).find((item) => item._id !== boundUser._id)
+            if (conflictingOwner) {
+                return { code: PHONE_CONFLICT_CODE, errorCode: 'PHONE_ALREADY_BOUND', msg: '该手机号已绑定其他账号，请联系客服核验' }
+            }
+            await reservePhoneIdentity(boundUser._id, boundPhone)
+            await db.collection('users').doc(boundUser._id).update({
+                data: { lastLoginAt: db.serverDate() }
+            })
+            await createOnboardingMessage(OPENID)
+            const latest = await db.collection('users').doc(boundUser._id).get()
+            const { token, expiresAt: tokenExpiresAt } = await issueToken(OPENID)
+            return { code: 0, data: { ...latest.data, token, tokenExpiresAt } }
         }
         try {
             const phoneRes = await cloud.openapi.phonenumber.getPhoneNumber({ code: phoneCode || code })

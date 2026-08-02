@@ -176,6 +176,24 @@ async function testLoginRequiresPhoneAuthorization() {
   assert.strictEqual((db.state.tokens || []).length, 0)
 }
 
+async function testLegacyClientCanResumeOnlyAnAlreadyPhoneBoundAccount() {
+  const db = createMemoryDb({
+    users: [{ _id: 'bound_legacy_client', _openid: 'openid_bound_legacy', phone: '13800000009' }]
+  })
+  const fn = loadWithCloudMock('cloudfunctions/userLogin/index.js', {
+    DYNAMIC_CURRENT_ENV: 'mock-env',
+    init() {},
+    database: () => db,
+    getWXContext: () => ({ OPENID: 'openid_bound_legacy', APPID: 'wxca6ebd21699eca53' })
+  })
+  const result = await fn.main({})
+  assert.strictEqual(result.code, 0, JSON.stringify(result))
+  assert.strictEqual(result.data._id, 'bound_legacy_client')
+  assert.strictEqual(result.data.phone, '13800000009')
+  assert(result.data.token, 'legacy client compatibility must still issue an expiring token')
+  assert.strictEqual(db.state.phone_identities.length, 1)
+}
+
 async function testPhoneLoginRejectsClientProvidedPhoneData() {
   const db = createMemoryDb()
   const cloudMock = {
@@ -654,6 +672,7 @@ async function testPaidOrderGrantsBenefitsAndConfirmsDeliveryOnlyOnce() {
 
 async function main() {
   await testLoginRequiresPhoneAuthorization()
+  await testLegacyClientCanResumeOnlyAnAlreadyPhoneBoundAccount()
   await testPhoneLoginSupportsModernCode()
   await testPhoneLoginRejectsClientProvidedPhoneData()
   testWechatLoginAvoidsDeprecatedProfileAuth()
