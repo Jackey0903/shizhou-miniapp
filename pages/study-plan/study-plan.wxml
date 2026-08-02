@@ -75,6 +75,6 @@
 
   <!-- 底部保存/修改按钮 -->
   <view class="bottom-action">
-    <button class="btn btn-primary btn-full" bindtap="savePlan" loading="{{saving}}">保存学习计划</button>
+    <button class="btn btn-primary btn-full" bindtap="savePlan" loading="{{saving}}" disabled="{{saving}}">保存学习计划</button>
   </view>
 </view>

@@ -133,6 +133,7 @@ Page({
 
     async savePlan(options = {}) {
         const silent = options && options.silent === true
+        if (this.data.saving) return false
         this.setData({ saving: true })
         const dailyCount = this.data.dailyCountOptions[this.data.dailyCountIndex]
         const mode = this.data.modeIndex === 1 ? 'random' : 'sequential'
@@ -152,7 +153,18 @@ Page({
                     'plan.mode': mode,
                     remainDays: calcRemainDays(this.data.plan.deadline, this.data.course.totalCount || 0, dailyCount, this.data.learnedCount)
                 })
-                if (!silent) wx.showToast({ title: '计划已保存', icon: 'success' })
+                if (!silent) {
+                    wx.showToast({ title: '计划已保存', icon: 'success' })
+                    wx.redirectTo({
+                        url: '/pages/study-book/study-book',
+                        fail: () => {
+                            wx.navigateTo({
+                                url: '/pages/study-book/study-book',
+                                fail: () => wx.navigateBack({ delta: 1 })
+                            })
+                        }
+                    })
+                }
                 return true
             }
             throw new Error((res.result && (res.result.error || res.result.msg)) || '保存失败')
