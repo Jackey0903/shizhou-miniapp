@@ -106,6 +106,19 @@ function checkPackagingAndQr() {
   const qrPath = path.join(root, 'QRcode.png')
   assert(fs.existsSync(qrPath) && fs.statSync(qrPath).size > 1024, 'Customer-service QR image is missing or empty')
   assert(!ignored.has('file:QRcode.png'), 'Customer-service QR image is excluded from upload')
+
+  const mediaExtensions = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.mp3', '.wav', '.m4a'])
+  const packageMediaRoots = ['assets', 'pages', 'components', 'custom-tab-bar']
+    .map((name) => path.join(root, name))
+    .filter((dir) => fs.existsSync(dir))
+  const mediaFiles = [qrPath]
+  for (const dir of packageMediaRoots) {
+    mediaFiles.push(...walk(dir, (file) => mediaExtensions.has(path.extname(file).toLowerCase())))
+  }
+  const oversized = [...new Set(mediaFiles)]
+    .filter((file) => fs.statSync(file).size > 200 * 1024)
+    .map((file) => `${path.relative(root, file)}: ${fs.statSync(file).size} bytes`)
+  assert.deepStrictEqual(oversized, [], `Packaged image/audio assets exceed 200 KB:\n${oversized.join('\n')}`)
 }
 
 function checkNoClientDatabaseAccess() {
