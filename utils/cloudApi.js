@@ -48,7 +48,12 @@ async function userLogin(params = {}) {
  */
 async function getCurrentUser() {
     const res = await wx.cloud.callFunction({ name: 'userLogin', data: { action: 'getCurrentUser' } })
-    if (!res.result || res.result.code !== 0) throw new Error((res.result && res.result.msg) || '用户信息加载失败')
+    if (!res.result || res.result.code !== 0) {
+        const err = new Error((res.result && res.result.msg) || '用户信息加载失败')
+        err.code = Number(res.result && res.result.code)
+        err.errorCode = (res.result && res.result.errorCode) || ''
+        throw err
+    }
     return res.result.data || null
 }
 

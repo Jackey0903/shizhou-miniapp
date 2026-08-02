@@ -179,6 +179,12 @@ async function getCurrentUser(openid) {
   return res.data[0] || null
 }
 
+function hasBoundPhone(user) {
+  let digits = String((user && user.phone) || '').replace(/\D/g, '')
+  if (digits.length === 13 && digits.startsWith('86')) digits = digits.slice(2)
+  return /^\d{6,20}$/.test(digits)
+}
+
 async function ensureCollection(name) {
   try {
     await db.collection(name).limit(1).get()
@@ -588,7 +594,14 @@ async function createVirtualOrder(event, wxContext) {
     const productId = getVirtualProductId(plan)
     if (!productId) return { code: -1, msg: '套餐未配置虚拟支付道具ID' }
 
-    await ensureCurrentUser(OPENID, config.appId)
+    const currentUser = await getCurrentUser(OPENID)
+    if (!hasBoundPhone(currentUser)) {
+      return {
+        code: 428,
+        errorCode: 'PHONE_REQUIRED',
+        msg: '请先授权手机号登录后再购买'
+      }
+    }
 
     const sessionKey = await fetchSessionKey(config, jsCode, OPENID)
     const outTradeNo = buildOutTradeNo()

@@ -1,6 +1,6 @@
 # 仕舟公考微信小程序
 
-仕舟公考是一套基于微信原生小程序和腾讯云开发构建的公考学习应用，覆盖题库学习、错题复习、学习计划、打卡、资料领取、音频、壁纸、督学服务、会员、舟币和官方小程序虚拟支付，并提供管理员内容配置与 CSV 题库批量导入能力。
+仕舟公考是一套基于微信原生小程序和腾讯云开发构建的公考学习应用，覆盖题库学习、错题复习、学习计划、打卡、资料领取、音频、壁纸、督学服务、会员、舟币和官方小程序虚拟支付，并提供管理员内容配置与 CSV 题库批量导入能力。账号登录必须通过微信官方能力授权并绑定手机号，手机号作为唯一业务标识。
 
 ## 当前状态
 
@@ -141,7 +141,7 @@ npx @cloudbase/cli fn deploy adminOperations -e cloud-2ge02vrucaf8a6ab --force
 
 | 范围 | 集合 |
 | --- | --- |
-| 用户与身份 | `users`、`tokens`、`manual_grants`、`admin_audit_logs` |
+| 用户与身份 | `users`、`phone_identities`、`tokens`、`manual_grants`、`admin_audit_logs` |
 | 题库 | `subjects`、`question_banks`、`questions`、`courses` |
 | 学习 | `plans`、`study_records`、`checkins`、`study_reminders` |
 | 支付与权益 | `vip_plans`、`orders`、`coin_logs` |
@@ -150,6 +150,8 @@ npx @cloudbase/cli fn deploy adminOperations -e cloud-2ge02vrucaf8a6ab --force
 | 运营配置 | `ad_slots`、`punch_backgrounds`、`punch_quotes`、`notification_settings`、`mini_program_codes` |
 
 生产数据库集合使用 `ADMINONLY`。小程序页面不直接读写生产数据库，统一通过云函数校验当前微信 `OPENID`、管理员身份和字段白名单。云存储保持公开读取、创建者写入，不得将生产写权限放宽为所有用户可写。
+
+用户登录必须先勾选用户协议和隐私政策，再通过 `getPhoneNumber` 获取一次性授权码，由 `userLogin` 云函数调用微信官方接口换取手机号。手机号是唯一业务标识，同一手机号只能绑定一个微信账号，已绑定账号不能在客户端自行换号；`phone_identities` 使用手机号哈希建立并发唯一锁，不重复保存明文手机号。`OPENID` 继续作为微信技术关联键，以保持历史答题、订单、学习记录和管理员权限不变。历史无手机号账号会在下次登录时强制补绑，补绑不会更改原用户 ID 或既有业务数据。
 
 权限分为唯一“最高管理员”和普通“管理员”。最高管理员拥有全部后台权限，并可在“管理员工作台 -> 管理员管理”查看全部用户和管理员、按手机号/昵称/用户 ID 搜索用户、新增或取消普通管理员，以及移交最高权限；普通管理员只能维护日常运营内容，不能查看完整用户列表或管理管理员。
 
@@ -246,7 +248,7 @@ VIRTUAL_PAY_ENV=0
 node scripts/verify-release-readiness.js
 ```
 
-该命令覆盖 JavaScript 语法、登录、虚拟支付、支付补偿、VIP/督学套餐隔离、分享权限、打卡舟币、题库 CSV、管理员上传与授权、管理员工作台结构、学习流程、顺选/随机复习、全部页面控件、路由资源和关键安全规则。
+该命令覆盖 JavaScript 语法、手机号强制绑定与唯一性、登录、虚拟支付、支付补偿、VIP/督学套餐隔离、分享权限、打卡舟币、题库 CSV、管理员上传与授权、管理员工作台结构、学习流程、顺选/随机复习、全部页面控件、路由资源和关键安全规则。
 
 需要单独定位问题时，可执行：
 
@@ -315,6 +317,7 @@ node scripts/regression-security-critical.js
 
 - 不提交 `project.private.config.json`、生产密钥、访问令牌、数据库导出或客户原始资料。
 - 不在客户端信任用户提交的管理员、支付状态、手机号或权益字段。
+- 登录、恢复本地会话和创建支付订单都必须验证已绑定手机号；手机号冲突或换号只能由服务端拒绝并交由客服核验。
 - 支付和权益发放必须以微信服务端订单状态为准，并保持幂等。
 - 修改数据库或存储权限前先备份并执行安全回归。
 - 正式发布前必须完成自动化检查和真机验收。

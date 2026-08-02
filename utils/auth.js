@@ -1,3 +1,5 @@
+const { hasBoundPhone } = require('./phone')
+
 function buildCurrentPageUrl() {
   const pages = getCurrentPages ? getCurrentPages() : []
   const current = pages[pages.length - 1]
@@ -9,6 +11,22 @@ function buildCurrentPageUrl() {
   return `/${current.route}${query ? `?${query}` : ''}`
 }
 
+function clearLocalLogin() {
+  const app = getApp()
+  if (app.globalData) {
+    app.globalData.userInfo = null
+    app.globalData.isLogin = false
+    app.globalData.isVip = false
+    app.globalData.vipExpireDate = null
+    app.globalData.coins = 0
+    app.globalData.token = ''
+    app.globalData.tokenExpiresAt = ''
+  }
+  wx.removeStorageSync('userInfo')
+  wx.removeStorageSync('token')
+  wx.removeStorageSync('tokenExpiresAt')
+}
+
 function hasLocalLogin() {
   const app = getApp()
   try {
@@ -16,13 +34,8 @@ function hasLocalLogin() {
     const token = (app.globalData && app.globalData.token) || wx.getStorageSync('token')
     const tokenExpiresAt = (app.globalData && app.globalData.tokenExpiresAt) || wx.getStorageSync('tokenExpiresAt')
     const expiryTime = tokenExpiresAt ? new Date(tokenExpiresAt).getTime() : 0
-    const valid = !!userInfo && !!token && (!expiryTime || expiryTime > Date.now())
-    if (!valid && app.globalData) {
-      app.globalData.userInfo = null
-      app.globalData.isLogin = false
-      app.globalData.token = ''
-      app.globalData.tokenExpiresAt = ''
-    }
+    const valid = hasBoundPhone(userInfo) && !!token && (!expiryTime || expiryTime > Date.now())
+    if (!valid) clearLocalLogin()
     return valid
   } catch (err) {
     return false
@@ -61,6 +74,7 @@ function requireLogin(message = '购买前请先登录账号') {
 }
 
 module.exports = {
+  clearLocalLogin,
   hasLocalLogin,
   requireLogin
 }

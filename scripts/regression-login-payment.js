@@ -156,6 +156,24 @@ async function testPhoneLoginSupportsModernCode() {
   assert.strictEqual(result.code, 0, JSON.stringify(result))
   assert.strictEqual(requestedCode, 'PHONE_CODE_123')
   assert.strictEqual(result.data.phone, '13800000000')
+  assert.strictEqual(db.state.phone_identities.length, 1, 'verified phone must have a unique identity reservation')
+  assert.strictEqual(db.state.phone_identities[0].userId, result.data._id)
+  assert(!db.state.phone_identities[0].phone, 'identity reservation must not duplicate the raw phone number')
+}
+
+async function testLoginRequiresPhoneAuthorization() {
+  const db = createMemoryDb()
+  const fn = loadWithCloudMock('cloudfunctions/userLogin/index.js', {
+    DYNAMIC_CURRENT_ENV: 'mock-env',
+    init() {},
+    database: () => db,
+    getWXContext: () => ({ OPENID: 'openid_without_phone', APPID: 'wxca6ebd21699eca53' })
+  })
+  const result = await fn.main({})
+  assert.strictEqual(result.code, 428, JSON.stringify(result))
+  assert.strictEqual(result.errorCode, 'PHONE_REQUIRED')
+  assert.strictEqual((db.state.users || []).length, 0)
+  assert.strictEqual((db.state.tokens || []).length, 0)
 }
 
 async function testPhoneLoginRejectsClientProvidedPhoneData() {
@@ -177,13 +195,145 @@ function testWechatLoginAvoidsDeprecatedProfileAuth() {
   const loginWxml = require('fs').readFileSync(path.join(projectRoot, 'pages/login/login.wxml'), 'utf8')
   const loginJs = require('fs').readFileSync(path.join(projectRoot, 'pages/login/login.js'), 'utf8')
   assert(!loginWxml.includes('open-type="getUserInfo"'), 'login.wxml must not use deprecated open-type=getUserInfo')
-  assert(!loginJs.includes('wx.getUserProfile'), 'WeChat one-tap login should not require profile authorization')
-  assert(loginJs.includes('cloudApi.userLogin({})'), 'WeChat one-tap login should create/login by openid')
+  assert(!loginJs.includes('wx.getUserProfile'), 'WeChat login must not require deprecated profile authorization')
+  assert(!loginJs.includes('cloudApi.userLogin({})'), 'openid-only login must not be available')
+  assert.strictEqual((loginWxml.match(/open-type="getPhoneNumber"/g) || []).length, 1, 'login must use one phone authorization button')
+  assert(loginWxml.includes('disabled="{{loading || !agreed}}"'), 'phone authorization must require agreement consent')
+  assert(loginJs.includes('phoneCode'), 'login must forward the modern one-time phone code')
 }
 
-async function testCreateVipOrderCreatesMissingUser() {
+async function testLegacyUserBindsPhoneWithoutLosingIdentityOrRole() {
+  const db = createMemoryDb({
+    users: [{
+      _id: 'legacy_admin',
+      _openid: 'openid_legacy',
+      phone: '',
+      role: 'admin',
+      isAdmin: true,
+      coins: 77,
+      streak: 9
+    }]
+  })
+  const fn = loadWithCloudMock('cloudfunctions/userLogin/index.js', {
+    DYNAMIC_CURRENT_ENV: 'mock-env',
+    init() {},
+    database: () => db,
+    getWXContext: () => ({ OPENID: 'openid_legacy', APPID: 'wxca6ebd21699eca53' }),
+    openapi: {
+      phonenumber: {
+        async getPhoneNumber() {
+          return { phone_info: { purePhoneNumber: '13900000001' } }
+        }
+      }
+    }
+  })
+  const result = await fn.main({ loginType: 'phone', phoneCode: 'LEGACY_BIND_CODE' })
+  assert.strictEqual(result.code, 0, JSON.stringify(result))
+  assert.strictEqual(result.data._id, 'legacy_admin')
+  assert.strictEqual(result.data.phone, '13900000001')
+  assert.strictEqual(result.data.role, 'admin')
+  assert.strictEqual(result.data.coins, 77)
+  assert.strictEqual(result.data.streak, 9)
+  assert.strictEqual(db.state.users.length, 1)
+}
+
+async function testDuplicatePhoneCannotBindAnotherWechatAccount() {
+  const db = createMemoryDb({
+    users: [{ _id: 'phone_owner', _openid: 'openid_owner', phone: '13900000002' }]
+  })
+  const fn = loadWithCloudMock('cloudfunctions/userLogin/index.js', {
+    DYNAMIC_CURRENT_ENV: 'mock-env',
+    init() {},
+    database: () => db,
+    getWXContext: () => ({ OPENID: 'openid_other', APPID: 'wxca6ebd21699eca53' }),
+    openapi: {
+      phonenumber: {
+        async getPhoneNumber() {
+          return { phone_info: { purePhoneNumber: '13900000002' } }
+        }
+      }
+    }
+  })
+  const result = await fn.main({ loginType: 'phone', phoneCode: 'DUPLICATE_PHONE_CODE' })
+  assert.strictEqual(result.code, 409, JSON.stringify(result))
+  assert.strictEqual(result.errorCode, 'PHONE_ALREADY_BOUND')
+  assert.strictEqual(db.state.users.length, 1)
+  assert.strictEqual((db.state.tokens || []).length, 0)
+}
+
+async function testBoundAccountCannotSilentlyChangePhone() {
+  const db = createMemoryDb({
+    users: [{ _id: 'bound_user', _openid: 'openid_bound', phone: '13900000003' }]
+  })
+  const fn = loadWithCloudMock('cloudfunctions/userLogin/index.js', {
+    DYNAMIC_CURRENT_ENV: 'mock-env',
+    init() {},
+    database: () => db,
+    getWXContext: () => ({ OPENID: 'openid_bound', APPID: 'wxca6ebd21699eca53' }),
+    openapi: {
+      phonenumber: {
+        async getPhoneNumber() {
+          return { phone_info: { purePhoneNumber: '13900000004' } }
+        }
+      }
+    }
+  })
+  const result = await fn.main({ loginType: 'phone', phoneCode: 'CHANGE_PHONE_CODE' })
+  assert.strictEqual(result.code, 409, JSON.stringify(result))
+  assert.strictEqual(result.errorCode, 'PHONE_CHANGE_FORBIDDEN')
+  assert.strictEqual(db.state.users[0].phone, '13900000003')
+}
+
+async function testCurrentUserRequiresBoundPhone() {
+  const db = createMemoryDb({
+    users: [{ _id: 'legacy_user', _openid: 'openid_legacy_current', phone: '' }]
+  })
+  const fn = loadWithCloudMock('cloudfunctions/userLogin/index.js', {
+    DYNAMIC_CURRENT_ENV: 'mock-env',
+    init() {},
+    database: () => db,
+    getWXContext: () => ({ OPENID: 'openid_legacy_current', APPID: 'wxca6ebd21699eca53' })
+  })
+  const result = await fn.main({ action: 'getCurrentUser' })
+  assert.strictEqual(result.code, 428, JSON.stringify(result))
+  assert.strictEqual(result.errorCode, 'PHONE_REQUIRED')
+}
+
+async function testCreateVipOrderRequiresPhoneBoundUser() {
   const db = createMemoryDb({
     users: [],
+    vip_plans: [{
+      code: 'basic_vip_year', name: '基础VIP包年', tag: '基础VIP', price: 19800,
+      days: 365, supervisionDays: 0, virtualProductId: 'sz_basic_vip_year',
+      benefits: [], enabled: true, sort: 1
+    }]
+  })
+  const cloudMock = {
+    DYNAMIC_CURRENT_ENV: 'mock-env',
+    init() {},
+    database: () => db,
+    getWXContext: () => ({ OPENID: 'openid_pay', APPID: 'wxca6ebd21699eca53' })
+  }
+  const oldEnv = { ...process.env }
+  process.env.VIRTUAL_PAY_ENV = '0'
+  process.env.VIRTUAL_PAY_OFFER_ID = '1450567889'
+  process.env.VIRTUAL_PAY_PROD_APP_KEY = 'test_app_key'
+  process.env.WECHAT_APP_SECRET = 'test_secret'
+  try {
+    const fn = loadWithCloudMock('cloudfunctions/createVipOrder/index.js', cloudMock)
+    const result = await fn.main({ planCode: 'basic_vip_year', jsCode: 'JS_CODE' })
+    assert.strictEqual(result.code, 428, JSON.stringify(result))
+    assert.strictEqual(result.errorCode, 'PHONE_REQUIRED')
+    assert.strictEqual(db.state.users.length, 0, 'payment must not create an unverified user')
+    assert.strictEqual((db.state.orders || []).length, 0)
+  } finally {
+    process.env = oldEnv
+  }
+}
+
+async function testCreateVipOrderSupportsPhoneBoundUser() {
+  const db = createMemoryDb({
+    users: [{ _id: 'bound_pay_user', _openid: 'openid_pay', phone: '13900000005' }],
     vip_plans: [{
       code: 'basic_vip_year',
       name: '基础VIP包年',
@@ -238,7 +388,7 @@ async function testCreateVipOrderCreatesMissingUser() {
     const fn = loadWithCloudMock('cloudfunctions/createVipOrder/index.js', cloudMock)
     const result = await fn.main({ planCode: 'basic_vip_year', jsCode: 'JS_CODE' })
     assert.strictEqual(result.code, 0, JSON.stringify(result))
-    assert.strictEqual(db.state.users.length, 1, 'missing user should be created before payment order')
+    assert.strictEqual(db.state.users.length, 1, 'payment must preserve the verified user')
     assert.strictEqual(db.state.orders.length, 1, 'payment order should be created')
     assert(result.data.payment.signData, 'payment signData should be returned')
     const signData = JSON.parse(result.data.payment.signData)
@@ -503,10 +653,16 @@ async function testPaidOrderGrantsBenefitsAndConfirmsDeliveryOnlyOnce() {
 }
 
 async function main() {
+  await testLoginRequiresPhoneAuthorization()
   await testPhoneLoginSupportsModernCode()
   await testPhoneLoginRejectsClientProvidedPhoneData()
   testWechatLoginAvoidsDeprecatedProfileAuth()
-  await testCreateVipOrderCreatesMissingUser()
+  await testLegacyUserBindsPhoneWithoutLosingIdentityOrRole()
+  await testDuplicatePhoneCannotBindAnotherWechatAccount()
+  await testBoundAccountCannotSilentlyChangePhone()
+  await testCurrentUserRequiresBoundPhone()
+  await testCreateVipOrderRequiresPhoneBoundUser()
+  await testCreateVipOrderSupportsPhoneBoundUser()
   await testCreateVipOrderDoesNotUseHardcodedPlanFallback()
   await testPlansOnlyExposePublishedProductMappings()
   await testCreateVipOrderNeverFallsBackToBusinessPlanCodeAsProductId()

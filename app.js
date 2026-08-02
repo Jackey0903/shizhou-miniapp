@@ -1,5 +1,6 @@
 // app.js
 const CLOUD_ENV_ID = 'cloud-2ge02vrucaf8a6ab'
+const { hasBoundPhone } = require('./utils/phone')
 
 App({
   onLaunch() {
@@ -19,7 +20,7 @@ App({
     const tokenExpiresAt = wx.getStorageSync('tokenExpiresAt')
     const expiryTime = tokenExpiresAt ? new Date(tokenExpiresAt).getTime() : 0
     const tokenValid = !!token && (!expiryTime || expiryTime > Date.now())
-    if (userInfo && tokenValid) {
+    if (userInfo && tokenValid && hasBoundPhone(userInfo)) {
       this.globalData.userInfo = userInfo
       this.globalData.isLogin = true
       this.globalData.token = token

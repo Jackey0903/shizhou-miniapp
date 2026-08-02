@@ -1,4 +1,5 @@
 const cloudApi = require('../../utils/cloudApi')
+const auth = require('../../utils/auth')
 
 Page({
     data: {
@@ -33,10 +34,21 @@ Page({
                 app.globalData.coins = user.coins || 0
                 wx.setStorageSync('userInfo', user)
                 this.setData({ userInfo: user, isVip: app.globalData.isVip })
+            } else {
+                this._clearSession()
             }
         } catch (e) {
             console.error('刷新用户失败', e)
+            if (e.code === 428 || e.errorCode === 'PHONE_REQUIRED') {
+                this._clearSession()
+                wx.showToast({ title: '请绑定手机号后重新登录', icon: 'none' })
+            }
         }
+    },
+
+    _clearSession() {
+        auth.clearLocalLogin()
+        this.setData({ userInfo: null, isLogin: false, isVip: false })
     },
 
     goLogin() {
@@ -49,16 +61,7 @@ Page({
             content: '退出后需要重新登录',
             success: (res) => {
                 if (res.confirm) {
-                    const app = getApp()
-                    app.globalData.userInfo = null
-                    app.globalData.isLogin = false
-                    app.globalData.isVip = false
-                    wx.removeStorageSync('userInfo')
-                    wx.removeStorageSync('token')
-                    wx.removeStorageSync('tokenExpiresAt')
-                    app.globalData.token = ''
-                    app.globalData.tokenExpiresAt = ''
-                    this.setData({ userInfo: null, isLogin: false, isVip: false })
+                    this._clearSession()
                 }
             }
         })
