@@ -79,6 +79,23 @@ function publicUser(user = {}) {
   }
 }
 
+function isSuperAdminUser(user = {}) {
+  return user.isSuperAdmin === true || user.role === 'super_admin'
+}
+
+function isAdminUser(user = {}) {
+  return isSuperAdminUser(user) || user.isAdmin === true || user.role === 'admin'
+}
+
+function publicAdminUser(user = {}) {
+  return {
+    ...publicUser(user),
+    isAdmin: isAdminUser(user),
+    isSuperAdmin: isSuperAdminUser(user),
+    role: isSuperAdminUser(user) ? 'super_admin' : (isAdminUser(user) ? 'admin' : 'user')
+  }
+}
+
 function normalizeBinaryResponse(response) {
   const value = response && (response.buffer || response.data || response)
   if (!value) return null
@@ -100,5 +117,8 @@ module.exports = {
   escapeRegExp,
   addDaysFromCurrent,
   publicUser,
+  publicAdminUser,
+  isAdminUser,
+  isSuperAdminUser,
   normalizeBinaryResponse
 }

@@ -34,15 +34,22 @@ const GROUPS = [
 
 Page({
   data: {
-    groups: GROUPS,
+    groups: [],
     checking: true,
-    authorized: false
+    authorized: false,
+    isSuperAdmin: false
   },
 
   async onLoad() {
     try {
       await cloudApi.assertAdmin()
-      this.setData({ authorized: true })
+      const identity = await cloudApi.getAdminIdentity()
+      const isSuperAdmin = !!(identity.current && identity.current.isSuperAdmin)
+      const groups = GROUPS.map((group) => ({ ...group, items: group.items.slice() }))
+      if (isSuperAdmin) {
+        groups[2].items.unshift({ title: '管理员管理', icon: '管', url: '/pages/admin-role-manager/admin-role-manager' })
+      }
+      this.setData({ authorized: true, isSuperAdmin, groups })
     } catch (err) {
       wx.showModal({
         title: '无管理员权限',

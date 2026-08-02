@@ -9,6 +9,9 @@ const {
   isEnabled,
   addDaysFromCurrent,
   publicUser,
+  publicAdminUser,
+  isAdminUser,
+  isSuperAdminUser,
   normalizeBinaryResponse
 } = require('../cloudfunctions/adminOperations/adminCore')
 
@@ -76,6 +79,28 @@ test('admin user search response excludes openid, token and secrets', () => {
   assert.equal(safe.coins, 12)
   assert.equal(Object.hasOwn(safe, '_openid'), false)
   assert.equal(Object.hasOwn(safe, 'token'), false)
+})
+
+test('administrator roles distinguish the unique highest administrator', () => {
+  assert.equal(isAdminUser({ isAdmin: true }), true)
+  assert.equal(isAdminUser({ role: 'admin' }), true)
+  assert.equal(isAdminUser({ role: 'super_admin' }), true)
+  assert.equal(isSuperAdminUser({ isSuperAdmin: true }), true)
+  assert.equal(isSuperAdminUser({ role: 'super_admin' }), true)
+  assert.equal(isSuperAdminUser({ isAdmin: true, role: 'admin' }), false)
+
+  const safe = publicAdminUser({
+    _id: 'owner-1',
+    _openid: 'secret-openid',
+    nickName: '最高管理员',
+    isAdmin: true,
+    isSuperAdmin: true,
+    role: 'super_admin'
+  })
+  assert.equal(safe.isAdmin, true)
+  assert.equal(safe.isSuperAdmin, true)
+  assert.equal(safe.role, 'super_admin')
+  assert.equal(Object.hasOwn(safe, '_openid'), false)
 })
 
 test('mini program code responses accept common cloud SDK binary types', () => {

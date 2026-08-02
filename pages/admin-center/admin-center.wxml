@@ -4,7 +4,7 @@
   <block wx:elif="{{authorized}}">
     <view class="admin-summary">
       <text class="admin-summary-title">运营工作台</text>
-      <text class="admin-summary-sub">上传前请核对内容，发布后可随时下线或撤回。</text>
+      <text class="admin-summary-sub">{{isSuperAdmin ? '最高管理员 · 可管理全部功能和管理员' : '管理员 · 可维护日常运营内容'}}</text>
     </view>
 
     <view class="admin-group" wx:for="{{groups}}" wx:key="title" wx:for-item="group">

@@ -27,6 +27,7 @@
     "pages/material/material",
     "pages/coin-log/coin-log",
     "pages/admin-center/admin-center",
+    "pages/admin-role-manager/admin-role-manager",
     "pages/user-access-admin/user-access-admin",
     "pages/miniapp-code/miniapp-code",
     "pages/question-upload/question-upload",

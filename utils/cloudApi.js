@@ -732,8 +732,31 @@ async function searchAdminUsers(keyword) {
     return result.data || []
 }
 
+async function getAdminUsers(page = 1, pageSize = 20) {
+    const result = await callAdminOperation('listUsers', { page, pageSize })
+    return result.data || { items: [], page: 1, pageSize, total: 0, hasMore: false }
+}
+
 async function grantAdminUserAccess(payload) {
     return callAdminOperation('grantAccess', payload)
+}
+
+async function getAdminIdentity() {
+    const result = await callAdminOperation('getAdminIdentity')
+    return result.data || { current: null, hasSuperAdmin: false }
+}
+
+async function getAdministrators() {
+    const result = await callAdminOperation('listAdministrators')
+    return result.data || []
+}
+
+async function setAdministrator(userId, enabled) {
+    return callAdminOperation('setAdministrator', { userId, enabled })
+}
+
+async function transferSuperAdministrator(userId) {
+    return callAdminOperation('transferSuperAdmin', { userId })
 }
 
 async function getAdminGrantLogs() {
@@ -769,6 +792,7 @@ module.exports = {
     assertAdmin, listAdminConfigs, saveAdminConfig, toggleAdminConfig, getHelpConfig,
     callAdminOperation, getAdminCourseTree, saveAdminSubject, saveAdminQuestionBank,
     listAdminContent, toggleAdminContent,
-    searchAdminUsers, grantAdminUserAccess, getAdminGrantLogs,
+    searchAdminUsers, getAdminUsers, grantAdminUserAccess, getAdminGrantLogs,
+    getAdminIdentity, getAdministrators, setAdministrator, transferSuperAdministrator,
     getAdminMiniProgramCode, generateAdminMiniProgramCode
 }

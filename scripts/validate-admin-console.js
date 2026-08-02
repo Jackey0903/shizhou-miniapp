@@ -5,6 +5,7 @@ const root = path.resolve(__dirname, '..')
 const app = JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8'))
 const requiredPages = [
   'pages/admin-center/admin-center',
+  'pages/admin-role-manager/admin-role-manager',
   'pages/user-access-admin/user-access-admin',
   'pages/miniapp-code/miniapp-code',
   'pages/course-upload/course-upload',
@@ -45,6 +46,11 @@ const cloudApi = fs.readFileSync(path.join(root, 'utils/cloudApi.js'), 'utf8')
   'listAdminContent',
   'toggleAdminContent',
   'searchAdminUsers',
+  'getAdminUsers',
+  'getAdminIdentity',
+  'getAdministrators',
+  'setAdministrator',
+  'transferSuperAdministrator',
   'grantAdminUserAccess',
   'getAdminMiniProgramCode',
   'generateAdminMiniProgramCode'
@@ -54,6 +60,18 @@ const cloudApi = fs.readFileSync(path.join(root, 'utils/cloudApi.js'), 'utf8')
 
 const adminFunction = path.join(root, 'cloudfunctions/adminOperations/index.js')
 if (!fs.existsSync(adminFunction)) failures.push('adminOperations 云函数不存在')
+if (fs.existsSync(adminFunction)) {
+  const source = fs.readFileSync(adminFunction, 'utf8')
+  ;[
+    'bootstrapSuperAdmin',
+    'listUsers',
+    'setAdministrator',
+    'transferSuperAdmin',
+    'isSuperAdminUser(admin)'
+  ].forEach((contract) => {
+    if (!source.includes(contract)) failures.push(`adminOperations 缺少最高管理员约束：${contract}`)
+  })
+}
 const cloudbase = JSON.parse(fs.readFileSync(path.join(root, 'cloudbaserc.json'), 'utf8'))
 if (!(cloudbase.functions || []).some((item) => item.name === 'adminOperations')) {
   failures.push('cloudbaserc.json 未登记 adminOperations')

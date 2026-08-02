@@ -8,6 +8,9 @@ const {
   isEnabled,
   addDaysFromCurrent,
   publicUser,
+  publicAdminUser,
+  isAdminUser,
+  isSuperAdminUser,
   normalizeBinaryResponse
 } = require('./adminCore')
 
@@ -50,7 +53,7 @@ async function readAll(collectionName, maxItems = 2000) {
 async function getAdmin(openid) {
   const result = await db.collection('users').where({ _openid: openid }).limit(1).get()
   const user = (result.data || [])[0]
-  return user && (user.isAdmin === true || user.role === 'admin') ? user : null
+  return isAdminUser(user) ? user : null
 }
 
 async function audit(admin, action, detail = {}) {
@@ -229,7 +232,35 @@ async function toggleContent(payload, admin) {
   return { code: 0, msg: enabled ? '已上线' : '已下线' }
 }
 
-async function searchUsers(payload) {
+async function listUsers(payload, admin) {
+  if (!isSuperAdminUser(admin)) return { code: 403, msg: '仅最高管理员可查看全部用户' }
+  const page = integer(payload.page, 1, 1, 100000)
+  const pageSize = integer(payload.pageSize, 20, 1, 50)
+  const offset = (page - 1) * pageSize
+  const [countRes, usersRes] = await Promise.all([
+    db.collection('users').count(),
+    db.collection('users')
+      .orderBy('_id', 'desc')
+      .skip(offset)
+      .limit(pageSize)
+      .get()
+  ])
+  const items = (usersRes.data || []).map(publicAdminUser)
+  const total = integer(countRes.total, 0, 0)
+  return {
+    code: 0,
+    data: {
+      items,
+      page,
+      pageSize,
+      total,
+      hasMore: offset + items.length < total
+    }
+  }
+}
+
+async function searchUsers(payload, admin) {
+  if (!isSuperAdminUser(admin)) return { code: 403, msg: '仅最高管理员可搜索用户' }
   const keyword = text(payload.keyword, 80).toLowerCase()
   if (!keyword) return { code: -1, msg: '请输入手机号或昵称' }
   const users = await readAll('users', 5000)
@@ -245,8 +276,135 @@ async function searchUsers(payload) {
       return rightTime - leftTime
     })
     .slice(0, 50)
-    .map(publicUser)
+    .map(publicAdminUser)
   return { code: 0, data: matched }
+}
+
+async function getAdminIdentity(admin) {
+  const users = await readAll('users', 5000)
+  return {
+    code: 0,
+    data: {
+      current: publicAdminUser(admin),
+      hasSuperAdmin: users.some(isSuperAdminUser)
+    }
+  }
+}
+
+async function listAdministrators(admin) {
+  if (!isSuperAdminUser(admin)) return { code: 403, msg: '仅最高管理员可查看管理员列表' }
+  const users = await readAll('users', 5000)
+  const administrators = users
+    .filter(isAdminUser)
+    .sort((left, right) => {
+      if (isSuperAdminUser(left) !== isSuperAdminUser(right)) return isSuperAdminUser(left) ? -1 : 1
+      return String(left.nickName || '').localeCompare(String(right.nickName || ''), 'zh-CN')
+    })
+    .map(publicAdminUser)
+  return { code: 0, data: administrators }
+}
+
+async function bootstrapSuperAdmin(payload, admin) {
+  const userId = text(payload.userId, 100)
+  if (!userId) return { code: -1, msg: '请选择最高管理员账号' }
+
+  const users = await readAll('users', 5000)
+  const existing = users.find(isSuperAdminUser)
+  if (existing) return { code: -1, msg: '最高管理员已存在，不能重复初始化' }
+
+  const target = users.find((user) => user._id === userId)
+  if (!target) return { code: -1, msg: '目标用户不存在' }
+
+  await db.collection('users').doc(userId).update({
+    data: {
+      isAdmin: true,
+      isSuperAdmin: true,
+      role: 'super_admin',
+      updatedAt: db.serverDate()
+    }
+  })
+  await audit(admin, 'bootstrap_super_admin', {
+    userId,
+    userName: text(target.nickName || '未设置昵称', 40),
+    userPhone: text(target.phone || '', 30)
+  })
+  return {
+    code: 0,
+    msg: '最高管理员已初始化',
+    data: publicAdminUser({ ...target, isAdmin: true, isSuperAdmin: true, role: 'super_admin' })
+  }
+}
+
+async function setAdministrator(payload, admin) {
+  if (!isSuperAdminUser(admin)) return { code: 403, msg: '仅最高管理员可设置管理员' }
+  const userId = text(payload.userId, 100)
+  const enabled = payload.enabled === true
+  if (!userId) return { code: -1, msg: '请选择用户' }
+
+  const userRes = await db.collection('users').doc(userId).get().catch(() => ({ data: null }))
+  const user = userRes.data
+  if (!user) return { code: -1, msg: '用户不存在' }
+  if (isSuperAdminUser(user)) return { code: -1, msg: '最高管理员不能在这里取消权限' }
+
+  const update = enabled
+    ? { isAdmin: true, isSuperAdmin: false, role: 'admin', updatedAt: db.serverDate() }
+    : { isAdmin: false, isSuperAdmin: false, role: 'user', updatedAt: db.serverDate() }
+  await db.collection('users').doc(userId).update({ data: update })
+  await audit(admin, enabled ? 'grant_admin' : 'revoke_admin', {
+    userId,
+    userName: text(user.nickName || '未设置昵称', 40)
+  })
+  return {
+    code: 0,
+    msg: enabled ? '已设为管理员' : '已取消管理员',
+    data: publicAdminUser({ ...user, ...update })
+  }
+}
+
+async function transferSuperAdmin(payload, admin) {
+  if (!isSuperAdminUser(admin)) return { code: 403, msg: '仅最高管理员可移交权限' }
+  const userId = text(payload.userId, 100)
+  if (!userId) return { code: -1, msg: '请选择接收用户' }
+  if (userId === admin._id) return { code: -1, msg: '当前用户已经是最高管理员' }
+
+  const targetRes = await db.collection('users').doc(userId).get().catch(() => ({ data: null }))
+  const target = targetRes.data
+  if (!target) return { code: -1, msg: '接收用户不存在' }
+
+  await db.runTransaction(async (transaction) => {
+    const currentRes = await transaction.collection('users').doc(admin._id).get()
+    const latestTargetRes = await transaction.collection('users').doc(userId).get()
+    if (!isSuperAdminUser(currentRes.data)) throw new Error('最高管理员身份已变化，请刷新后重试')
+    if (!latestTargetRes.data) throw new Error('接收用户不存在')
+
+    await transaction.collection('users').doc(admin._id).update({
+      data: {
+        isAdmin: true,
+        isSuperAdmin: false,
+        role: 'admin',
+        updatedAt: db.serverDate()
+      }
+    })
+    await transaction.collection('users').doc(userId).update({
+      data: {
+        isAdmin: true,
+        isSuperAdmin: true,
+        role: 'super_admin',
+        updatedAt: db.serverDate()
+      }
+    })
+  })
+
+  await audit(admin, 'transfer_super_admin', {
+    fromUserId: admin._id,
+    toUserId: userId,
+    toUserName: text(target.nickName || '未设置昵称', 40)
+  })
+  return {
+    code: 0,
+    msg: '最高管理员已移交',
+    data: publicAdminUser({ ...target, isAdmin: true, isSuperAdmin: true, role: 'super_admin' })
+  }
 }
 
 async function grantAccess(payload, admin) {
@@ -361,7 +519,13 @@ exports.main = async (event = {}) => {
     if (action === 'saveBank') return saveBank(payload, admin)
     if (action === 'listContent') return listContent(payload)
     if (action === 'toggleContent') return toggleContent(payload, admin)
-    if (action === 'searchUsers') return searchUsers(payload)
+    if (action === 'listUsers') return listUsers(payload, admin)
+    if (action === 'searchUsers') return searchUsers(payload, admin)
+    if (action === 'getAdminIdentity') return getAdminIdentity(admin)
+    if (action === 'listAdministrators') return listAdministrators(admin)
+    if (action === 'bootstrapSuperAdmin') return bootstrapSuperAdmin(payload, admin)
+    if (action === 'setAdministrator') return setAdministrator(payload, admin)
+    if (action === 'transferSuperAdmin') return transferSuperAdmin(payload, admin)
     if (action === 'grantAccess') return grantAccess(payload, admin)
     if (action === 'listGrants') return listGrants()
     if (action === 'getMiniProgramCode') return getMiniProgramCode()
