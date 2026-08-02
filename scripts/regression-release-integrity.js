@@ -54,7 +54,7 @@ function checkRoutesAndAssets() {
         if (!registered.has(match[1].slice(1))) invalidRoutes.push(`${page}.${ext}: ${match[1]}`)
       }
       if (ext === 'wxml') {
-        const assetPattern = /\bsrc=["'](\/(?:assets|QRcode\.webp)[^"'{}]*)["']/g
+        const assetPattern = /\bsrc=["'](\/(?:assets|QRcode\.png)[^"'{}]*)["']/g
         while ((match = assetPattern.exec(text))) {
           const asset = match[1].split('?')[0].slice(1)
           if (!fs.existsSync(path.join(root, asset))) missingAssets.push(`${page}: /${asset}`)
@@ -104,9 +104,9 @@ function checkPackagingAndQr() {
   for (const folder of ['cloudfunctions', 'docs', 'samples', 'scripts', 'tmp']) {
     assert(ignored.has(`folder:${folder}`), `${folder} must not be included in the mini program package`)
   }
-  const qrPath = path.join(root, 'QRcode.webp')
+  const qrPath = path.join(root, 'QRcode.png')
   assert(fs.existsSync(qrPath) && fs.statSync(qrPath).size > 1024, 'Customer-service QR image is missing or empty')
-  assert(!ignored.has('file:QRcode.webp'), 'Customer-service QR image is excluded from upload')
+  assert(!ignored.has('file:QRcode.png'), 'Customer-service QR image is excluded from upload')
 
   const mediaExtensions = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.mp3', '.wav', '.m4a'])
   const packageMediaRoots = ['assets', 'pages', 'components', 'custom-tab-bar']
