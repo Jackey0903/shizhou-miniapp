@@ -25,6 +25,24 @@ async function canAccessCourse(openid, course) {
     return !!(user && user.isVip && (!expireTime || expireTime > Date.now()))
 }
 
+function normalizeDeadline(value) {
+    if (!value) return null
+    const raw = String(value).trim()
+    const direct = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+    if (direct) {
+        const year = Number(direct[1])
+        const month = Number(direct[2])
+        const day = Number(direct[3])
+        const date = new Date(Date.UTC(year, month - 1, day))
+        if (date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day) {
+            return raw
+        }
+        return ''
+    }
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10)
+}
+
 exports.main = async (event = {}, context) => {
     const { OPENID } = cloud.getWXContext()
     const { action = 'save', planId, courseId, dailyCount, mode, deadline } = event
@@ -56,8 +74,8 @@ exports.main = async (event = {}, context) => {
 
         const safeDailyCount = Math.max(1, Math.min(100, Number(dailyCount) || 10))
         const safeMode = mode === 'random' ? 'random' : 'sequential'
-        const parsedDeadline = deadline ? new Date(deadline) : null
-        if (parsedDeadline && Number.isNaN(parsedDeadline.getTime())) {
+        const safeDeadline = normalizeDeadline(deadline)
+        if (deadline && !safeDeadline) {
             return { code: -1, error: '截止日期无效' }
         }
 
@@ -68,7 +86,7 @@ exports.main = async (event = {}, context) => {
                 data: {
                     dailyCount: safeDailyCount,
                     mode: safeMode,
-                    deadline: parsedDeadline,
+                    deadline: safeDeadline,
                     updatedAt: db.serverDate()
                 }
             })
@@ -89,7 +107,7 @@ exports.main = async (event = {}, context) => {
                     data: {
                         dailyCount: safeDailyCount,
                         mode: safeMode,
-                        deadline: parsedDeadline,
+                        deadline: safeDeadline,
                         updatedAt: db.serverDate()
                     }
                 })
@@ -102,7 +120,7 @@ exports.main = async (event = {}, context) => {
                     dailyCount: safeDailyCount,
                     mode: safeMode,
                     startDate: db.serverDate(),
-                    deadline: parsedDeadline,
+                    deadline: safeDeadline,
                     newCount: 0,
                     reviewCount: 0,
                     createdAt: db.serverDate(),

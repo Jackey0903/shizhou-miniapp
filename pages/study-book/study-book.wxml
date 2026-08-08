@@ -18,6 +18,11 @@
           <text class="sb-meta-item">已学 {{item.learnedCount}} / {{item.totalCount}} 题</text>
           <text class="sb-meta-item">剩余 {{item.remainingCount}} 题</text>
         </view>
+        <view class="sb-plan-meta">
+          <text class="sb-plan-meta-item">每日 {{item.dailyCount}} 题</text>
+          <text class="sb-plan-meta-item">剩余 {{item.remainDays}} 天</text>
+          <text class="sb-plan-date">完成日期 {{item.deadlineLabel || '未设置'}}</text>
+        </view>
         <view class="sb-progress-bar">
           <view class="sb-progress-fill" style="width: {{item.progress}}%;"></view>
         </view>

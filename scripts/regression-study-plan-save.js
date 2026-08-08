@@ -1,4 +1,5 @@
 const assert = require('assert')
+const fs = require('fs')
 const Module = require('module')
 const path = require('path')
 
@@ -27,8 +28,8 @@ function instantiate(config, data = {}) {
   return page
 }
 
-function loadStudyPlan(cloudApi) {
-  const target = path.join(root, 'pages/study-plan/study-plan.js')
+function loadPage(pagePath, cloudApi) {
+  const target = path.join(root, `${pagePath}.js`)
   delete require.cache[require.resolve(target)]
   const originalLoad = Module._load
   const originalPage = global.Page
@@ -49,6 +50,16 @@ function loadStudyPlan(cloudApi) {
   }
 }
 
+function dateKeyAfter(days) {
+  const date = new Date()
+  date.setHours(12, 0, 0, 0)
+  date.setDate(date.getDate() + days)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function createPage(config, data = {}) {
   return instantiate(config, Object.assign({
     courseId: 'course-1',
@@ -62,6 +73,13 @@ function createPage(config, data = {}) {
 }
 
 async function main() {
+  const { calcRemainDays, toDateKey } = require(path.join(root, 'utils/studyPlan.js'))
+  const fixedNow = new Date(2026, 7, 8, 23, 59, 0)
+  assert.strictEqual(calcRemainDays('2026-08-08', 0, 10, 0, fixedNow), 0)
+  assert.strictEqual(calcRemainDays('2026-08-09', 0, 10, 0, fixedNow), 1, 'remaining days must not change with the time of day')
+  assert.strictEqual(toDateKey(new Date('2026-08-13T00:00:00.000Z')), '2026-08-13', 'legacy cloud dates must preserve their selected day')
+
+  const deadlineKey = dateKeyAfter(5)
   const calls = {
     saves: [],
     toasts: [],
@@ -69,6 +87,24 @@ async function main() {
     navigations: []
   }
   const cloudApi = {
+    async getCourse() {
+      return { _id: 'course-1', name: '类比推理28式', totalCount: 28 }
+    },
+    async getCourses() {
+      return [{ _id: 'course-1', name: '类比推理28式', totalCount: 28 }]
+    },
+    async getPlans() {
+      return [{
+        _id: 'plan-1',
+        courseId: 'course-1',
+        dailyCount: 7,
+        mode: 'random',
+        deadline: new Date(`${deadlineKey}T00:00:00.000Z`)
+      }]
+    },
+    async getStudyRecords() {
+      return []
+    },
     async savePlan(payload) {
       calls.saves.push(payload)
       return { result: { code: 0, data: { planId: 'plan-1' } } }
@@ -79,11 +115,30 @@ async function main() {
     showToast(options) { calls.toasts.push(options) },
     redirectTo(options) { calls.redirects.push(options) },
     navigateTo(options) { calls.navigations.push(options) },
-    navigateBack() {}
+    navigateBack() {},
+    showLoading() {},
+    hideLoading() {}
   }
 
   try {
-    const config = loadStudyPlan(cloudApi)
+    const config = loadPage('pages/study-plan/study-plan', cloudApi)
+
+    const restoredPage = createPage(config)
+    await restoredPage._loadData()
+    assert.strictEqual(restoredPage.data.plan.deadline, deadlineKey, 'saved deadline must be restored as a picker-compatible date')
+    assert.strictEqual(restoredPage.data.plan.deadlineLabel, deadlineKey, 'saved deadline must remain visible after reopening')
+    assert.strictEqual(restoredPage.data.remainDays, 5, 'remaining time must use calendar days')
+    assert.strictEqual(restoredPage.data.dailyCountIndex, 6, 'saved daily target must be restored')
+    assert.strictEqual(restoredPage.data.modeIndex, 1, 'saved learning mode must be restored')
+
+    const changedPage = createPage(config)
+    changedPage.onDeadlineChange({ detail: { value: deadlineKey } })
+    assert.strictEqual(changedPage.data.remainDays, 5, 'changing the deadline must update remaining time immediately')
+    changedPage.onDailyCountChange({ detail: { value: '6' } })
+    assert.strictEqual(changedPage.data.plan.dailyCount, 7, 'changing the daily target must update the visible plan immediately')
+    assert.strictEqual(changedPage.data.remainDays, 5, 'changing the daily target must preserve deadline-based remaining days')
+    changedPage.onModeChange({ detail: { value: '1' } })
+    assert.strictEqual(changedPage.data.plan.mode, 'random', 'changing the learning mode must update the visible plan immediately')
 
     const explicitPage = createPage(config)
     assert.strictEqual(await explicitPage.savePlan(), true)
@@ -114,6 +169,22 @@ async function main() {
     const busyPage = createPage(config, { saving: true })
     assert.strictEqual(await busyPage.savePlan(), false)
     assert.strictEqual(calls.saves.length, saveCount, 'repeated taps while saving must not create another request')
+
+    const studyBookConfig = loadPage('pages/study-book/study-book', cloudApi)
+    const studyBookPage = instantiate(studyBookConfig)
+    await studyBookPage.loadPlans()
+    assert.strictEqual(studyBookPage.data.plans.length, 1)
+    assert.strictEqual(studyBookPage.data.plans[0].deadlineLabel, deadlineKey, 'saved-plan list must display the completion date')
+    assert.strictEqual(studyBookPage.data.plans[0].remainDays, 5, 'saved-plan list must display synchronized remaining days')
+    assert.strictEqual(studyBookPage.data.plans[0].dailyCount, 7, 'saved-plan list must display the daily target')
+
+    const studyBookWxml = fs.readFileSync(path.join(root, 'pages/study-book/study-book.wxml'), 'utf8')
+    assert(studyBookWxml.includes('完成日期'), 'saved-plan list must render the completion date')
+    assert(studyBookWxml.includes('剩余 {{item.remainDays}} 天'), 'saved-plan list must render remaining days')
+
+    const savePlanCloud = fs.readFileSync(path.join(root, 'cloudfunctions/savePlan/index.js'), 'utf8')
+    assert(savePlanCloud.includes('deadline: safeDeadline'), 'cloud persistence must store a normalized date key')
+    assert(!savePlanCloud.includes('deadline: parsedDeadline'), 'cloud persistence must not store picker dates as Date objects')
   } finally {
     global.wx = originalWx
   }

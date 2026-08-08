@@ -1,16 +1,9 @@
 // pages/study-plan/study-plan.js
 const cloudApi = require('../../utils/cloudApi')
 const { decodeRouteParam } = require('../../utils/routeParams')
+const { calcRemainDays, toDateKey } = require('../../utils/studyPlan')
 
 const DAILY_COUNT_OPTIONS = Array.from({ length: 50 }, (_, index) => index + 1)
-
-function calcRemainDays(deadline, fallbackTotal = 0, dailyCount = 10, learnedCount = 0) {
-    if (deadline) {
-        return Math.max(0, Math.ceil((new Date(deadline) - Date.now()) / 86400000))
-    }
-    const remainCount = Math.max(0, fallbackTotal - learnedCount)
-    return remainCount > 0 ? Math.max(1, Math.ceil(remainCount / Math.max(1, dailyCount))) : 0
-}
 
 function isSameDay(value, targetDate) {
     if (!value) return false
@@ -67,7 +60,13 @@ Page({
                 cloudApi.getPlans()
             ])
 
-            const plan = plans.find(p => p.courseId === this.data.courseId) || {}
+            const savedPlan = plans.find(p => p.courseId === this.data.courseId) || {}
+            const deadlineLabel = toDateKey(savedPlan.deadline)
+            const plan = {
+                ...savedPlan,
+                deadline: deadlineLabel,
+                deadlineLabel
+            }
             const total = course.totalCount || 0
 
             // 计算已学数
@@ -113,12 +112,17 @@ Page({
         const dailyCount = this.data.dailyCountOptions[dailyCountIndex]
         this.setData({
             dailyCountIndex,
+            'plan.dailyCount': dailyCount,
             remainDays: calcRemainDays(this.data.plan.deadline, this.data.course.totalCount || 0, dailyCount, this.data.learnedCount)
         })
     },
 
     onModeChange(e) {
-        this.setData({ modeIndex: parseInt(e.detail.value) })
+        const modeIndex = parseInt(e.detail.value)
+        this.setData({
+            modeIndex,
+            'plan.mode': modeIndex === 1 ? 'random' : 'sequential'
+        })
     },
 
     onDeadlineChange(e) {

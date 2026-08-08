@@ -1,4 +1,5 @@
 const cloudApi = require('../../utils/cloudApi')
+const { calcRemainDays, toDateKey } = require('../../utils/studyPlan')
 
 const stripPrefix = (name = '') => name.replace(/^(([0-9]+|[一二三四五六七八九十]{1,3})[\.、\s]*)/, '')
 
@@ -35,6 +36,8 @@ Page({
         const learnedCount = new Set(planRecords.map((record) => record.questionId).filter(Boolean)).size
         const totalCount = course.totalCount || 0
         const progress = totalCount > 0 ? Math.min(100, Math.round((learnedCount / totalCount) * 100)) : 0
+        const dailyCount = Math.max(1, Number(plan.dailyCount) || 10)
+        const deadlineLabel = toDateKey(plan.deadline)
         return {
           ...plan,
           courseName: stripPrefix(course.name || '') || '未命名题库',
@@ -43,6 +46,9 @@ Page({
           totalCount,
           learnedCount,
           remainingCount: Math.max(0, totalCount - learnedCount),
+          dailyCount,
+          deadlineLabel,
+          remainDays: calcRemainDays(deadlineLabel, totalCount, dailyCount, learnedCount),
           progress
         }
       })
