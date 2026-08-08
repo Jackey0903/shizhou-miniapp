@@ -1,4 +1,5 @@
 const cloudApi = require('../../utils/cloudApi')
+const imageSharing = require('../../utils/imageSharing')
 
 Page({
   data: {
@@ -6,7 +7,9 @@ Page({
     imageUrl: '',
     generated: false,
     generating: false,
-    saving: false
+    saving: false,
+    showPrivacyDialog: false,
+    privacyContractName: '《仕舟小程序隐私保护指引》'
   },
 
   async onLoad() {
@@ -60,6 +63,39 @@ Page({
     wx.previewImage({ urls: [this.data.imageUrl], current: this.data.imageUrl })
   },
 
+  requestPrivacyConsent(filePath, privacyContractName) {
+    this._pendingSaveFilePath = filePath
+    this.setData({
+      showPrivacyDialog: true,
+      privacyContractName: privacyContractName || '《仕舟小程序隐私保护指引》'
+    })
+  },
+
+  recoverAlbumPermission() {
+    return imageSharing.recoverAlbumPermission(wx, {
+      albumPermissionMessage: '保存小程序码需要“添加到相册”权限。请在设置中开启，返回后将自动继续保存。'
+    })
+  },
+
+  runSave(filePath) {
+    return imageSharing.saveImageWithPermission(filePath, {
+      wxApi: wx,
+      onPrivacyRequired: (pendingPath, contractName) => this.requestPrivacyConsent(pendingPath, contractName),
+      recoverAlbumPermission: () => this.recoverAlbumPermission()
+    })
+  },
+
+  handleSaveResult(result) {
+    if (!result || result.status === 'privacy-required' || result.status === 'cancelled') return
+    if (result.status === 'saved') {
+      wx.showToast({ title: '已保存到相册', icon: 'success' })
+      return
+    }
+    if (result.status === 'permission-denied') {
+      wx.showToast({ title: '未开启相册权限，暂未保存', icon: 'none' })
+    }
+  },
+
   async save() {
     if (this.data.saving) return
     if (!this.data.generated || !this.data.imageUrl) {
@@ -76,26 +112,50 @@ Page({
         const result = await wx.getImageInfo({ src: this.data.imageUrl })
         filePath = result.path
       }
-      await wx.saveImageToPhotosAlbum({ filePath })
-      wx.showToast({ title: '已保存到相册', icon: 'success' })
+      const result = await this.runSave(filePath)
+      this.handleSaveResult(result)
     } catch (err) {
-      const message = String((err && err.errMsg) || err || '')
-      if (message.includes('auth deny') || message.includes('authorize')) {
-        wx.showModal({
-          title: '需要相册权限',
-          content: '请在设置中允许“保存到相册”，再重新保存。',
-          confirmText: '去设置',
-          success: (res) => {
-            if (res.confirm) wx.openSetting()
-          }
-        })
-      } else if (!message.includes('cancel')) {
-        wx.showToast({ title: '保存失败', icon: 'none' })
-      }
+      const message = err && err.code === 'PRIVACY_SCOPE_NOT_DECLARED'
+        ? '相册权限配置尚未生效，请稍后重试'
+        : (imageSharing.getErrorMessage(err) || '保存失败')
+      if (!imageSharing.isCancelError(err)) wx.showToast({ title: message, icon: 'none' })
     } finally {
       this.setData({ saving: false })
     }
   },
+
+  async handleAgreePrivacyAuthorization() {
+    const filePath = this._pendingSaveFilePath
+    this._pendingSaveFilePath = ''
+    this.setData({ showPrivacyDialog: false, saving: true })
+    if (!filePath) {
+      this.setData({ saving: false })
+      return
+    }
+    try {
+      const result = await this.runSave(filePath)
+      this.handleSaveResult(result)
+    } catch (error) {
+      wx.showToast({ title: imageSharing.getErrorMessage(error) || '保存失败', icon: 'none' })
+    } finally {
+      this.setData({ saving: false })
+    }
+  },
+
+  handleRejectPrivacyAuthorization() {
+    this._pendingSaveFilePath = ''
+    this.setData({ showPrivacyDialog: false, saving: false })
+  },
+
+  openPrivacyContract() {
+    if (typeof wx.openPrivacyContract !== 'function') {
+      wx.navigateTo({ url: '/pages/privacy/privacy' })
+      return
+    }
+    wx.openPrivacyContract({ fail: () => wx.navigateTo({ url: '/pages/privacy/privacy' }) })
+  },
+
+  noop() {},
 
   onShareAppMessage() {
     return {

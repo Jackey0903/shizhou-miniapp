@@ -148,3 +148,11 @@
   width: 1080px;
   height: 1080px;
 }
+
+.wp-save-canvas {
+  position: fixed;
+  left: -9999rpx;
+  top: -9999rpx;
+  width: 900px;
+  height: 1600px;
+}

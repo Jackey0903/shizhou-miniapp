@@ -6,8 +6,8 @@
 
 | 项目 | 状态 |
 | --- | --- |
-| 线上小程序版本 | `1.0.19` |
-| 最新开发版本 | `1.0.27`（已上传，待提交审核） |
+| 线上小程序版本 | 以微信公众平台“版本管理”为准 |
+| 最新开发版本 | `1.0.28`（上线候选版） |
 | 默认分支 | `main` |
 | 云开发环境 | `cloud-2ge02vrucaf8a6ab` |
 | 小程序 AppID | `wxca6ebd21699eca53` |
@@ -27,6 +27,8 @@
 `1.0.26` 修复学习计划保存成功后仍停留在编辑页、用户无法看到保存结果的问题；显式保存后自动进入“我的新学本”，并增加保存按钮防重复提交保护。
 
 `1.0.27` 统一学习计划日期格式与自然日计算，兼容历史云端日期数据；保存后“我的新学本”同步显示每日题数、完成日期和剩余天数。
+
+`1.0.28` 修复打卡海报和包内 WebP 壁纸在部分真机上无法生成分享图的问题，统一相册权限拒绝后的恢复流程，补齐小程序码保存的隐私授权，并修复后台音频页面卸载后的滞后回调。上线前真实验收记录见 [1.0.28 上线前真实验收报告](docs/release-1.0.28-real-qa.md)。
 
 ## 主要功能
 
@@ -271,6 +273,7 @@ node scripts/regression-question-csv-import.js
 node scripts/regression-question-upload-cloud.js
 node scripts/regression-admin-uploads.js
 node scripts/regression-image-share-permission.js
+node scripts/regression-audio-lifecycle.js
 node scripts/regression-learning-flow.js
 node scripts/regression-review-navigation.js
 node scripts/regression-control-inventory.js
@@ -319,6 +322,7 @@ node scripts/regression-security-critical.js
 - [1.0.18 发布与验收记录](docs/release-1.0.18-verification.md)
 - [1.0.20 发布与验收记录](docs/release-1.0.20-verification.md)
 - [1.0.21 发布与验收记录](docs/release-1.0.21-verification.md)
+- [1.0.28 上线前真实验收报告](docs/release-1.0.28-real-qa.md)
 - [虚拟支付部署检查](docs/virtual-payment-deploy.md)
 - [虚拟支付现网配置](docs/虚拟支付现网配置.md)
 - [客户题库交付与导入](docs/客户题库交付与导入.md)

@@ -115,8 +115,45 @@ async function testPrivacyApiFailureStillShowsConsentUi() {
   assert.strictEqual(requested, true)
 }
 
+async function testPackageWebpCanUseKnownDimensions() {
+  let calls = 0
+  const result = await imageSharing.getImageInfoWithPackageFallback('/assets/images/default-checkin-bg.webp', {
+    wxApi: {
+      getImageInfo({ fail }) {
+        calls += 1
+        fail({ errMsg: 'getImageInfo:fail file not found' })
+      }
+    },
+    packageWidth: 900,
+    packageHeight: 1600
+  })
+
+  assert.strictEqual(calls, 1)
+  assert.deepStrictEqual(result, {
+    path: '/assets/images/default-checkin-bg.webp',
+    width: 900,
+    height: 1600,
+    packageFallback: true
+  })
+}
+
+async function testRemoteImageDoesNotUsePackageFallback() {
+  await assert.rejects(
+    imageSharing.getImageInfoWithPackageFallback('https://example.com/poster.webp', {
+      wxApi: {
+        getImageInfo({ fail }) {
+          fail({ errMsg: 'getImageInfo:fail download error' })
+        }
+      },
+      packageWidth: 900,
+      packageHeight: 1600
+    }),
+    (error) => /download error/.test(imageSharing.getErrorMessage(error))
+  )
+}
+
 function testImagePagesUseRecoverablePermissionFlow() {
-  const pageNames = ['checkin', 'wallpaper', 'wallpaper-editor']
+  const pageNames = ['checkin', 'wallpaper', 'wallpaper-editor', 'miniapp-code']
   pageNames.forEach((pageName) => {
     const pageJs = fs.readFileSync(path.join(root, `pages/${pageName}/${pageName}.js`), 'utf8')
     const pageWxml = fs.readFileSync(path.join(root, `pages/${pageName}/${pageName}.wxml`), 'utf8')
@@ -128,13 +165,27 @@ function testImagePagesUseRecoverablePermissionFlow() {
   })
 }
 
+function testPackageWebpPagesUseImageInfoFallback() {
+  const wallpaper = fs.readFileSync(path.join(root, 'pages/wallpaper/wallpaper.js'), 'utf8')
+  const editor = fs.readFileSync(path.join(root, 'pages/wallpaper-editor/wallpaper-editor.js'), 'utf8')
+  const checkin = fs.readFileSync(path.join(root, 'pages/checkin/checkin.js'), 'utf8')
+
+  assert(wallpaper.includes('getImageInfoWithPackageFallback'))
+  assert(wallpaper.includes('convertPackageImageForAlbum'))
+  assert(editor.includes('getImageInfoWithPackageFallback'))
+  assert(checkin.includes('getImageInfoWithPackageFallback'))
+}
+
 async function main() {
   await testCancelledShareDoesNotRequestAlbum()
   await testPrivacyConsentIsRequestedBeforeAlbumWrite()
   await testDeniedAlbumPermissionCanRecoverAndRetry()
   await testUnsupportedShareFallsBackToAlbum()
   await testPrivacyApiFailureStillShowsConsentUi()
+  await testPackageWebpCanUseKnownDimensions()
+  await testRemoteImageDoesNotUsePackageFallback()
   testImagePagesUseRecoverablePermissionFlow()
+  testPackageWebpPagesUseImageInfoFallback()
   console.log('image share permission regression checks passed')
 }
 

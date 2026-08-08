@@ -9,4 +9,16 @@
       <button wx:if="{{generated}}" class="btn btn-outline code-button" loading="{{saving}}" bindtap="save">保存到相册</button>
     </view>
   </view>
+
+  <view wx:if="{{showPrivacyDialog}}" class="privacy-mask" catchtouchmove="noop">
+    <view class="privacy-dialog">
+      <text class="privacy-title">保存正式小程序码</text>
+      <text class="privacy-desc">保存图片需要使用相册（仅写入）权限。请先阅读并同意{{privacyContractName}}，我们只会写入你主动保存的小程序码。</text>
+      <button class="privacy-contract-btn" bindtap="openPrivacyContract">查看隐私保护指引</button>
+      <view class="privacy-actions">
+        <button class="privacy-cancel-btn" bindtap="handleRejectPrivacyAuthorization">暂不使用</button>
+        <button id="miniapp-code-privacy-agree" class="privacy-agree-btn" open-type="agreePrivacyAuthorization" bindagreeprivacyauthorization="handleAgreePrivacyAuthorization">同意并继续</button>
+      </view>
+    </view>
+  </view>
 </view>

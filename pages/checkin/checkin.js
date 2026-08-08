@@ -239,17 +239,18 @@ Page({
       const res = await wx.cloud.downloadFile({ fileID: pref.fileId })
       return res.tempFilePath
     }
-    if (src.startsWith('/')) {
-      const res = await wx.getImageInfo({ src })
-      return res.path
-    }
+    if (src.startsWith('/')) return src
     const res = await wx.downloadFile({ url: src })
     return res.tempFilePath
   },
 
   async buildShareImageFile() {
     const filePath = await this.resolveCurrentImageFile()
-    const imageInfo = await wx.getImageInfo({ src: filePath })
+    const imageInfo = await imageSharing.getImageInfoWithPackageFallback(filePath, {
+      wxApi: wx,
+      packageWidth: 900,
+      packageHeight: 1600
+    })
     const width = SHARE_CANVAS_SIZE
     const height = SHARE_CANVAS_SIZE
     const ctx = wx.createCanvasContext('checkinShareCanvas', this)

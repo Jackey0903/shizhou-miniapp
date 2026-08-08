@@ -26,6 +26,7 @@
   </view>
 
   <canvas class="wp-share-canvas" canvas-id="wallpaperShareCanvas"></canvas>
+  <canvas class="wp-save-canvas" canvas-id="wallpaperSaveCanvas"></canvas>
 
   <view wx:if="{{showPrivacyDialog}}" class="privacy-mask" catchtouchmove="noop">
     <view class="privacy-dialog">

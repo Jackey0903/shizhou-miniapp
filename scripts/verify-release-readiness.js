@@ -175,6 +175,7 @@ function main() {
   run(process.execPath, ['scripts/regression-question-csv-import.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-question-upload-cloud.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-admin-uploads.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-audio-lifecycle.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-plan-separation.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-learning-flow.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-study-plan-save.js'], { stdio: 'pipe' })
@@ -208,6 +209,7 @@ function main() {
       'question-CSV-import-regression',
       'question-upload-cloud-regression',
       'admin-material-audio-wallpaper-upload-regression',
+      'background-audio-lifecycle-regression',
       'VIP-supervision-plan-separation',
       'learning-review-checkin-regression',
       'study-plan-save-feedback-regression',

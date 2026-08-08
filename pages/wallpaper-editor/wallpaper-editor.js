@@ -43,16 +43,6 @@ function getContainRect(imageWidth, imageHeight, boxX, boxY, boxWidth, boxHeight
   }
 }
 
-function getImageInfo(src) {
-  return new Promise((resolve, reject) => {
-    wx.getImageInfo({
-      src,
-      success: resolve,
-      fail: reject
-    })
-  })
-}
-
 function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
   const content = String(text || '').trim()
   if (!content) return y
@@ -210,14 +200,18 @@ Page({
   async buildPosterFile(forceRefresh = false) {
     if (!forceRefresh && this.data.posterTempFilePath) return this.data.posterTempFilePath
     if (!this.data.imageUrl) throw new Error('壁纸地址缺失')
-    const imageInfo = await getImageInfo(this.data.imageUrl)
+    const imageInfo = await imageSharing.getImageInfoWithPackageFallback(this.data.imageUrl, {
+      wxApi: wx,
+      packageWidth: 900,
+      packageHeight: 1600
+    })
     const filePath = await this.drawPoster(imageInfo)
     this.setData({ posterTempFilePath: filePath, shareTempFilePath: '' })
     return filePath
   },
 
   async drawShareImage(posterFilePath) {
-    const imageInfo = await getImageInfo(posterFilePath)
+    const imageInfo = await imageSharing.getImageInfoWithPackageFallback(posterFilePath, { wxApi: wx })
     const size = SHARE_IMAGE_SIZE
     const ctx = wx.createCanvasContext('shareCanvas', this)
     const bgRect = getCoverRect(imageInfo.width, imageInfo.height, size, size)

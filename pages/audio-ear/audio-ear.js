@@ -175,21 +175,26 @@ Page({
     if (!this._audioCtx || this._audioHandlers) return
     const handlers = {
       play: () => {
+        if (!this._audioCtx) return
         this.setData({ paused: false })
         this.checkSleepTimer()
       },
       pause: () => {
+        if (!this._audioCtx) return
         this.setData({ paused: true })
       },
       stop: () => {
+        if (!this._audioCtx) return
         this._currentSrc = ''
         this.setData({ playingId: '', paused: false })
       },
       ended: () => {
+        if (!this._audioCtx) return
         this.updateProgress(this.data.duration, this.data.duration)
         this.handleEnded()
       },
       timeUpdate: () => {
+        if (!this._audioCtx) return
         this.checkSleepTimer(true)
         if (this._seeking) return
         const currentTime = this._audioCtx.currentTime || 0
@@ -203,6 +208,7 @@ Page({
         }, 300)
       },
       error: (err) => {
+        if (!this._audioCtx) return
         console.error('音频播放失败', err)
         wx.showToast({ title: '音频播放失败', icon: 'none' })
         this.setData({ playingId: '', paused: false })

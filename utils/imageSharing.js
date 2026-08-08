@@ -71,6 +71,21 @@ async function getAlbumAuthorization(wxApi) {
   }
 }
 
+async function getImageInfoWithPackageFallback(filePath, options = {}) {
+  const wxApi = options.wxApi || wx
+  try {
+    return await callApi(wxApi.getImageInfo, wxApi, { src: filePath })
+  } catch (error) {
+    const width = Number(options.packageWidth)
+    const height = Number(options.packageHeight)
+    const isPackageImage = typeof filePath === 'string' && filePath.startsWith('/')
+    if (!isPackageImage || !Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0) {
+      throw error
+    }
+    return { path: filePath, width, height, packageFallback: true }
+  }
+}
+
 async function recoverAlbumPermission(wxApi, options = {}) {
   const permission = await getAlbumAuthorization(wxApi)
   if (permission === true) {
@@ -165,6 +180,7 @@ async function shareImageWithFallback(filePath, options = {}) {
 module.exports = {
   getAlbumAuthorization,
   getErrorMessage,
+  getImageInfoWithPackageFallback,
   isAlbumPermissionError,
   isCancelError,
   isPrivacyConfigurationError,

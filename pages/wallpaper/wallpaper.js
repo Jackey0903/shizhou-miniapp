@@ -8,6 +8,8 @@ const DEFAULT_WALLPAPERS = [
   { _id: 'local-4', imageUrl: '/assets/images/default-wallpaper-4.webp', source: 'system' }
 ]
 const SHARE_IMAGE_SIZE = 1080
+const PACKAGE_WALLPAPER_WIDTH = 900
+const PACKAGE_WALLPAPER_HEIGHT = 1600
 
 function getCoverRect(imageWidth, imageHeight, boxWidth, boxHeight) {
   const imageRatio = imageWidth / imageHeight
@@ -45,16 +47,6 @@ function getContainRect(imageWidth, imageHeight, boxX, boxY, boxWidth, boxHeight
     width,
     height
   }
-}
-
-function getImageInfo(src) {
-  return new Promise((resolve, reject) => {
-    wx.getImageInfo({
-      src,
-      success: resolve,
-      fail: reject
-    })
-  })
 }
 
 async function withTempUrls(list = []) {
@@ -157,16 +149,17 @@ Page({
       const res = await wx.cloud.downloadFile({ fileID: item.fileId })
       return res.tempFilePath
     }
-    if (item.imageUrl.startsWith('/')) {
-      const res = await wx.getImageInfo({ src: item.imageUrl })
-      return res.path
-    }
+    if (item.imageUrl.startsWith('/')) return item.imageUrl
     const res = await wx.downloadFile({ url: item.imageUrl })
     return res.tempFilePath
   },
 
   async drawShareImage(imagePath) {
-    const imageInfo = await getImageInfo(imagePath)
+    const imageInfo = await imageSharing.getImageInfoWithPackageFallback(imagePath, {
+      wxApi: wx,
+      packageWidth: PACKAGE_WALLPAPER_WIDTH,
+      packageHeight: PACKAGE_WALLPAPER_HEIGHT
+    })
     const size = SHARE_IMAGE_SIZE
     const ctx = wx.createCanvasContext('wallpaperShareCanvas', this)
     const bgRect = getCoverRect(imageInfo.width, imageInfo.height, size, size)
@@ -205,6 +198,40 @@ Page({
     return this.drawShareImage(imagePath)
   },
 
+  async convertPackageImageForAlbum(imagePath) {
+    if (!imagePath.startsWith('/')) return imagePath
+    const imageInfo = await imageSharing.getImageInfoWithPackageFallback(imagePath, {
+      wxApi: wx,
+      packageWidth: PACKAGE_WALLPAPER_WIDTH,
+      packageHeight: PACKAGE_WALLPAPER_HEIGHT
+    })
+    const ctx = wx.createCanvasContext('wallpaperSaveCanvas', this)
+    ctx.drawImage(
+      imageInfo.path,
+      0,
+      0,
+      PACKAGE_WALLPAPER_WIDTH,
+      PACKAGE_WALLPAPER_HEIGHT
+    )
+    return new Promise((resolve, reject) => {
+      ctx.draw(false, () => {
+        wx.canvasToTempFilePath({
+          canvasId: 'wallpaperSaveCanvas',
+          x: 0,
+          y: 0,
+          width: PACKAGE_WALLPAPER_WIDTH,
+          height: PACKAGE_WALLPAPER_HEIGHT,
+          destWidth: PACKAGE_WALLPAPER_WIDTH,
+          destHeight: PACKAGE_WALLPAPER_HEIGHT,
+          fileType: 'jpg',
+          quality: 0.92,
+          success: (res) => resolve(res.tempFilePath),
+          fail: reject
+        }, this)
+      })
+    })
+  },
+
   async save(e) {
     const { item } = e.currentTarget.dataset
     if (!item || !item.imageUrl || this.data.imageActionBusy) return
@@ -212,7 +239,8 @@ Page({
     this.setData({ imageActionBusy: true })
     wx.showLoading({ title: '保存中', mask: true })
     try {
-      const tempFilePath = await this.resolveImageFile(item)
+      const sourceFilePath = await this.resolveImageFile(item)
+      const tempFilePath = await this.convertPackageImageForAlbum(sourceFilePath)
       const result = await this.runImageAction(tempFilePath, 'save')
       await this.handleImageActionResult(result, 'save')
     } catch (error) {
