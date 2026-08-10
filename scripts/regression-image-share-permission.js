@@ -115,9 +115,9 @@ async function testPrivacyApiFailureStillShowsConsentUi() {
   assert.strictEqual(requested, true)
 }
 
-async function testPackageWebpCanUseKnownDimensions() {
+async function testPackageImageCanUseKnownDimensions() {
   let calls = 0
-  const result = await imageSharing.getImageInfoWithPackageFallback('/assets/images/default-checkin-bg.webp', {
+  const result = await imageSharing.getImageInfoWithPackageFallback('/assets/images/default-checkin-bg.jpg', {
     wxApi: {
       getImageInfo({ fail }) {
         calls += 1
@@ -130,11 +130,31 @@ async function testPackageWebpCanUseKnownDimensions() {
 
   assert.strictEqual(calls, 1)
   assert.deepStrictEqual(result, {
-    path: '/assets/images/default-checkin-bg.webp',
+    path: '/assets/images/default-checkin-bg.jpg',
     width: 900,
     height: 1600,
     packageFallback: true
   })
+}
+
+async function testPackageImageKeepsAbsoluteCanvasPath() {
+  const result = await imageSharing.getImageInfoWithPackageFallback('/assets/images/default-checkin-bg.jpg', {
+    wxApi: {
+      getImageInfo({ success }) {
+        success({
+          path: 'assets/images/default-checkin-bg.jpg',
+          width: 900,
+          height: 1600,
+          type: 'jpg'
+        })
+      }
+    }
+  })
+
+  assert.strictEqual(result.path, '/assets/images/default-checkin-bg.jpg')
+  assert.strictEqual(result.packageSourcePath, true)
+  assert.strictEqual(result.width, 900)
+  assert.strictEqual(result.height, 1600)
 }
 
 async function testRemoteImageDoesNotUsePackageFallback() {
@@ -165,7 +185,7 @@ function testImagePagesUseRecoverablePermissionFlow() {
   })
 }
 
-function testPackageWebpPagesUseImageInfoFallback() {
+function testPackageImagePagesUseImageInfoFallback() {
   const wallpaper = fs.readFileSync(path.join(root, 'pages/wallpaper/wallpaper.js'), 'utf8')
   const editor = fs.readFileSync(path.join(root, 'pages/wallpaper-editor/wallpaper-editor.js'), 'utf8')
   const checkin = fs.readFileSync(path.join(root, 'pages/checkin/checkin.js'), 'utf8')
@@ -182,10 +202,11 @@ async function main() {
   await testDeniedAlbumPermissionCanRecoverAndRetry()
   await testUnsupportedShareFallsBackToAlbum()
   await testPrivacyApiFailureStillShowsConsentUi()
-  await testPackageWebpCanUseKnownDimensions()
+  await testPackageImageCanUseKnownDimensions()
+  await testPackageImageKeepsAbsoluteCanvasPath()
   await testRemoteImageDoesNotUsePackageFallback()
   testImagePagesUseRecoverablePermissionFlow()
-  testPackageWebpPagesUseImageInfoFallback()
+  testPackageImagePagesUseImageInfoFallback()
   console.log('image share permission regression checks passed')
 }
 

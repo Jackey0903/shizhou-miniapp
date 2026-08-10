@@ -53,12 +53,23 @@ function checkRoutesAndAssets() {
       while ((match = routePattern.exec(text))) {
         if (!registered.has(match[1].slice(1))) invalidRoutes.push(`${page}.${ext}: ${match[1]}`)
       }
-      if (ext === 'wxml') {
-        const assetPattern = /\bsrc=["'](\/(?:assets|QRcode\.png)[^"'{}]*)["']/g
-        while ((match = assetPattern.exec(text))) {
-          const asset = match[1].split('?')[0].slice(1)
-          if (!fs.existsSync(path.join(root, asset))) missingAssets.push(`${page}: /${asset}`)
-        }
+    }
+  }
+
+  const packageSourceFiles = [
+    path.join(root, 'app.js'),
+    path.join(root, 'app.json'),
+    ...walk(path.join(root, 'pages'), (file) => /\.(js|json|wxml|wxss)$/.test(file)),
+    ...walk(path.join(root, 'utils'), (file) => file.endsWith('.js'))
+  ]
+  const assetPattern = /\/(?:assets\/[A-Za-z0-9_./-]+\.(?:png|jpe?g|gif|webp|svg|bmp)|QRcode\.png)/gi
+  for (const file of packageSourceFiles) {
+    const text = fs.readFileSync(file, 'utf8')
+    let match = null
+    while ((match = assetPattern.exec(text))) {
+      const asset = match[0].split('?')[0].slice(1)
+      if (!fs.existsSync(path.join(root, asset))) {
+        missingAssets.push(`${path.relative(root, file)}: /${asset}`)
       }
     }
   }
@@ -117,6 +128,12 @@ function checkPackagingAndQr() {
     mediaFiles.push(...walk(dir, (file) => mediaExtensions.has(path.extname(file).toLowerCase())))
   }
   const uniqueMediaFiles = [...new Set(mediaFiles)]
+  const packagedWebpFiles = uniqueMediaFiles.filter((file) => path.extname(file).toLowerCase() === '.webp')
+  assert.deepStrictEqual(
+    packagedWebpFiles,
+    [],
+    `Packaged WebP images are not allowed because some WeChat clients fail to render them:\n${packagedWebpFiles.map((file) => path.relative(root, file)).join('\n')}`
+  )
   const packagedMediaBytes = uniqueMediaFiles.reduce((total, file) => total + fs.statSync(file).size, 0)
   assert(
     packagedMediaBytes < maxPackagedMediaBytes,

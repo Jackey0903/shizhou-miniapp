@@ -606,7 +606,7 @@ exports.main = async (event = {}) => {
       await db.collection('punch_backgrounds').add({
         data: {
           title: '默认打卡背景',
-          imageUrl: '/assets/images/default-checkin-bg.png',
+          imageUrl: '/assets/images/default-checkin-bg.jpg',
           activeDate: 'default',
           enabled: true,
           createdAt: db.serverDate(),

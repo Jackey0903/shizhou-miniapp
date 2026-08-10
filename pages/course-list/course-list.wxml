@@ -52,7 +52,7 @@
 
   <view class="cl-grid" wx:else>
     <view class="cl-card" bindtap="openCourse" data-courseid="{{item._id}}" data-coursename="{{item.name}}" data-locked="{{item.isLocked}}" wx:for="{{courses}}" wx:key="_id">
-      <image class="cl-cover" src="{{item.cover || '/assets/icons/default-cover.png'}}" mode="aspectFill"/>
+      <image class="cl-cover" src="{{item.cover || '/assets/images/default-course-cover.jpg'}}" mode="aspectFill"/>
       <view class="cl-info">
         <view class="cl-badges">
           <text class="cl-badge">{{item.category || '综合'}}</text>

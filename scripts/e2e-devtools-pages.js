@@ -138,7 +138,7 @@ async function main() {
       'pages/supervision-plan/supervision-plan': { mode: 'full' },
       'pages/vip/vip': { mode: 'full' },
       'pages/wallpaper-editor/wallpaper-editor': {
-        src: '/assets/default-wallpaper.webp',
+        src: '/assets/images/default-wallpaper-1.jpg',
         text: '真实运行时验收',
         question: '测试题目'
       }

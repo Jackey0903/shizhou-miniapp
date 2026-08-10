@@ -12,6 +12,14 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+function withTimeout(promise, timeoutMs, label) {
+  let timer = null
+  const timeout = new Promise((resolve, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label}等待超过${timeoutMs}ms`)), timeoutMs)
+  })
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer))
+}
+
 async function imageInfo(miniProgram, filePath) {
   return miniProgram.evaluate((source) => new Promise((resolve) => {
     wx.getImageInfo({
@@ -51,18 +59,64 @@ async function main() {
   }
 
   try {
+    await test('主包品牌与默认图片全部可解析', async () => {
+      const assets = [
+        { path: '/assets/images/logo.jpg', width: 300, height: 300 },
+        { path: '/assets/images/default-avatar.jpg', width: 200, height: 200 },
+        { path: '/assets/images/default-course-cover.jpg', width: 900, height: 900 },
+        { path: '/assets/images/default-checkin-bg.jpg', width: 900, height: 1600 },
+        { path: '/assets/images/default-wallpaper-1.jpg', width: 900, height: 1600 },
+        { path: '/assets/images/default-wallpaper-2.jpg', width: 900, height: 1600 },
+        { path: '/assets/images/default-wallpaper-3.jpg', width: 900, height: 1600 },
+        { path: '/assets/images/default-wallpaper-4.jpg', width: 900, height: 1600 },
+        { path: '/QRcode.png', width: 439, height: 600 }
+      ]
+      const results = []
+      for (const asset of assets) {
+        const info = await imageInfo(miniProgram, asset.path)
+        assert(info.ok, `${asset.path} 无法解析：${info.error || '未知错误'}`)
+        assert.strictEqual(info.width, asset.width, `${asset.path} 宽度错误`)
+        assert.strictEqual(info.height, asset.height, `${asset.path} 高度错误`)
+        results.push({ path: asset.path, width: info.width, height: info.height, type: info.type })
+      }
+      return results
+    })
+
+    await test('首页品牌 Logo 与默认头像显示', async () => {
+      const page = await miniProgram.reLaunch('/pages/home/home')
+      await wait(2000)
+      const logo = await page.$('.header-logo')
+      const avatar = await page.$('.header-avatar')
+      assert(logo, '首页 Logo 元素不存在')
+      assert(avatar, '首页头像元素不存在')
+      const [logoSize, avatarSize] = await Promise.all([logo.size(), avatar.size()])
+      assert(logoSize.width > 0 && logoSize.height > 0, '首页 Logo 显示区域无效')
+      assert(avatarSize.width > 0 && avatarSize.height > 0, '首页头像显示区域无效')
+      return { logo: logoSize, avatar: avatarSize }
+    })
+
+    await test('登录页品牌 Logo 显示', async () => {
+      const page = await miniProgram.reLaunch('/pages/login/login')
+      await wait(1200)
+      const logo = await page.$('.login-logo')
+      assert(logo, '登录页 Logo 元素不存在')
+      const display = await logo.size()
+      assert(display.width > 0 && display.height > 0, '登录页 Logo 显示区域无效')
+      return display
+    })
+
     await test('打卡海报 1080 正方形生成', async () => {
       const page = await miniProgram.reLaunch('/pages/checkin/checkin?alreadyChecked=1')
       await wait(3000)
       await page.setData({ checkedToday: true, shareReady: true, enteredAfterCheckin: true })
-      const generated = await miniProgram.evaluate(() => {
+      const generated = await withTimeout(miniProgram.evaluate(() => {
         const current = getCurrentPages().slice(-1)[0]
         return new Promise((resolve) => {
           current.buildShareImageFile()
             .then((filePath) => resolve({ ok: true, filePath }))
             .catch((error) => resolve({ ok: false, error: error.errMsg || error.message || String(error) }))
         })
-      })
+      }), 15000, '打卡海报生成')
       assert(generated.ok, generated.error || '海报生成失败')
       const info = await imageInfo(miniProgram, generated.filePath)
       assert(info.ok, info.error || '海报无法解析')
@@ -74,11 +128,11 @@ async function main() {
     await test('默认壁纸分享图与保存图生成', async () => {
       await miniProgram.reLaunch('/pages/wallpaper/wallpaper')
       await wait(3000)
-      const files = await miniProgram.evaluate(() => {
+      const files = await withTimeout(miniProgram.evaluate(() => {
         const current = getCurrentPages().slice(-1)[0]
         const item = {
           _id: 'qa-local',
-          imageUrl: '/assets/images/default-wallpaper-1.webp',
+          imageUrl: '/assets/images/default-wallpaper-1.jpg',
           source: 'system'
         }
         return new Promise((resolve) => {
@@ -89,7 +143,7 @@ async function main() {
             .then(([share, save]) => resolve({ ok: true, share, save }))
             .catch((error) => resolve({ ok: false, error: error.errMsg || error.message || String(error) }))
         })
-      })
+      }), 15000, '默认壁纸生成')
       assert(files.ok, files.error || '壁纸生成失败')
       const [share, save] = await Promise.all([
         imageInfo(miniProgram, files.share),
@@ -102,18 +156,18 @@ async function main() {
 
     await test('壁纸编辑竖版与分享图生成', async () => {
       const page = await miniProgram.reLaunch(
-        '/pages/wallpaper-editor/wallpaper-editor?src=%2Fassets%2Fimages%2Fdefault-wallpaper-1.webp'
+        '/pages/wallpaper-editor/wallpaper-editor?src=%2Fassets%2Fimages%2Fdefault-wallpaper-1.jpg'
       )
       await wait(3000)
       await page.setData({ customText: '仕舟自动验收', includeQuestion: false })
-      const files = await miniProgram.evaluate(() => {
+      const files = await withTimeout(miniProgram.evaluate(() => {
         const current = getCurrentPages().slice(-1)[0]
         return new Promise((resolve) => {
           Promise.all([current.buildPosterFile(true), current.buildShareImageFile(true)])
             .then(([poster, share]) => resolve({ ok: true, poster, share }))
             .catch((error) => resolve({ ok: false, error: error.errMsg || error.message || String(error) }))
         })
-      })
+      }), 15000, '壁纸编辑图生成')
       assert(files.ok, files.error || '编辑壁纸生成失败')
       const [poster, share] = await Promise.all([
         imageInfo(miniProgram, files.poster),

@@ -42,7 +42,7 @@ Page({
           ...plan,
           courseName: stripPrefix(course.name || '') || '未命名题库',
           courseDescription: course.description || '已加入学习计划，可继续学习或调整计划。',
-          courseCover: course.cover || '/assets/icons/default-cover.png',
+          courseCover: course.cover || '/assets/images/default-course-cover.jpg',
           totalCount,
           learnedCount,
           remainingCount: Math.max(0, totalCount - learnedCount),

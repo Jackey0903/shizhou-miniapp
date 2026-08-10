@@ -74,6 +74,36 @@ function countCollections(names) {
   return Object.fromEntries(names.map((name, index) => [name, Number(results[index][0].n || 0)]))
 }
 
+function storagePathFromValue(value) {
+  const input = String(value || '').trim()
+  if (!input) return ''
+  if (input.startsWith('cloud://')) {
+    const slashIndex = input.indexOf('/', 'cloud://'.length)
+    return slashIndex >= 0 ? decodeURIComponent(input.slice(slashIndex + 1)) : ''
+  }
+  if (/^https?:\/\//i.test(input)) {
+    try {
+      const url = new URL(input)
+      if (!/\.tcb\.qcloud\.la$/i.test(url.hostname)) return ''
+      return decodeURIComponent(url.pathname.replace(/^\/+/, ''))
+    } catch (error) {
+      return ''
+    }
+  }
+  return ''
+}
+
+function referencedStoragePaths(records, fields) {
+  const refs = []
+  for (const record of records) {
+    for (const field of fields) {
+      const storagePath = storagePathFromValue(record[field])
+      if (storagePath) refs.push({ id: record._id, field, storagePath })
+    }
+  }
+  return refs
+}
+
 function environmentMap(detail) {
   const environment = detail && detail.data && detail.data.Environment
   const variables = environment && Array.isArray(environment.Variables) ? environment.Variables : []
@@ -254,6 +284,73 @@ async function main() {
       assert(counts[name] > 0, `正式集合 ${name} 为空`)
     }
     return counts
+  })
+
+  check('正式图片、音频、文档与小程序码完整', () => {
+    const storageResponse = runJson(['storage', 'list', '--json'])
+    const objects = storageResponse.data || []
+    const byPath = new Map(objects.map((item) => [item.key, item]))
+    const zeroByteObjects = objects.filter((item) => Number(item.size || 0) <= 0)
+    assert(!zeroByteObjects.length, `云存储存在 ${zeroByteObjects.length} 个空文件`)
+
+    const collections = {
+      wallpapers: query('wallpapers', {}, { _id: 1, fileId: 1, imageUrl: 1, enabled: 1 }),
+      materials: query('materials', {}, {
+        _id: 1,
+        type: 1,
+        fileId: 1,
+        imageUrl: 1,
+        coverUrl: 1,
+        audioUrl: 1,
+        url: 1,
+        enabled: 1
+      }),
+      audios: query('audios', {}, { _id: 1, fileId: 1, audioUrl: 1, url: 1, enabled: 1 }),
+      miniProgramCodes: query('mini_program_codes', {}, { _id: 1, fileId: 1, envVersion: 1 })
+    }
+
+    assert(collections.wallpapers.length >= 21, `壁纸记录少于交付基线 21 条，实际 ${collections.wallpapers.length} 条`)
+    assert(collections.materials.length >= 10, `资料记录少于交付基线 10 条，实际 ${collections.materials.length} 条`)
+    assert(collections.audios.length >= 75, `音频记录少于交付基线 75 条，实际 ${collections.audios.length} 条`)
+    assert(collections.miniProgramCodes.length > 0, '未找到正式小程序码记录')
+
+    const groups = [
+      ['wallpapers', collections.wallpapers, ['fileId', 'imageUrl']],
+      ['materials', collections.materials, ['fileId', 'imageUrl', 'coverUrl', 'audioUrl', 'url']],
+      ['audios', collections.audios, ['fileId', 'audioUrl', 'url']],
+      ['mini_program_codes', collections.miniProgramCodes, ['fileId']]
+    ]
+    const missingFileIds = groups.flatMap(([name, records]) => records
+      .filter((record) => !storagePathFromValue(record.fileId))
+      .map((record) => `${name}/${record._id}`))
+    assert(!missingFileIds.length, `记录缺少有效 fileId：${missingFileIds.slice(0, 10).join('、')}`)
+
+    const references = groups.flatMap(([, records, fields]) => referencedStoragePaths(records, fields))
+    const missingObjects = references.filter((item) => !byPath.has(item.storagePath))
+    assert(!missingObjects.length, `数据库引用的云文件不存在：${missingObjects
+      .slice(0, 10)
+      .map((item) => `${item.id}.${item.field} -> ${item.storagePath}`)
+      .join('、')}`)
+
+    const uniqueReferencedObjects = new Set(references.map((item) => item.storagePath))
+    const sizeByPrefix = (prefix) => objects
+      .filter((item) => item.key.startsWith(prefix))
+      .reduce((sum, item) => sum + Number(item.size || 0), 0)
+    return {
+      storageObjects: objects.length,
+      referencedObjects: uniqueReferencedObjects.size,
+      zeroByteObjects: 0,
+      wallpapers: collections.wallpapers.length,
+      audios: collections.audios.length,
+      materials: collections.materials.length,
+      miniProgramCodes: collections.miniProgramCodes.length,
+      storageBytes: {
+        wallpapers: sizeByPrefix('client-assets/20260514/wallpapers/'),
+        audios: sizeByPrefix('client-assets/20260514/audio/'),
+        documents: sizeByPrefix('client-assets/20260514/docs/'),
+        miniProgramCodes: sizeByPrefix('admin/mini-program-code/')
+      }
+    }
   })
 
   const failed = checks.filter((item) => item.status === 'failed')

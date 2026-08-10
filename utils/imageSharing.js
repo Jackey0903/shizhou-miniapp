@@ -74,7 +74,13 @@ async function getAlbumAuthorization(wxApi) {
 async function getImageInfoWithPackageFallback(filePath, options = {}) {
   const wxApi = options.wxApi || wx
   try {
-    return await callApi(wxApi.getImageInfo, wxApi, { src: filePath })
+    const imageInfo = await callApi(wxApi.getImageInfo, wxApi, { src: filePath })
+    // DevTools may return a package path without the leading slash. Legacy canvas
+    // then resolves it relative to the current page and requests a non-existent URL.
+    if (typeof filePath === 'string' && filePath.startsWith('/')) {
+      return { ...imageInfo, path: filePath, packageSourcePath: true }
+    }
+    return imageInfo
   } catch (error) {
     const width = Number(options.packageWidth)
     const height = Number(options.packageHeight)

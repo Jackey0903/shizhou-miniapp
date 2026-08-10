@@ -330,7 +330,7 @@ async function main() {
     })
 
     await test('壁纸编辑文字、题目开关与题目选择', async () => {
-      const src = encodeURIComponent('/assets/images/default-wallpaper-1.webp')
+      const src = encodeURIComponent('/assets/images/default-wallpaper-1.jpg')
       const { page } = await open(`/pages/wallpaper-editor/wallpaper-editor?src=${src}&text=${encodeURIComponent('初始文字')}&question=${encodeURIComponent('初始题目')}`)
       const textarea = await page.$('textarea')
       assert(textarea, '壁纸文字输入框不存在')

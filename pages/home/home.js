@@ -136,7 +136,7 @@ Page({
     return {
       title: '仕舟公考',
       path: '/pages/home/home',
-      imageUrl: '/assets/images/logo.webp'
+      imageUrl: '/assets/images/logo.jpg'
     }
   }
 })

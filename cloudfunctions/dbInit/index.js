@@ -24,49 +24,49 @@ const SAMPLE_COURSES = [
         name: '一、常识', category: '公基', series: '基础题库', description: '政治、经济、文化、历史、自然等常识',
         totalCount: 50, isLocked: false, sort: 1,
         preview: ['1.冬天供暖的时间和热度', '2.过年回家的意义', '3.远嫁真的不好吗？', '4.每天一杯咖啡影响健康…'],
-        cover: '/assets/images/default-course-cover.png', createdAt: new Date()
+        cover: '/assets/images/default-course-cover.jpg', createdAt: new Date()
     },
     {
         name: '二、言语理解', category: '行测', series: '基础题库', description: '言语理解与表达专项练习',
         totalCount: 80, isLocked: false, sort: 2,
         preview: ['1.选词填空', '2.语句排序', '3.阅读理解'],
-        cover: '/assets/images/default-course-cover.png', createdAt: new Date()
+        cover: '/assets/images/default-course-cover.jpg', createdAt: new Date()
     },
     {
         name: '三、数量关系', category: '行测', series: '进阶提升', description: '数学运算、数字推理',
         totalCount: 60, isLocked: true, sort: 3,
         preview: ['1.行程问题', '2.工程问题', '3.排列组合'],
-        cover: '/assets/images/default-course-cover.png', createdAt: new Date()
+        cover: '/assets/images/default-course-cover.jpg', createdAt: new Date()
     },
     {
         name: '四、判断推理', category: '行测', series: '进阶提升', description: '图形推理、逻辑判断',
         totalCount: 70, isLocked: true, sort: 4,
         preview: ['1.图形推理', '2.定义判断', '3.类比推理'],
-        cover: '/assets/images/default-course-cover.png', createdAt: new Date()
+        cover: '/assets/images/default-course-cover.jpg', createdAt: new Date()
     },
     {
         name: '五、资料分析', category: '行测', series: '专项训练', description: '表格、图表资料的分析计算',
         totalCount: 40, isLocked: true, sort: 5,
         preview: ['1.增长率计算', '2.比重分析', '3.倍数问题'],
-        cover: '/assets/images/default-course-cover.png', createdAt: new Date()
+        cover: '/assets/images/default-course-cover.jpg', createdAt: new Date()
     },
     {
         name: '六、申论', category: '申论', series: '专项训练', description: '申论写作和分析',
         totalCount: 30, isLocked: true, sort: 6,
         preview: ['1.归纳概括', '2.综合分析', '3.公文写作'],
-        cover: '/assets/images/default-course-cover.png', createdAt: new Date()
+        cover: '/assets/images/default-course-cover.jpg', createdAt: new Date()
     },
     {
         name: '七、法律法规', category: '公基', series: '高频考点', description: '宪法、民法、刑法等常用法律',
         totalCount: 45, isLocked: true, sort: 7,
         preview: ['1.宪法知识', '2.民法原则', '3.行政法规'],
-        cover: '/assets/images/default-course-cover.png', createdAt: new Date()
+        cover: '/assets/images/default-course-cover.jpg', createdAt: new Date()
     },
     {
         name: '八、时事政治', category: '公基', series: '高频考点', description: '最新时政热点与党政方针',
         totalCount: 35, isLocked: true, sort: 8,
         preview: ['1.党的会议', '2.国家政策', '3.国际时事'],
-        cover: '/assets/images/default-course-cover.png', createdAt: new Date()
+        cover: '/assets/images/default-course-cover.jpg', createdAt: new Date()
     }
 ]
 
