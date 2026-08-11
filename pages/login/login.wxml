@@ -11,13 +11,13 @@
       <text class="login-title">欢迎来到仕舟公考</text>
       <text class="login-desc">新用户注册即享7天免费试用</text>
 
-      <!-- 微信登录与手机号绑定使用同一次官方授权 -->
+      <!-- 手机号快捷登录与账号绑定使用同一次授权 -->
       <button
         class="btn btn-primary btn-full login-btn"
         open-type="getPhoneNumber"
         bindgetphonenumber="onPhoneLogin"
         disabled="{{loading || !agreed}}"
-      >微信登录并绑定手机号</button>
+      >手机号快捷登录</button>
 
       <text class="login-phone-tip">手机号是账号的唯一业务标识，仅用于登录识别、账号安全、学习服务通知和必要联系。未授权手机号无法登录。</text>
 

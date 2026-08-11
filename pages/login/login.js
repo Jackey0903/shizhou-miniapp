@@ -17,7 +17,7 @@ Page({
         this.setData({ agreed: e.detail.value.includes('agree') })
     },
 
-    // 微信登录并通过官方能力绑定手机号
+    // 手机号快捷登录并绑定唯一业务账号
     async onPhoneLogin(e) {
         if (!this.data.agreed) {
             wx.showToast({ title: '请先勾选并同意用户协议和隐私政策', icon: 'none' })
