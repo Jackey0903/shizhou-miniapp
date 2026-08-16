@@ -10,7 +10,8 @@
         </view>
         <view class="plan-course-info">
           <text class="plan-course-name">{{course.name}}</text>
-          <text class="plan-course-meta">每日{{plan.dailyCount || 10}}题目，剩余{{remainDays}}天</text>
+          <text class="plan-course-meta" wx:if="{{(course.totalCount || 0) > learnedCount}}">每日{{plan.dailyCount || 10}}题，预计还需{{remainDays}}天</text>
+          <text class="plan-course-meta" wx:else>已完成全部题目</text>
           <view class="plan-prog-bar">
             <view class="plan-prog-fill" style="width:{{learnedPct}}%;"></view>
           </view>
@@ -19,12 +20,13 @@
       </view>
     </view>
 
-    <!-- 完成日期 -->
+    <!-- 预计完成日期 -->
     <view class="plan-deadline">
-      <text class="plan-deadline-text">完成日期：</text>
-      <picker mode="date" bindchange="onDeadlineChange" value="{{plan.deadline}}">
-        <text class="plan-deadline-val">{{plan.deadlineLabel || '选择日期'}}</text>
-      </picker>
+      <view>
+        <text class="plan-deadline-text">预计完成日期：</text>
+        <text class="plan-deadline-val">{{plan.deadlineLabel || ((course.totalCount || 0) > 0 ? '已完成' : '暂无题目')}}</text>
+      </view>
+      <text class="plan-deadline-hint">按剩余题目和每日题数自动计算</text>
     </view>
 
     <!-- 每天答题数 -->

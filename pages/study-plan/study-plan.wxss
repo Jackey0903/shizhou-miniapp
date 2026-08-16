@@ -80,7 +80,9 @@
 
 .plan-deadline {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
   padding: 16rpx 0;
   border-top: 1rpx solid var(--border);
   margin-bottom: 8rpx;
@@ -96,6 +98,14 @@
   font-size: 26rpx;
   color: var(--primary);
   font-weight: 600;
+}
+
+.plan-deadline-hint {
+  max-width: 300rpx;
+  font-size: 22rpx;
+  line-height: 1.45;
+  color: var(--text-muted);
+  text-align: right;
 }
 
 .plan-row {

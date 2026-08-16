@@ -73,13 +73,19 @@ function createPage(config, data = {}) {
 }
 
 async function main() {
-  const { calcRemainDays, toDateKey } = require(path.join(root, 'utils/studyPlan.js'))
+  const { calcRemainDays, calcStudySchedule, toDateKey } = require(path.join(root, 'utils/studyPlan.js'))
   const fixedNow = new Date(2026, 7, 8, 23, 59, 0)
   assert.strictEqual(calcRemainDays('2026-08-08', 0, 10, 0, fixedNow), 0)
   assert.strictEqual(calcRemainDays('2026-08-09', 0, 10, 0, fixedNow), 1, 'remaining days must not change with the time of day')
   assert.strictEqual(toDateKey(new Date('2026-08-13T00:00:00.000Z')), '2026-08-13', 'legacy cloud dates must preserve their selected day')
+  assert.deepStrictEqual(
+    calcStudySchedule(57, 4, 2, new Date(2026, 7, 16, 23, 59, 0)),
+    { remainingCount: 55, remainDays: 14, deadline: '2026-08-29', deadlineLabel: '2026-08-29' },
+    'the customer scenario must estimate completion from 55 remaining questions at 4 per day'
+  )
 
-  const deadlineKey = dateKeyAfter(5)
+  const staleDeadlineKey = '2026-08-05'
+  const estimatedDeadlineKey = dateKeyAfter(3)
   const calls = {
     saves: [],
     toasts: [],
@@ -99,10 +105,13 @@ async function main() {
         courseId: 'course-1',
         dailyCount: 7,
         mode: 'random',
-        deadline: new Date(`${deadlineKey}T00:00:00.000Z`)
+        deadline: new Date(`${staleDeadlineKey}T00:00:00.000Z`)
       }]
     },
     async getStudyRecords() {
+      return cloudApi.studyRecords || []
+    },
+    async getCheckins() {
       return []
     },
     async savePlan(payload) {
@@ -125,18 +134,31 @@ async function main() {
 
     const restoredPage = createPage(config)
     await restoredPage._loadData()
-    assert.strictEqual(restoredPage.data.plan.deadline, deadlineKey, 'saved deadline must be restored as a picker-compatible date')
-    assert.strictEqual(restoredPage.data.plan.deadlineLabel, deadlineKey, 'saved deadline must remain visible after reopening')
-    assert.strictEqual(restoredPage.data.remainDays, 5, 'remaining time must use calendar days')
+    assert.strictEqual(restoredPage.data.plan.deadline, estimatedDeadlineKey, 'stale saved dates must be replaced by the live estimate')
+    assert.strictEqual(restoredPage.data.plan.deadlineLabel, estimatedDeadlineKey, 'estimated completion date must be visible after reopening')
+    assert.strictEqual(restoredPage.data.remainDays, 4, 'remaining study days must use remaining questions and daily target')
     assert.strictEqual(restoredPage.data.dailyCountIndex, 6, 'saved daily target must be restored')
     assert.strictEqual(restoredPage.data.modeIndex, 1, 'saved learning mode must be restored')
 
+    cloudApi.studyRecords = Array.from({ length: 7 }, (_, index) => ({
+      _id: `record-${index}`,
+      courseId: 'course-1',
+      questionId: `question-${index}`,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }))
+    const progressedPage = createPage(config)
+    await progressedPage._loadData()
+    assert.strictEqual(progressedPage.data.learnedCount, 7, 'reopening the plan must use current learning progress')
+    assert.strictEqual(progressedPage.data.remainDays, 3, 'learning progress must reduce the estimated study days')
+    assert.strictEqual(progressedPage.data.plan.deadline, dateKeyAfter(2), 'learning progress must refresh the completion date')
+    cloudApi.studyRecords = []
+
     const changedPage = createPage(config)
-    changedPage.onDeadlineChange({ detail: { value: deadlineKey } })
-    assert.strictEqual(changedPage.data.remainDays, 5, 'changing the deadline must update remaining time immediately')
     changedPage.onDailyCountChange({ detail: { value: '6' } })
     assert.strictEqual(changedPage.data.plan.dailyCount, 7, 'changing the daily target must update the visible plan immediately')
-    assert.strictEqual(changedPage.data.remainDays, 5, 'changing the daily target must preserve deadline-based remaining days')
+    assert.strictEqual(changedPage.data.remainDays, 4, 'changing the daily target must recalculate remaining study days')
+    assert.strictEqual(changedPage.data.plan.deadline, estimatedDeadlineKey, 'changing the daily target must recalculate completion date')
     changedPage.onModeChange({ detail: { value: '1' } })
     assert.strictEqual(changedPage.data.plan.mode, 'random', 'changing the learning mode must update the visible plan immediately')
 
@@ -144,6 +166,7 @@ async function main() {
     assert.strictEqual(await explicitPage.savePlan(), true)
     assert.strictEqual(explicitPage.data.plan._id, 'plan-1')
     assert.strictEqual(explicitPage.data.saving, false)
+    assert.strictEqual(calls.saves.at(-1).deadline, dateKeyAfter(2), 'save must persist the current estimated completion date')
     assert.strictEqual(calls.toasts.at(-1).title, '计划已保存')
     assert.ok(calls.redirects.at(-1), 'explicit save must navigate after the cloud write succeeds')
     assert.strictEqual(
@@ -174,13 +197,20 @@ async function main() {
     const studyBookPage = instantiate(studyBookConfig)
     await studyBookPage.loadPlans()
     assert.strictEqual(studyBookPage.data.plans.length, 1)
-    assert.strictEqual(studyBookPage.data.plans[0].deadlineLabel, deadlineKey, 'saved-plan list must display the completion date')
-    assert.strictEqual(studyBookPage.data.plans[0].remainDays, 5, 'saved-plan list must display synchronized remaining days')
+    assert.strictEqual(studyBookPage.data.plans[0].deadlineLabel, estimatedDeadlineKey, 'saved-plan list must display the live estimated completion date')
+    assert.strictEqual(studyBookPage.data.plans[0].remainDays, 4, 'saved-plan list must display synchronized remaining study days')
     assert.strictEqual(studyBookPage.data.plans[0].dailyCount, 7, 'saved-plan list must display the daily target')
 
     const studyBookWxml = fs.readFileSync(path.join(root, 'pages/study-book/study-book.wxml'), 'utf8')
-    assert(studyBookWxml.includes('完成日期'), 'saved-plan list must render the completion date')
-    assert(studyBookWxml.includes('剩余 {{item.remainDays}} 天'), 'saved-plan list must render remaining days')
+    assert(studyBookWxml.includes('预计完成日期'), 'saved-plan list must explain that the completion date is an estimate')
+    assert(studyBookWxml.includes('预计还需 {{item.remainDays}} 天'), 'saved-plan list must render remaining study days')
+
+    const calendarConfig = loadPage('pages/calendar/calendar', cloudApi)
+    const calendarPage = instantiate(calendarConfig)
+    await calendarPage._loadData()
+    assert.strictEqual(calendarPage.data.planItems[0].deadline, estimatedDeadlineKey, 'calendar must display the same live estimated completion date')
+    const calendarWxml = fs.readFileSync(path.join(root, 'pages/calendar/calendar.wxml'), 'utf8')
+    assert(calendarWxml.includes('预计完成 {{item.deadline}}'), 'calendar must label the date as an estimate')
 
     const savePlanCloud = fs.readFileSync(path.join(root, 'cloudfunctions/savePlan/index.js'), 'utf8')
     assert(savePlanCloud.includes('deadline: safeDeadline'), 'cloud persistence must store a normalized date key')

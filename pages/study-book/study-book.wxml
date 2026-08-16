@@ -20,8 +20,8 @@
         </view>
         <view class="sb-plan-meta">
           <text class="sb-plan-meta-item">每日 {{item.dailyCount}} 题</text>
-          <text class="sb-plan-meta-item">剩余 {{item.remainDays}} 天</text>
-          <text class="sb-plan-date">完成日期 {{item.deadlineLabel || '未设置'}}</text>
+          <text class="sb-plan-meta-item">预计还需 {{item.remainDays}} 天</text>
+          <text class="sb-plan-date">预计完成日期 {{item.deadlineLabel || (item.totalCount > 0 ? '已完成' : '暂无题目')}}</text>
         </view>
         <view class="sb-progress-bar">
           <view class="sb-progress-fill" style="width: {{item.progress}}%;"></view>

@@ -3,6 +3,7 @@ const fs = require('fs')
 const path = require('path')
 const assert = require('assert')
 const automator = require('miniprogram-automator')
+const { calcStudySchedule } = require('../utils/studyPlan')
 
 const root = path.resolve(__dirname, '..')
 const outputDir = path.join(root, 'tmp', 'qa-devtools-interactions')
@@ -117,25 +118,23 @@ async function main() {
     const courseName = course.name || '测试题库'
     const query = `courseId=${encodeURIComponent(course._id)}&courseName=${encodeURIComponent(courseName)}`
 
-    await test('学习计划日期、数量、顺序控件', async () => {
+    await test('学习计划预计日期、数量、顺序控件', async () => {
       const { page } = await open(`/pages/study-plan/study-plan?${query}`)
       const data = await waitForData(page, (value) => value.course && value.course._id === course._id)
       assert(data.course && data.course._id === course._id, '学习计划未加载目标题库')
       const pickers = await page.$$('picker')
-      assert(pickers.length === 3, `学习计划应有 3 个选择器，实际 ${pickers.length}`)
-      const deadline = '2026-12-31'
-      await pickers[0].trigger('change', { value: deadline })
+      assert(pickers.length === 2, `学习计划应有 2 个选择器，实际 ${pickers.length}`)
+      await pickers[0].trigger('change', { value: 1 })
       await page.waitFor(150)
       await pickers[1].trigger('change', { value: 1 })
       await page.waitFor(150)
-      await pickers[2].trigger('change', { value: 1 })
-      await page.waitFor(150)
       const updated = await page.data()
-      assert(updated.plan.deadline === deadline, '截止日期没有同步')
       assert(updated.dailyCountIndex === 1 && updated.plan.dailyCount === updated.dailyCountOptions[1], '每日数量没有同步')
       assert(updated.modeIndex === 1 && updated.plan.mode === 'random', '学习顺序没有同步')
-      assert(Number.isFinite(Number(updated.remainDays)) && Number(updated.remainDays) >= 0, '剩余天数没有重新计算')
-      return { deadline: updated.plan.deadline, dailyCount: updated.plan.dailyCount, mode: updated.plan.mode, remainDays: updated.remainDays }
+      const expected = calcStudySchedule(updated.course.totalCount, updated.plan.dailyCount, updated.learnedCount)
+      assert.strictEqual(updated.remainDays, expected.remainDays, '预计剩余学习天数没有同步')
+      assert.strictEqual(updated.plan.deadline, expected.deadline, '预计完成日期没有同步')
+      return { estimatedDeadline: updated.plan.deadline, dailyCount: updated.plan.dailyCount, mode: updated.plan.mode, remainDays: updated.remainDays }
     })
 
     await test('题目输入与查看答案', async () => {

@@ -1,5 +1,6 @@
 // pages/calendar/calendar.js
 const cloudApi = require('../../utils/cloudApi')
+const { calcStudySchedule } = require('../../utils/studyPlan')
 
 function sameDate(value, target) {
     if (!value) return false
@@ -111,11 +112,16 @@ Page({
                 const targetCount = plan.dailyCount || 10
                 const remainingCount = Math.max(0, targetCount - finishedToday)
                 const done = remainingCount === 0 && targetCount > 0
+                const learnedCount = new Set(bankRecords.map((record) => record.questionId).filter(Boolean)).size
+                const totalCount = bank.totalCount || 0
+                const schedule = calcStudySchedule(totalCount, targetCount, learnedCount)
+                const estimatedDeadline = schedule.deadlineLabel
+                    || (totalCount > 0 ? '已完成' : '暂无题目')
                 return {
                     _id: plan._id,
                     courseId: plan.courseId,
                     title: stripPrefix(bank.name || '未命名题库'),
-                    deadline: plan.deadline ? new Date(plan.deadline).toLocaleDateString() : '未设置',
+                    deadline: estimatedDeadline,
                     targetCount,
                     finishedToday,
                     remainingCount,

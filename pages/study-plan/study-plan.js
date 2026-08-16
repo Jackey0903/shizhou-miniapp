@@ -1,7 +1,7 @@
 // pages/study-plan/study-plan.js
 const cloudApi = require('../../utils/cloudApi')
 const { decodeRouteParam } = require('../../utils/routeParams')
-const { calcRemainDays, toDateKey } = require('../../utils/studyPlan')
+const { calcStudySchedule } = require('../../utils/studyPlan')
 
 const DAILY_COUNT_OPTIONS = Array.from({ length: 50 }, (_, index) => index + 1)
 
@@ -61,12 +61,6 @@ Page({
             ])
 
             const savedPlan = plans.find(p => p.courseId === this.data.courseId) || {}
-            const deadlineLabel = toDateKey(savedPlan.deadline)
-            const plan = {
-                ...savedPlan,
-                deadline: deadlineLabel,
-                deadlineLabel
-            }
             const total = course.totalCount || 0
 
             // 计算已学数
@@ -82,9 +76,14 @@ Page({
                 !isSameDay(r.createdAt, today) && isSameDay(r.updatedAt, today)
             ).length
 
-            // 剩余天数
-            const dailyCount = plan.dailyCount || this.data.dailyCountOptions[this.data.dailyCountIndex] || 10
-            const remainDays = calcRemainDays(plan.deadline, total, dailyCount, learnedCount)
+            const dailyCount = savedPlan.dailyCount || this.data.dailyCountOptions[this.data.dailyCountIndex] || 10
+            const schedule = calcStudySchedule(total, dailyCount, learnedCount)
+            const plan = {
+                ...savedPlan,
+                dailyCount,
+                deadline: schedule.deadline,
+                deadlineLabel: schedule.deadlineLabel
+            }
 
             const dailyCountIndex = this.data.dailyCountOptions.indexOf(plan.dailyCount || 10)
             const modeIndex = plan.mode === 'random' ? 1 : 0
@@ -94,7 +93,7 @@ Page({
                 plan,
                 learnedCount,
                 learnedPct,
-                remainDays,
+                remainDays: schedule.remainDays,
                 todayNew,
                 todayReview,
                 dailyCountIndex: dailyCountIndex >= 0 ? dailyCountIndex : 9,
@@ -110,10 +109,17 @@ Page({
     onDailyCountChange(e) {
         const dailyCountIndex = parseInt(e.detail.value)
         const dailyCount = this.data.dailyCountOptions[dailyCountIndex]
+        const schedule = calcStudySchedule(
+            this.data.course.totalCount || 0,
+            dailyCount,
+            this.data.learnedCount
+        )
         this.setData({
             dailyCountIndex,
             'plan.dailyCount': dailyCount,
-            remainDays: calcRemainDays(this.data.plan.deadline, this.data.course.totalCount || 0, dailyCount, this.data.learnedCount)
+            'plan.deadline': schedule.deadline,
+            'plan.deadlineLabel': schedule.deadlineLabel,
+            remainDays: schedule.remainDays
         })
     },
 
@@ -125,22 +131,24 @@ Page({
         })
     },
 
-    onDeadlineChange(e) {
-        const deadline = e.detail.value
-        const dailyCount = this.data.dailyCountOptions[this.data.dailyCountIndex]
-        this.setData({
-            'plan.deadline': deadline,
-            'plan.deadlineLabel': deadline,
-            remainDays: calcRemainDays(deadline, this.data.course.totalCount || 0, dailyCount, this.data.learnedCount)
-        })
-    },
-
     async savePlan(options = {}) {
         const silent = options && options.silent === true
         if (this.data.saving) return false
         this.setData({ saving: true })
         const dailyCount = this.data.dailyCountOptions[this.data.dailyCountIndex]
         const mode = this.data.modeIndex === 1 ? 'random' : 'sequential'
+        const schedule = calcStudySchedule(
+            this.data.course.totalCount || 0,
+            dailyCount,
+            this.data.learnedCount
+        )
+        this.setData({
+            'plan.dailyCount': dailyCount,
+            'plan.mode': mode,
+            'plan.deadline': schedule.deadline,
+            'plan.deadlineLabel': schedule.deadlineLabel,
+            remainDays: schedule.remainDays
+        })
 
         try {
             const res = await cloudApi.savePlan({
@@ -148,14 +156,16 @@ Page({
                 courseId: this.data.courseId,
                 dailyCount,
                 mode,
-                deadline: this.data.plan.deadline || null
+                deadline: schedule.deadline || null
             })
             if (res.result && res.result.code === 0) {
                 this.setData({
                     'plan._id': (res.result.data && res.result.data.planId) || this.data.plan._id,
                     'plan.dailyCount': dailyCount,
                     'plan.mode': mode,
-                    remainDays: calcRemainDays(this.data.plan.deadline, this.data.course.totalCount || 0, dailyCount, this.data.learnedCount)
+                    'plan.deadline': schedule.deadline,
+                    'plan.deadlineLabel': schedule.deadlineLabel,
+                    remainDays: schedule.remainDays
                 })
                 if (!silent) {
                     wx.showToast({ title: '计划已保存', icon: 'success' })

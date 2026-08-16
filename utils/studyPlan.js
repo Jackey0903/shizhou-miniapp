@@ -42,11 +42,35 @@ function calcRemainDays(deadline, fallbackTotal = 0, dailyCount = 10, learnedCou
     const todayStamp = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
     return Math.max(0, Math.round((deadlineParts.stamp - todayStamp) / DAY_MS))
   }
-  const remainCount = Math.max(0, fallbackTotal - learnedCount)
-  return remainCount > 0 ? Math.max(1, Math.ceil(remainCount / Math.max(1, dailyCount))) : 0
+  return calcStudySchedule(fallbackTotal, dailyCount, learnedCount, now).remainDays
+}
+
+function calcStudySchedule(totalCount = 0, dailyCount = 10, learnedCount = 0, now = new Date()) {
+  const total = Math.max(0, Math.floor(Number(totalCount) || 0))
+  const learned = Math.max(0, Math.floor(Number(learnedCount) || 0))
+  const daily = Math.max(1, Math.floor(Number(dailyCount) || 10))
+  const remainingCount = Math.max(0, total - learned)
+  const remainDays = remainingCount > 0 ? Math.ceil(remainingCount / daily) : 0
+
+  let deadline = ''
+  if (remainDays > 0) {
+    const completionDate = new Date(now)
+    completionDate.setHours(12, 0, 0, 0)
+    // Today is the first study day, so N study days finish on today + (N - 1).
+    completionDate.setDate(completionDate.getDate() + remainDays - 1)
+    deadline = toDateKey(completionDate)
+  }
+
+  return {
+    remainingCount,
+    remainDays,
+    deadline,
+    deadlineLabel: deadline
+  }
 }
 
 module.exports = {
   calcRemainDays,
+  calcStudySchedule,
   toDateKey
 }

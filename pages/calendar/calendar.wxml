@@ -55,7 +55,7 @@
       <view class="plan-item {{item.done ? 'done' : ''}}" wx:for="{{planItems}}" wx:key="_id" bindtap="onPlanTap" data-courseid="{{item.courseId}}">
         <view class="plan-item-info">
           <text class="plan-item-title {{item.done ? 'strikethrough' : ''}}">{{item.title}}</text>
-          <text class="plan-item-time">今日目标 {{item.targetCount}}题，已完成 {{item.finishedToday}}题，完成日期 {{item.deadline}}</text>
+          <text class="plan-item-time">今日目标 {{item.targetCount}}题，已完成 {{item.finishedToday}}题，预计完成 {{item.deadline}}</text>
         </view>
         <text class="plan-item-tag {{item.done ? 'plan-item-tag--done' : ''}}">{{item.tag}}</text>
       </view>
