@@ -83,6 +83,10 @@ function main() {
   assert(adminOperations.includes('bootstrapSuperAdmin(payload, admin)'), 'highest administrator bootstrap must receive an explicit target user')
   assert(adminOperations.includes("const userId = text(payload.userId, 100)"), 'highest administrator bootstrap must validate the target user id')
   assert(adminRolePage.includes('transferSuperAdministrator'), 'highest administrator transfer must use the protected cloud operation')
+  assert(adminOperations.includes("action === 'listManagedQuestions'"), 'question management must use protected administrator operations')
+  assert(adminOperations.includes('const question = await getManagedQuestion(payload)'), 'question writes must verify the question belongs to the selected bank')
+  assert(adminOperations.includes("await db.collection('questions').doc(question._id).remove()"), 'permanent deletion must target the selected question only')
+  assert(questions.includes('rawQuestions.filter(isQuestionEnabled)'), 'offline questions must be hidden from learners')
   ;['getAllBook', 'getAllBookHome', 'getAllQuestion', 'getAllUser', 'getOpenid', 'getWallpapers'].forEach((name) => {
     const source = read(`cloudfunctions/${name}/index.js`)
     assert(source.includes('已停用'), `${name} legacy endpoint must remain disabled`)

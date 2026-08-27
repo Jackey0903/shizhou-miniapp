@@ -5,7 +5,34 @@
 const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
-const _ = db.command
+
+function isQuestionEnabled(question = {}) {
+    return question.enabled !== false && !['disabled', 'offline'].includes(question.status)
+}
+
+async function hasQuestions(field, targetId) {
+    const result = await db.collection('questions').where({ [field]: targetId }).limit(1).get()
+    return (result.data || []).length > 0
+}
+
+async function resolveQuestionField(targetId) {
+    return (await hasQuestions('bankId', targetId)) ? 'bankId' : 'courseId'
+}
+
+async function countVisibleQuestions(field, targetId) {
+    const questions = []
+    while (questions.length < 5000) {
+        const result = await db.collection('questions')
+            .where({ [field]: targetId })
+            .skip(questions.length)
+            .limit(Math.min(100, 5000 - questions.length))
+            .get()
+        const page = result.data || []
+        questions.push(...page)
+        if (page.length < 100) break
+    }
+    return questions.filter(isQuestionEnabled).length
+}
 
 exports.main = async (event, context) => {
     const { OPENID } = cloud.getWXContext()
@@ -43,39 +70,25 @@ exports.main = async (event, context) => {
 
         const safeSkip = Math.max(0, Number(skip) || 0)
         const safeLimit = Math.max(1, Math.min(100, Number(limit) || 50))
+        const questionField = await resolveQuestionField(targetId)
         if (action === 'count') {
-            const bankCount = await db.collection('questions').where({ bankId: targetId }).count()
-            if (bankCount.total > 0) return { code: 0, data: { total: bankCount.total } }
-            const courseCount = await db.collection('questions').where({ courseId: targetId }).count()
-            return { code: 0, data: { total: courseCount.total } }
+            return { code: 0, data: { total: await countVisibleQuestions(questionField, targetId) } }
         }
-        // 先尝试 bankId 查询
-        let questions = []
-        try {
-            const bankRes = await db.collection('questions')
-                .where({ bankId: targetId })
-                .orderBy('sort', 'asc')
-                .skip(safeSkip)
-                .limit(safeLimit)
-                .get()
-            questions = bankRes.data || []
-        } catch (err) {}
-
-        // 如果没数据，尝试 courseId 查询
-        if (questions.length === 0) {
-            const courseRes = await db.collection('questions')
-                .where({ courseId: targetId })
-                .orderBy('sort', 'asc')
-                .skip(safeSkip)
-                .limit(safeLimit)
-                .get()
-            questions = courseRes.data || []
-        }
+        const result = await db.collection('questions')
+            .where({ [questionField]: targetId })
+            .orderBy('sort', 'asc')
+            .skip(safeSkip)
+            .limit(safeLimit)
+            .get()
+        const rawQuestions = result.data || []
+        const questions = rawQuestions.filter(isQuestionEnabled)
 
         return {
             code: 0,
             data: questions,
-            total: questions.length
+            total: questions.length,
+            nextSkip: safeSkip + rawQuestions.length,
+            sourceExhausted: rawQuestions.length < safeLimit
         }
     } catch (err) {
         return { code: -1, msg: err.message }

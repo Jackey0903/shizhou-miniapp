@@ -1,4 +1,5 @@
 const cloud = require('wx-server-sdk')
+const crypto = require('crypto')
 const {
   PLAN_GRANTS,
   CONTENT_TARGETS,
@@ -40,6 +41,21 @@ async function readAll(collectionName, maxItems = 2000) {
   const list = []
   while (list.length < maxItems) {
     const res = await db.collection(collectionName)
+      .skip(list.length)
+      .limit(Math.min(100, maxItems - list.length))
+      .get()
+    const page = res.data || []
+    list.push(...page)
+    if (page.length < 100) break
+  }
+  return list
+}
+
+async function readAllWhere(collectionName, query, maxItems = 5000) {
+  const list = []
+  while (list.length < maxItems) {
+    const res = await db.collection(collectionName)
+      .where(query)
       .skip(list.length)
       .limit(Math.min(100, maxItems - list.length))
       .get()
@@ -230,6 +246,229 @@ async function toggleContent(payload, admin) {
   await db.collection(target).doc(id).update({ data: update })
   await audit(admin, 'toggle_content', { target, id, enabled })
   return { code: 0, msg: enabled ? '已上线' : '已下线' }
+}
+
+function isQuestionEnabled(question = {}) {
+  return question.enabled !== false && !['disabled', 'offline'].includes(question.status)
+}
+
+function questionBankId(question = {}) {
+  return text(question.bankId || question.courseId, 100)
+}
+
+async function findQuestionBank(id) {
+  const bankId = text(id, 100)
+  if (!bankId) return null
+  const bankRes = await db.collection('question_banks').doc(bankId).get().catch(() => ({ data: null }))
+  if (bankRes.data) return { ...bankRes.data, _collection: 'question_banks' }
+  const legacyRes = await db.collection('courses').doc(bankId).get().catch(() => ({ data: null }))
+  return legacyRes.data ? { ...legacyRes.data, _collection: 'courses' } : null
+}
+
+async function listQuestionsForBank(bankId) {
+  const [bankQuestions, courseQuestions] = await Promise.all([
+    readAllWhere('questions', { bankId }),
+    readAllWhere('questions', { courseId: bankId })
+  ])
+  const questions = new Map()
+  bankQuestions.concat(courseQuestions).forEach((question) => {
+    if (question && question._id) questions.set(question._id, question)
+  })
+  return Array.from(questions.values())
+}
+
+function toManagedQuestion(question = {}) {
+  const options = Array.isArray(question.options) ? question.options.map((item) => text(item, 1000)) : []
+  const enabled = isQuestionEnabled(question)
+  return {
+    _id: question._id || '',
+    courseId: questionBankId(question),
+    type: question.type === 'fill' ? 'fill' : 'choice',
+    sort: integer(question.sort, 0, 0),
+    content: text(question.content, 5000),
+    imageUrl: text(question.imageUrl, 1000),
+    options,
+    correctIndex: integer(question.correctIndex, 0, 0),
+    answer: text(question.answer, 5000),
+    explanation: text(question.explanation, 10000),
+    enabled,
+    status: enabled ? 'enabled' : 'disabled',
+    updatedAt: question.updatedAt || null
+  }
+}
+
+function matchesQuestionKeyword(question, keyword) {
+  if (!keyword) return true
+  const values = [
+    question.content,
+    question.answer,
+    question.explanation,
+    ...(Array.isArray(question.options) ? question.options : [])
+  ]
+  return values.some((value) => String(value || '').toLowerCase().includes(keyword))
+}
+
+function requiredQuestionText(value, label, maxLength, required = false) {
+  const result = String(value === undefined || value === null ? '' : value).trim()
+  if (required && !result) throw new Error(`${label}不能为空`)
+  if (result.length > maxLength) throw new Error(`${label}不能超过 ${maxLength} 个字符`)
+  return result
+}
+
+function questionSignature(bankId, type, content) {
+  return `${bankId}|${type}|${String(content || '').replace(/\s+/g, ' ')}`
+}
+
+function validateManagedQuestion(payload = {}) {
+  const type = text(payload.type, 20)
+  if (!['choice', 'fill'].includes(type)) throw new Error('题型只能是选择题或填空题')
+  const content = requiredQuestionText(payload.content, '题干', 5000, true)
+  const explanation = requiredQuestionText(payload.explanation, '解析', 10000)
+  const imageUrl = requiredQuestionText(payload.imageUrl, '题目图片地址', 1000)
+  if (imageUrl && !/^(https:\/\/|cloud:\/\/)/i.test(imageUrl)) {
+    throw new Error('题目图片地址只支持 https:// 或 cloud://')
+  }
+  const sort = integer(payload.sort, 0, 1)
+  if (!sort) throw new Error('序号必须是正整数')
+
+  if (type === 'choice') {
+    if (!Array.isArray(payload.options)) throw new Error('请选择或填写选项')
+    const options = payload.options.map((item) => requiredQuestionText(item, '选项', 1000))
+    while (options.length && !options[options.length - 1]) options.pop()
+    if (options.length < 2) throw new Error('选择题至少需要两个选项')
+    if (options.length > 10) throw new Error('选择题最多支持十个选项')
+    if (options.some((item) => !item)) throw new Error('选择题选项不能留空')
+    const correctIndex = Number(payload.correctIndex)
+    if (!Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex >= options.length) {
+      throw new Error('请选择正确答案')
+    }
+    return {
+      type,
+      sort,
+      content,
+      imageUrl,
+      options,
+      correctIndex,
+      answer: `${String.fromCharCode(65 + correctIndex)}. ${options[correctIndex]}`,
+      explanation
+    }
+  }
+
+  return {
+    type,
+    sort,
+    content,
+    imageUrl,
+    options: [],
+    correctIndex: 0,
+    answer: requiredQuestionText(payload.answer, '参考答案', 5000, true),
+    explanation
+  }
+}
+
+async function getManagedQuestion(payload) {
+  const id = text(payload.id, 100)
+  const courseId = text(payload.courseId, 100)
+  if (!id || !courseId) throw new Error('题目或题库参数无效')
+  const result = await db.collection('questions').doc(id).get().catch(() => ({ data: null }))
+  const question = result.data
+  if (!question) throw new Error('题目不存在或已删除')
+  if (questionBankId(question) !== courseId) throw new Error('题目不属于当前题库')
+  return question
+}
+
+async function syncQuestionBankTotal(bankId) {
+  const questions = await listQuestionsForBank(bankId)
+  const totalCount = questions.filter(isQuestionEnabled).length
+  const bank = await findQuestionBank(bankId)
+  if (bank) {
+    await db.collection(bank._collection).doc(bankId).update({
+      data: { totalCount, updatedAt: db.serverDate() }
+    })
+  }
+  return totalCount
+}
+
+async function listManagedQuestions(payload) {
+  const courseId = text(payload.courseId, 100)
+  if (!courseId) return { code: -1, msg: '请选择题库' }
+  const bank = await findQuestionBank(courseId)
+  if (!bank) return { code: 404, msg: '题库不存在或已删除' }
+  const keyword = text(payload.keyword, 80).toLowerCase()
+  const page = integer(payload.page, 1, 1, 100000)
+  const pageSize = integer(payload.pageSize, 20, 1, 50)
+  const items = (await listQuestionsForBank(courseId))
+    .filter((question) => matchesQuestionKeyword(question, keyword))
+    .sort((left, right) => integer(left.sort, 999999999) - integer(right.sort, 999999999)
+      || String(left._id || '').localeCompare(String(right._id || '')))
+    .map(toManagedQuestion)
+  const offset = (page - 1) * pageSize
+  return {
+    code: 0,
+    data: {
+      bank: { _id: bank._id, name: text(bank.name, 100) },
+      items: items.slice(offset, offset + pageSize),
+      total: items.length,
+      page,
+      pageSize,
+      hasMore: offset + pageSize < items.length
+    }
+  }
+}
+
+async function saveManagedQuestion(payload, admin) {
+  const question = await getManagedQuestion(payload)
+  const normalized = validateManagedQuestion(payload)
+  const bankId = questionBankId(question)
+  const importKey = crypto.createHash('sha256')
+    .update(questionSignature(bankId, normalized.type, normalized.content))
+    .digest('hex')
+  const duplicateRes = await db.collection('questions').where({ importKey }).limit(5).get()
+  let duplicate = (duplicateRes.data || []).find((item) => item._id !== question._id)
+  // 早期导入的题目可能没有 importKey，编辑时仍不能制造同题重复。
+  if (!duplicate) {
+    const signature = questionSignature(bankId, normalized.type, normalized.content)
+    duplicate = (await listQuestionsForBank(bankId)).find((item) => (
+      item._id !== question._id
+      && questionSignature(bankId, item.type, item.content) === signature
+    ))
+  }
+  if (duplicate) return { code: -1, msg: '题库中已存在题干和题型相同的题目' }
+
+  await db.collection('questions').doc(question._id).update({
+    data: {
+      ...normalized,
+      importKey,
+      updatedAt: db.serverDate()
+    }
+  })
+  await audit(admin, 'update_question', { id: question._id, courseId: bankId, type: normalized.type })
+  return { code: 0, msg: '题目已保存', data: toManagedQuestion({ ...question, ...normalized, importKey }) }
+}
+
+async function toggleManagedQuestion(payload, admin) {
+  const question = await getManagedQuestion(payload)
+  const enabled = payload.enabled === true
+  const bankId = questionBankId(question)
+  await db.collection('questions').doc(question._id).update({
+    data: {
+      enabled,
+      status: enabled ? 'enabled' : 'disabled',
+      updatedAt: db.serverDate()
+    }
+  })
+  const totalCount = await syncQuestionBankTotal(bankId)
+  await audit(admin, 'toggle_question', { id: question._id, courseId: bankId, enabled })
+  return { code: 0, msg: enabled ? '题目已上线' : '题目已下线', data: { id: question._id, enabled, totalCount } }
+}
+
+async function deleteManagedQuestion(payload, admin) {
+  const question = await getManagedQuestion(payload)
+  const bankId = questionBankId(question)
+  await db.collection('questions').doc(question._id).remove()
+  const totalCount = await syncQuestionBankTotal(bankId)
+  await audit(admin, 'delete_question', { id: question._id, courseId: bankId })
+  return { code: 0, msg: '题目已永久删除', data: { id: question._id, totalCount } }
 }
 
 async function listUsers(payload, admin) {
@@ -515,21 +754,25 @@ exports.main = async (event = {}) => {
     const payload = event.payload && typeof event.payload === 'object' ? event.payload : {}
 
     if (action === 'listCourseTree') return { code: 0, data: await listCourseTree() }
-    if (action === 'saveSubject') return saveSubject(payload, admin)
-    if (action === 'saveBank') return saveBank(payload, admin)
-    if (action === 'listContent') return listContent(payload)
-    if (action === 'toggleContent') return toggleContent(payload, admin)
-    if (action === 'listUsers') return listUsers(payload, admin)
-    if (action === 'searchUsers') return searchUsers(payload, admin)
-    if (action === 'getAdminIdentity') return getAdminIdentity(admin)
-    if (action === 'listAdministrators') return listAdministrators(admin)
-    if (action === 'bootstrapSuperAdmin') return bootstrapSuperAdmin(payload, admin)
-    if (action === 'setAdministrator') return setAdministrator(payload, admin)
-    if (action === 'transferSuperAdmin') return transferSuperAdmin(payload, admin)
-    if (action === 'grantAccess') return grantAccess(payload, admin)
-    if (action === 'listGrants') return listGrants()
-    if (action === 'getMiniProgramCode') return getMiniProgramCode()
-    if (action === 'generateMiniProgramCode') return generateMiniProgramCode(payload, admin)
+    if (action === 'saveSubject') return await saveSubject(payload, admin)
+    if (action === 'saveBank') return await saveBank(payload, admin)
+    if (action === 'listContent') return await listContent(payload)
+    if (action === 'toggleContent') return await toggleContent(payload, admin)
+    if (action === 'listManagedQuestions') return await listManagedQuestions(payload)
+    if (action === 'saveManagedQuestion') return await saveManagedQuestion(payload, admin)
+    if (action === 'toggleManagedQuestion') return await toggleManagedQuestion(payload, admin)
+    if (action === 'deleteManagedQuestion') return await deleteManagedQuestion(payload, admin)
+    if (action === 'listUsers') return await listUsers(payload, admin)
+    if (action === 'searchUsers') return await searchUsers(payload, admin)
+    if (action === 'getAdminIdentity') return await getAdminIdentity(admin)
+    if (action === 'listAdministrators') return await listAdministrators(admin)
+    if (action === 'bootstrapSuperAdmin') return await bootstrapSuperAdmin(payload, admin)
+    if (action === 'setAdministrator') return await setAdministrator(payload, admin)
+    if (action === 'transferSuperAdmin') return await transferSuperAdmin(payload, admin)
+    if (action === 'grantAccess') return await grantAccess(payload, admin)
+    if (action === 'listGrants') return await listGrants()
+    if (action === 'getMiniProgramCode') return await getMiniProgramCode()
+    if (action === 'generateMiniProgramCode') return await generateMiniProgramCode(payload, admin)
     return { code: -1, msg: '不支持的管理员操作' }
   } catch (err) {
     console.error('[adminOperations] failed', err)

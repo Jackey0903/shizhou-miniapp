@@ -9,6 +9,7 @@ const requiredPages = [
   'pages/user-access-admin/user-access-admin',
   'pages/miniapp-code/miniapp-code',
   'pages/course-upload/course-upload',
+  'pages/question-manager/question-manager',
   'pages/audio-upload/audio-upload',
   'pages/material-upload/material-upload',
   'pages/wallpaper-upload/wallpaper-upload'
@@ -45,6 +46,10 @@ const cloudApi = fs.readFileSync(path.join(root, 'utils/cloudApi.js'), 'utf8')
   'saveAdminQuestionBank',
   'listAdminContent',
   'toggleAdminContent',
+  'listManagedQuestions',
+  'saveManagedQuestion',
+  'toggleManagedQuestion',
+  'deleteManagedQuestion',
   'searchAdminUsers',
   'getAdminUsers',
   'getAdminIdentity',
@@ -67,7 +72,11 @@ if (fs.existsSync(adminFunction)) {
     'listUsers',
     'setAdministrator',
     'transferSuperAdmin',
-    'isSuperAdminUser(admin)'
+    'isSuperAdminUser(admin)',
+    "action === 'listManagedQuestions'",
+    "action === 'saveManagedQuestion'",
+    "action === 'toggleManagedQuestion'",
+    "action === 'deleteManagedQuestion'"
   ].forEach((contract) => {
     if (!source.includes(contract)) failures.push(`adminOperations 缺少最高管理员约束：${contract}`)
   })

@@ -5,6 +5,7 @@ const GROUPS = [
     title: '题库与学习内容',
     items: [
       { title: '题目录入', icon: '题', url: '/pages/question-upload/question-upload' },
+      { title: '题目管理', icon: '管', url: '/pages/question-manager/question-manager' },
       { title: '模块与题库', icon: '库', url: '/pages/course-upload/course-upload' },
       { title: '磨耳朵音频', icon: '音', url: '/pages/audio-upload/audio-upload' },
       { title: '领取资料', icon: '资', url: '/pages/material-upload/material-upload' },

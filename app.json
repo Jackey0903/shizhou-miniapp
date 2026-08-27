@@ -31,6 +31,7 @@
     "pages/user-access-admin/user-access-admin",
     "pages/miniapp-code/miniapp-code",
     "pages/question-upload/question-upload",
+    "pages/question-manager/question-manager",
     "pages/course-upload/course-upload",
     "pages/audio-upload/audio-upload",
     "pages/material-upload/material-upload",

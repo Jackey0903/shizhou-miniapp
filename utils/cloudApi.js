@@ -154,11 +154,12 @@ async function getQuestions(courseId, skip = 0, limit = 20) {
     const requestedLimit = Math.max(1, Math.min(5000, Number(limit) || 20))
     try {
         const questions = []
+        let sourceSkip = Math.max(0, Number(skip) || 0)
         while (questions.length < requestedLimit) {
             const pageLimit = Math.min(100, requestedLimit - questions.length)
             const res = await wx.cloud.callFunction({
                 name: 'getQuestions',
-                data: { courseId, skip: Number(skip || 0) + questions.length, limit: pageLimit }
+                data: { courseId, skip: sourceSkip, limit: pageLimit }
             })
             if (!res.result || res.result.code !== 0) {
                 const err = new Error((res.result && (res.result.msg || res.result.error)) || '获取题目失败')
@@ -167,7 +168,13 @@ async function getQuestions(courseId, skip = 0, limit = 20) {
             }
             const page = res.result.data || []
             questions.push(...page)
-            if (page.length < pageLimit) break
+            const nextSkip = Number(res.result.nextSkip)
+            const sourceExhausted = res.result.sourceExhausted === true
+            if (sourceExhausted) break
+            if (!Number.isFinite(nextSkip) || nextSkip <= sourceSkip) {
+                throw new Error('题目分页游标异常')
+            }
+            sourceSkip = nextSkip
         }
         return questions
     } catch (err) {
@@ -732,6 +739,23 @@ async function toggleAdminContent(target, id, enabled) {
     return callAdminOperation('toggleContent', { target, id, enabled })
 }
 
+async function listManagedQuestions(courseId, keyword = '', page = 1, pageSize = 20) {
+    const result = await callAdminOperation('listManagedQuestions', { courseId, keyword, page, pageSize })
+    return result.data || { items: [], total: 0, page: 1, pageSize, hasMore: false }
+}
+
+async function saveManagedQuestion(payload) {
+    return callAdminOperation('saveManagedQuestion', payload)
+}
+
+async function toggleManagedQuestion(id, courseId, enabled) {
+    return callAdminOperation('toggleManagedQuestion', { id, courseId, enabled })
+}
+
+async function deleteManagedQuestion(id, courseId) {
+    return callAdminOperation('deleteManagedQuestion', { id, courseId })
+}
+
 async function searchAdminUsers(keyword) {
     const result = await callAdminOperation('searchUsers', { keyword })
     return result.data || []
@@ -797,6 +821,7 @@ module.exports = {
     assertAdmin, listAdminConfigs, saveAdminConfig, toggleAdminConfig, getHelpConfig,
     callAdminOperation, getAdminCourseTree, saveAdminSubject, saveAdminQuestionBank,
     listAdminContent, toggleAdminContent,
+    listManagedQuestions, saveManagedQuestion, toggleManagedQuestion, deleteManagedQuestion,
     searchAdminUsers, getAdminUsers, grantAdminUserAccess, getAdminGrantLogs,
     getAdminIdentity, getAdministrators, setAdministrator, transferSuperAdministrator,
     getAdminMiniProgramCode, generateAdminMiniProgramCode

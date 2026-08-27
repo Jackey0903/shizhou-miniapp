@@ -1,0 +1,315 @@
+.qm-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 24rpx 24rpx 80rpx;
+  background: var(--bg-page);
+}
+
+.qm-loading,
+.qm-empty {
+  padding: 44rpx 28rpx;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.qm-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 8rpx 4rpx 24rpx;
+}
+
+.qm-title,
+.qm-sub,
+.qm-total,
+.qm-content,
+.qm-answer,
+.qm-empty-title,
+.qm-empty-sub,
+.qm-editor-title,
+.qm-editor-note,
+.qm-label {
+  display: block;
+}
+
+.qm-title {
+  font-size: 40rpx;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.qm-sub,
+.qm-editor-note,
+.qm-empty-sub {
+  margin-top: 8rpx;
+  font-size: 23rpx;
+  color: var(--text-secondary);
+}
+
+.qm-total {
+  padding: 10rpx 16rpx;
+  border-radius: 8rpx;
+  background: #eaf1ff;
+  color: var(--primary);
+  font-size: 24rpx;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.qm-filter {
+  margin-bottom: 20rpx;
+  padding: 20rpx;
+}
+
+.qm-course-picker,
+.qm-picker,
+.qm-input,
+.qm-textarea,
+.qm-search-input {
+  box-sizing: border-box;
+  width: 100%;
+  border: 2rpx solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #f8fafc;
+  color: var(--text-primary);
+  font-size: 27rpx;
+}
+
+.qm-course-picker,
+.qm-picker,
+.qm-input,
+.qm-search-input {
+  min-height: 82rpx;
+  padding: 0 20rpx;
+}
+
+.qm-course-picker,
+.qm-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.qm-arrow {
+  color: var(--text-muted);
+  font-size: 30rpx;
+}
+
+.qm-search-row {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 16rpx;
+}
+
+.qm-search-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.qm-search-btn,
+.qm-clear-btn,
+.qm-action,
+.qm-delete,
+.qm-more {
+  margin: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-size: 24rpx;
+}
+
+.qm-search-btn {
+  min-width: 112rpx;
+  background: var(--primary);
+  color: #fff;
+}
+
+.qm-clear-btn {
+  min-width: 92rpx;
+  background: #edf2f7;
+  color: var(--text-secondary);
+}
+
+.qm-search-btn::after,
+.qm-clear-btn::after,
+.qm-action::after,
+.qm-delete::after,
+.qm-more::after {
+  border: 0;
+}
+
+.qm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.qm-item {
+  position: relative;
+  padding: 22rpx;
+}
+
+.qm-item-head,
+.qm-tags,
+.qm-actions,
+.qm-field-row,
+.qm-editor-head {
+  display: flex;
+  align-items: center;
+}
+
+.qm-item-head,
+.qm-editor-head {
+  justify-content: space-between;
+  gap: 14rpx;
+}
+
+.qm-tags,
+.qm-actions,
+.qm-field-row {
+  gap: 10rpx;
+}
+
+.qm-type,
+.qm-state,
+.qm-sort {
+  padding: 5rpx 10rpx;
+  border-radius: 6rpx;
+  font-size: 20rpx;
+  white-space: nowrap;
+}
+
+.qm-type {
+  background: #eaf1ff;
+  color: var(--primary);
+}
+
+.qm-state.online {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.qm-state.offline {
+  background: #f1f5f9;
+  color: var(--text-secondary);
+}
+
+.qm-sort {
+  background: #f8fafc;
+  color: var(--text-muted);
+}
+
+.qm-action {
+  min-width: 76rpx;
+  height: 56rpx;
+  padding: 0 12rpx;
+  line-height: 56rpx;
+  background: #eff6ff;
+  color: var(--primary);
+}
+
+.qm-action--warn {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.qm-action--success {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.qm-content {
+  margin-top: 18rpx;
+  padding-right: 18rpx;
+  font-size: 28rpx;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.qm-answer {
+  margin-top: 8rpx;
+  padding-right: 18rpx;
+  font-size: 23rpx;
+  color: var(--text-secondary);
+}
+
+.qm-delete {
+  margin-top: 16rpx;
+  padding: 0;
+  background: transparent;
+  color: var(--danger);
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
+.qm-more {
+  width: 100%;
+  height: 78rpx;
+  background: #fff;
+  color: var(--primary);
+  border: 2rpx solid #dbeafe;
+}
+
+.qm-finish {
+  padding: 16rpx 0;
+  color: var(--text-muted);
+  font-size: 22rpx;
+  text-align: center;
+}
+
+.qm-empty-title {
+  color: var(--text-primary);
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.qm-editor-mask {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 24rpx;
+  background: rgba(15, 23, 42, 0.54);
+}
+
+.qm-editor {
+  margin: 34rpx 0 80rpx;
+  padding: 26rpx;
+}
+
+.qm-editor-title {
+  font-size: 34rpx;
+  font-weight: 800;
+}
+
+.qm-close {
+  color: var(--text-secondary);
+  font-size: 24rpx;
+  white-space: nowrap;
+}
+
+.qm-field {
+  margin-top: 20rpx;
+}
+
+.qm-field--small {
+  flex: 1;
+  min-width: 0;
+}
+
+.qm-label {
+  margin-bottom: 9rpx;
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.qm-textarea {
+  min-height: 150rpx;
+  padding: 18rpx 20rpx;
+  line-height: 1.5;
+}
+
+.qm-textarea--options {
+  min-height: 200rpx;
+}

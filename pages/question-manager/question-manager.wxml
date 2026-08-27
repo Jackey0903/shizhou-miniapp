@@ -1,0 +1,122 @@
+<view class="qm-page">
+  <view class="qm-loading" wx:if="{{loading}}">正在核验管理员权限...</view>
+
+  <view class="qm-empty card" wx:elif="{{!authorized}}">
+    <text>当前账号没有题目管理权限</text>
+  </view>
+
+  <block wx:else>
+    <view class="qm-heading">
+      <view>
+        <text class="qm-title">题目管理</text>
+        <text class="qm-sub">按题库维护题目，所有修改实时生效。</text>
+      </view>
+      <text class="qm-total">{{total}} 题</text>
+    </view>
+
+    <view class="qm-filter card" wx:if="{{courses.length}}">
+      <picker mode="selector" range="{{courseNames}}" value="{{courseIndex}}" bindchange="onCourseChange">
+        <view class="qm-course-picker">
+          <text>{{courseNames[courseIndex] || '请选择题库'}}</text>
+          <text class="qm-arrow">⌄</text>
+        </view>
+      </picker>
+      <view class="qm-search-row">
+        <input class="qm-search-input" placeholder="搜索题干、选项、答案或解析" value="{{keyword}}" bindinput="onKeywordInput" confirm-type="search" bindconfirm="search"/>
+        <button class="qm-search-btn" bindtap="search">搜索</button>
+        <button class="qm-clear-btn" wx:if="{{keyword}}" bindtap="clearSearch">清除</button>
+      </view>
+    </view>
+
+    <view class="qm-empty card" wx:if="{{!courses.length}}">
+      <text class="qm-empty-title">还没有可管理的题库</text>
+      <text class="qm-empty-sub">请先在“模块与题库”中新增题库，再录入题目。</text>
+    </view>
+
+    <view class="qm-empty card" wx:elif="{{!loadingQuestions && !questions.length}}">
+      <text class="qm-empty-title">没有找到题目</text>
+      <text class="qm-empty-sub">可修改搜索词，或切换其他题库。</text>
+    </view>
+
+    <view class="qm-list" wx:else>
+      <view class="qm-item card" wx:for="{{questions}}" wx:key="_id">
+        <view class="qm-item-head">
+          <view class="qm-tags">
+            <text class="qm-type">{{item.typeLabel}}</text>
+            <text class="qm-state {{item.stateClass}}">{{item.stateLabel}}</text>
+            <text class="qm-sort">序号 {{item.sort}}</text>
+          </view>
+          <view class="qm-actions">
+            <button class="qm-action" data-id="{{item._id}}" bindtap="openEditor">编辑</button>
+            <button class="qm-action {{item.enabled ? 'qm-action--warn' : 'qm-action--success'}}" data-id="{{item._id}}" data-enabled="{{!item.enabled}}" bindtap="toggleQuestion">{{item.enabled ? '下线' : '上线'}}</button>
+          </view>
+        </view>
+        <text class="qm-content">{{item.contentPreview}}</text>
+        <text class="qm-answer">{{item.answerPreview}}</text>
+        <button class="qm-delete" data-id="{{item._id}}" bindtap="removeQuestion">永久删除</button>
+      </view>
+      <button class="qm-more" wx:if="{{hasMore}}" loading="{{loadingQuestions}}" bindtap="loadMore">加载更多</button>
+      <text class="qm-finish" wx:else>已显示全部 {{total}} 道题</text>
+    </view>
+
+    <view class="qm-editor-mask" wx:if="{{showEditor}}">
+      <view class="qm-editor card">
+        <view class="qm-editor-head">
+          <view>
+            <text class="qm-editor-title">编辑题目</text>
+            <text class="qm-editor-note">保存后立即影响用户端展示</text>
+          </view>
+          <text class="qm-close" bindtap="closeEditor">关闭</text>
+        </view>
+
+        <view class="qm-field-row">
+          <view class="qm-field qm-field--small">
+            <text class="qm-label">题型</text>
+            <picker mode="selector" range="{{questionTypes}}" value="{{form.typeIndex}}" bindchange="onTypeChange">
+              <view class="qm-picker">{{questionTypes[form.typeIndex]}}</view>
+            </picker>
+          </view>
+          <view class="qm-field qm-field--small">
+            <text class="qm-label">序号</text>
+            <input class="qm-input" type="number" value="{{form.sort}}" data-field="sort" bindinput="onFormInput"/>
+          </view>
+        </view>
+
+        <view class="qm-field">
+          <text class="qm-label">题干</text>
+          <textarea class="qm-textarea" value="{{form.content}}" data-field="content" bindinput="onFormInput" maxlength="5000" auto-height/>
+        </view>
+
+        <view class="qm-field">
+          <text class="qm-label">题目图片地址（可选）</text>
+          <input class="qm-input" placeholder="https:// 或 cloud:// 地址" value="{{form.imageUrl}}" data-field="imageUrl" bindinput="onFormInput"/>
+        </view>
+
+        <block wx:if="{{form.typeIndex === 0}}">
+          <view class="qm-field">
+            <text class="qm-label">选项（每行一项）</text>
+            <textarea class="qm-textarea qm-textarea--options" placeholder="选项 A&#10;选项 B&#10;选项 C" value="{{form.optionsText}}" data-field="optionsText" bindinput="onFormInput" auto-height/>
+          </view>
+          <view class="qm-field">
+            <text class="qm-label">正确答案</text>
+            <picker mode="selector" range="{{optionLabels}}" value="{{form.correctIndex}}" bindchange="onCorrectChange">
+              <view class="qm-picker">{{optionLabels[form.correctIndex]}}</view>
+            </picker>
+          </view>
+        </block>
+
+        <view class="qm-field" wx:else>
+          <text class="qm-label">参考答案</text>
+          <textarea class="qm-textarea" value="{{form.answer}}" data-field="answer" bindinput="onFormInput" maxlength="5000" auto-height/>
+        </view>
+
+        <view class="qm-field">
+          <text class="qm-label">解析（可选）</text>
+          <textarea class="qm-textarea" value="{{form.explanation}}" data-field="explanation" bindinput="onFormInput" maxlength="10000" auto-height/>
+        </view>
+
+        <button class="btn btn-primary btn-full" loading="{{saving}}" disabled="{{saving}}" bindtap="saveQuestion">保存题目</button>
+      </view>
+    </view>
+  </block>
+</view>

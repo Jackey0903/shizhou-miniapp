@@ -180,6 +180,8 @@ function main() {
   run(process.execPath, ['scripts/regression-privacy-api-declarations.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-question-csv-import.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-question-upload-cloud.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-question-management.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-question-manager-page.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-admin-uploads.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-audio-lifecycle.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-plan-separation.js'], { stdio: 'pipe' })
@@ -214,6 +216,8 @@ function main() {
       'privacy-API-declaration-regression',
       'question-CSV-import-regression',
       'question-upload-cloud-regression',
+      'question-management-permission-and-lifecycle-regression',
+      'question-management-page-interaction-regression',
       'admin-material-audio-wallpaper-upload-regression',
       'background-audio-lifecycle-regression',
       'VIP-supervision-plan-separation',
