@@ -7,6 +7,10 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 const _ = db.command
 
+function isPublished(item = {}) {
+    return item.enabled !== false && !['disabled', 'offline'].includes(item.status)
+}
+
 async function readAll(collectionName, maxItems = 1000) {
     const list = []
     while (list.length < maxItems) {
@@ -36,7 +40,7 @@ async function enrichBanks(banks) {
             category: bank.category || subject.name || '综合题库',
             subjectName: bank.subjectName || subject.name || bank.category || '综合题库',
             color: bank.color || subject.color || '',
-            subjectEnabled: !['disabled', 'offline'].includes(subject.status)
+            subjectEnabled: !subject._id || isPublished(subject)
         }
     })
 }
@@ -45,19 +49,27 @@ exports.main = async (event, context) => {
     try {
         let courses = []
         
-        // 先尝试 question_banks 集合
+        // 新旧题库会在迁移期并存。此前只要新集合有一条记录就完全忽略 courses，
+        // 会导致旧模块（例如常识判断）后台已上线但用户端无法进入。
         try {
-            const banks = await readAll('question_banks')
-            if (banks.length > 0) {
-                courses = (await enrichBanks(
-                    banks.filter((item) => !['disabled', 'offline'].includes(item.status))
-                )).filter((item) => item.subjectEnabled)
-                return { code: 0, data: courses, source: 'question_banks' }
-            }
+            const [banks, legacyCourses] = await Promise.all([
+                readAll('question_banks').catch(() => []),
+                readAll('courses').catch(() => [])
+            ])
+            const merged = []
+            const seen = new Set()
+            banks.concat(legacyCourses).filter(isPublished).forEach((item) => {
+                if (item && item._id && !seen.has(item._id)) {
+                    seen.add(item._id)
+                    merged.push(item)
+                }
+            })
+            courses = (await enrichBanks(merged)).filter((item) => item.subjectEnabled)
+            return { code: 0, data: courses, source: 'merged' }
         } catch (err) {}
 
-        // 降级到 courses 集合
-        courses = (await readAll('courses')).filter((item) => !['disabled', 'offline'].includes(item.status))
+        // 极端情况下再降级到旧集合。
+        courses = (await readAll('courses')).filter(isPublished)
         
         return { code: 0, data: courses, source: 'courses' }
     } catch (err) {

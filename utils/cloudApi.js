@@ -464,8 +464,9 @@ async function getPunchConfig(dateStr = '') {
     }
 
     let background = chooseDaily(backgrounds, 'default')
-    if (background && background.fileId && !background.imageUrl) {
-        try {
+    // 后台保存的是 cloud:// 文件 ID；临时链接会过期，因此每次都换取新链接。
+    if (background && background.fileId && background.fileId.startsWith('cloud://')) {
+      try {
             const tempRes = await wx.cloud.getTempFileURL({ fileList: [background.fileId] })
             const first = (tempRes.fileList || [])[0]
             if (first && first.tempFileURL) {
@@ -739,6 +740,19 @@ async function toggleAdminContent(target, id, enabled) {
     return callAdminOperation('toggleContent', { target, id, enabled })
 }
 
+async function getAdminContent(target, id) {
+    const result = await callAdminOperation('getContent', { target, id })
+    return result.data || null
+}
+
+async function saveAdminContent(target, payload) {
+    return callAdminOperation('saveContent', { target, ...payload })
+}
+
+async function reorderAdminContentByName(target, direction = 'asc') {
+    return callAdminOperation('reorderContentByName', { target, direction })
+}
+
 async function listManagedQuestions(courseId, keyword = '', page = 1, pageSize = 20) {
     const result = await callAdminOperation('listManagedQuestions', { courseId, keyword, page, pageSize })
     return result.data || { items: [], total: 0, page: 1, pageSize, hasMore: false }
@@ -820,7 +834,7 @@ module.exports = {
     getCoinLogs, getVipPlans, getMyOrders,
     assertAdmin, listAdminConfigs, saveAdminConfig, toggleAdminConfig, getHelpConfig,
     callAdminOperation, getAdminCourseTree, saveAdminSubject, saveAdminQuestionBank,
-    listAdminContent, toggleAdminContent,
+    listAdminContent, toggleAdminContent, getAdminContent, saveAdminContent, reorderAdminContentByName,
     listManagedQuestions, saveManagedQuestion, toggleManagedQuestion, deleteManagedQuestion,
     searchAdminUsers, getAdminUsers, grantAdminUserAccess, getAdminGrantLogs,
     getAdminIdentity, getAdministrators, setAdministrator, transferSuperAdministrator,

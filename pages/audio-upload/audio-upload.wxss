@@ -5,10 +5,22 @@
 .form-label { display: block; font-size: 26rpx; font-weight: 700; margin-bottom: 12rpx; }
 .form-picker, .form-input { min-height: 92rpx; border-radius: 24rpx; background: #f8fafc; padding: 0 24rpx; display: flex; align-items: center; font-size: 28rpx; color: #0f172a; box-sizing: border-box; }
 .file-list { margin: 24rpx 0; padding: 20rpx 24rpx; border-radius: 24rpx; background: #fff7ed; }
-.file-item { font-size: 24rpx; color: #9a3412; line-height: 1.8; }
+.file-item { display: flex; align-items: center; gap: 10rpx; font-size: 24rpx; color: #9a3412; line-height: 1.8; }
+.file-index { flex: 0 0 auto; }
+.file-item-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-order-btn { margin: 0; padding: 0 12rpx; border: 0; border-radius: 8rpx; background: #ffedd5; color: #9a3412; font-size: 20rpx; }
+.file-order-btn::after { border: 0; }
 .audio-manage { margin-top: 32rpx; }
 .manage-title, .manage-name, .manage-meta { display: block; }
+.manage-head, .manage-search, .manage-actions { display: flex; align-items: center; }
+.manage-head { justify-content: space-between; gap: 12rpx; }
 .manage-title { margin: 0 4rpx 14rpx; font-size: 27rpx; font-weight: 800; }
+.manage-sort, .manage-edit { margin: 0; border: 0; border-radius: 8rpx; background: #f1f5f9; color: var(--text-secondary); font-size: 21rpx; }
+.manage-sort::after, .manage-edit::after { border: 0; }
+.manage-search { gap: 12rpx; margin-bottom: 14rpx; }
+.manage-search-input { flex: 1; min-width: 0; min-height: 72rpx; padding: 0 18rpx; box-sizing: border-box; border: 2rpx solid var(--border); border-radius: var(--radius-sm); background: #fff; font-size: 24rpx; }
+.manage-search-btn { min-width: 88rpx; margin: 0; border: 0; border-radius: var(--radius-sm); background: var(--primary); color: #fff; font-size: 23rpx; }
+.manage-search-btn::after { border: 0; }
 .manage-item { min-height: 104rpx; display: flex; align-items: center; gap: 16rpx; padding: 18rpx 22rpx; margin-bottom: 12rpx; box-sizing: border-box; background: #fff; border-radius: var(--radius-md); }
 .manage-main { flex: 1; min-width: 0; }
 .manage-name { font-size: 27rpx; font-weight: 700; }

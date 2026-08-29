@@ -56,6 +56,7 @@ Page({
     categoryCards: [],
     homeCards: [],
     loading: true,
+    courseLoadError: '',
     userInfo: null,
     isVip: false,
     unreadCount: 0
@@ -92,11 +93,15 @@ Page({
         categoryCards,
         homeCards: categoryCards.slice(0, 8),
         unreadCount,
-        loading: false
+        loading: false,
+        courseLoadError: ''
       })
     } catch (e) {
       console.error('首页加载失败', e)
-      this.setData({ loading: false })
+      this.setData({
+        loading: false,
+        courseLoadError: '考点记忆卡加载失败，请下拉刷新后重试'
+      })
     }
   },
 

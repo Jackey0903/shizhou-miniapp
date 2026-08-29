@@ -200,7 +200,9 @@ Page({
     wx.showLoading({ title: '加载中', mask: true })
     try {
       const user = await cloudApi.getCurrentUser()
-      const hasAccess = !!(user && (user.isAdmin === true || user.role === 'admin'))
+      const hasAccess = !!(user && (
+        user.isAdmin === true || user.role === 'admin' || user.role === 'super_admin'
+      ))
       if (!hasAccess) {
         this.setData({ loading: false, hasAccess: false })
         return

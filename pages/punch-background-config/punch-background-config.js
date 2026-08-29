@@ -5,7 +5,7 @@ Page({
     title: '',
     activeDate: '',
     fileId: '',
-    imageUrl: '',
+    previewUrl: '',
     list: [],
     uploading: false,
     loading: false
@@ -44,7 +44,7 @@ Page({
       })
       const temp = await wx.cloud.getTempFileURL({ fileList: [uploadRes.fileID] })
       const imageUrl = (temp.fileList && temp.fileList[0] && temp.fileList[0].tempFileURL) || ''
-      this.setData({ fileId: uploadRes.fileID, imageUrl })
+      this.setData({ fileId: uploadRes.fileID, previewUrl: imageUrl })
     } catch (err) {
       if (!(err && err.errMsg && err.errMsg.includes('cancel'))) {
         wx.showToast({ title: err.message || '上传失败', icon: 'none' })
@@ -65,13 +65,14 @@ Page({
       const res = await cloudApi.saveAdminConfig('punch_backgrounds', {
         title: this.data.title || '今日打卡海报',
         fileId: this.data.fileId,
-        imageUrl: this.data.imageUrl,
+        // 临时文件链接会过期，线上读取时会根据 fileId 实时换取链接。
+        imageUrl: '',
         activeDate: this.data.activeDate || 'default',
         enabled: true,
         sort: Date.now()
       })
       if (res.result && res.result.code === 0) {
-        this.setData({ title: '', activeDate: '', fileId: '', imageUrl: '' })
+        this.setData({ title: '', activeDate: '', fileId: '', previewUrl: '' })
         await this.loadList()
         wx.showToast({ title: '背景已保存', icon: 'success' })
       } else {

@@ -58,21 +58,30 @@ Page({
     categoryCards: [],
     courses: [],
     showCategories: true,
-    isVip: false
+    isVip: false,
+    loading: true,
+    loadError: ''
   },
 
   async onLoad(options = {}) {
     const app = getApp()
     this.setData({ isVip: !!app.globalData.isVip })
     const category = options.category ? decodeURIComponent(options.category) : ''
-    const allCourses = await cloudApi.getCourses()
+    let allCourses = []
+    try {
+      allCourses = await cloudApi.getCourses()
+    } catch (err) {
+      console.error('加载题库列表失败', err)
+      this.setData({ loadError: '题库加载失败，请稍后重试' })
+    }
 
     if (!category) {
       this.setData({
         title: '全部考点记忆卡',
         subtitle: `共${buildCategoryCards(allCourses).length}个科目`,
         categoryCards: buildCategoryCards(allCourses),
-        showCategories: true
+        showCategories: true,
+        loading: false
       })
       return
     }
@@ -89,7 +98,8 @@ Page({
       subtitle: `${courses.length}个题库`,
       category,
       courses,
-      showCategories: false
+      showCategories: false,
+      loading: false
     })
   },
 

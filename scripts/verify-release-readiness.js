@@ -182,6 +182,7 @@ function main() {
   run(process.execPath, ['scripts/regression-question-upload-cloud.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-question-management.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-question-manager-page.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-content-publication.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-admin-uploads.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-audio-lifecycle.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-plan-separation.js'], { stdio: 'pipe' })
@@ -218,6 +219,7 @@ function main() {
       'question-upload-cloud-regression',
       'question-management-permission-and-lifecycle-regression',
       'question-management-page-interaction-regression',
+      'content-publication-and-background-configuration-regression',
       'admin-material-audio-wallpaper-upload-regression',
       'background-audio-lifecycle-regression',
       'VIP-supervision-plan-separation',

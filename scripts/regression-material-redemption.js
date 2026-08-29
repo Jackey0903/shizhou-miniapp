@@ -115,9 +115,24 @@ async function testInsufficientBalanceIsAtomic() {
   assert.strictEqual(db.state.coin_logs.length, 0)
 }
 
+async function testOfflineMaterialCannotBeRedeemed() {
+  const db = createMemoryDb({
+    users: [{ _id: 'user-3', _openid: 'user', coins: 30 }],
+    materials: [{ _id: 'material-3', name: '已下线资料', enabled: true, status: 'offline' }],
+    material_redemptions: [],
+    coin_logs: []
+  })
+  const fn = loadFunction(db)
+  const result = await fn.main({ materialId: 'material-3' })
+  assert.notStrictEqual(result.code, 0)
+  assert.strictEqual(db.state.users[0].coins, 30)
+  assert.strictEqual(db.state.material_redemptions.length, 0)
+}
+
 async function main() {
   await testFixedCostAndIdempotence()
   await testInsufficientBalanceIsAtomic()
+  await testOfflineMaterialCannotBeRedeemed()
   console.log('material fixed-cost redemption regression checks passed')
 }
 

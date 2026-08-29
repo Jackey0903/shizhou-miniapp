@@ -71,8 +71,12 @@ function validateConfig(target, data = {}) {
     }
   }
   if (target === 'messages') {
-    if (!String(data.title || '').trim()) return '请填写消息标题'
-    if (!String(data.content || '').trim()) return '请填写消息内容'
+    const title = String(data.title || '').trim()
+    const content = String(data.content || '').trim()
+    if (!title) return '请填写消息标题'
+    if (title.length > 100) return '消息标题不能超过100个字符'
+    if (!content) return '请填写消息内容'
+    if (content.length > 1000) return '消息内容不能超过1000个字符'
     if (!['all', 'vip', 'new', 'supervision'].includes(String(data.scope || 'all'))) {
       return '消息接收范围无效'
     }
@@ -108,6 +112,16 @@ async function ensureCollection(name) {
   return true
 }
 
+async function disableDuplicatePunchBackgrounds(activeDate, keepId) {
+  const result = await db.collection('punch_backgrounds').where({ activeDate }).get()
+  const duplicates = (result.data || []).filter((item) => item._id !== keepId && item.enabled !== false)
+  for (const item of duplicates) {
+    await db.collection('punch_backgrounds').doc(item._id).update({
+      data: { enabled: false, updatedAt: db.serverDate() }
+    })
+  }
+}
+
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext()
   const { action, target, payload = {} } = event || {}
@@ -132,7 +146,7 @@ exports.main = async (event) => {
   }
 
   const user = await getAdmin(OPENID)
-  if (!user || (!user.isAdmin && user.role !== 'admin')) {
+  if (!user || (!user.isAdmin && user.role !== 'admin' && user.role !== 'super_admin')) {
     return { code: -1, msg: '仅管理员可操作' }
   }
   if (action === 'assertAdmin') return { code: 0, data: { isAdmin: true } }
@@ -175,13 +189,25 @@ exports.main = async (event) => {
         const existed = await db.collection(target).limit(1).get()
         targetId = ((existed.data || [])[0] || {})._id || ''
       }
+      if (target === 'punch_backgrounds' && !targetId) {
+        const activeDate = String(data.activeDate || 'default')
+        const existed = await db.collection(target).where({ activeDate }).get()
+        const candidates = (existed.data || []).sort((left, right) => Number(right.sort || 0) - Number(left.sort || 0))
+        targetId = (candidates[0] || {})._id || ''
+      }
       data.updatedAt = db.serverDate()
       if (targetId) {
         await db.collection(target).doc(targetId).update({ data })
+        if (target === 'punch_backgrounds') {
+          await disableDuplicatePunchBackgrounds(String(data.activeDate || 'default'), targetId)
+        }
         return { code: 0, msg: '更新成功' }
       }
       data.createdAt = db.serverDate()
-      await db.collection(target).add({ data })
+      const created = await db.collection(target).add({ data })
+      if (target === 'punch_backgrounds') {
+        await disableDuplicatePunchBackgrounds(String(data.activeDate || 'default'), created._id)
+      }
       return { code: 0, msg: '新增成功' }
     }
 

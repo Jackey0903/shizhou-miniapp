@@ -90,6 +90,11 @@
         <view class="qm-field">
           <text class="qm-label">题目图片地址（可选）</text>
           <input class="qm-input" placeholder="https:// 或 cloud:// 地址" value="{{form.imageUrl}}" data-field="imageUrl" bindinput="onFormInput"/>
+          <image wx:if="{{form.imageUrl}}" class="qm-image-preview" src="{{form.imageUrl}}" mode="widthFix"/>
+          <view class="qm-image-actions">
+            <button class="qm-image-btn" bindtap="chooseQuestionImage" loading="{{saving}}">从相册替换图片</button>
+            <button class="qm-image-btn qm-image-btn--clear" wx:if="{{form.imageUrl}}" bindtap="clearQuestionImage">移除图片</button>
+          </view>
         </view>
 
         <block wx:if="{{form.typeIndex === 0}}">

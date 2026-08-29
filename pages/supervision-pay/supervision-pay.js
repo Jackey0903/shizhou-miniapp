@@ -36,7 +36,7 @@ Page({
   },
 
   async onShow() {
-    await this.loadAccess()
+    await Promise.all([this.loadPlans(), this.loadAccess()])
   },
 
   async loadPlans() {

@@ -10,6 +10,10 @@ function isQuestionEnabled(question = {}) {
     return question.enabled !== false && !['disabled', 'offline'].includes(question.status)
 }
 
+function isPublished(item = {}) {
+    return item.enabled !== false && !['disabled', 'offline'].includes(item.status)
+}
+
 async function hasQuestions(field, targetId) {
     const result = await db.collection('questions').where({ [field]: targetId }).limit(1).get()
     return (result.data || []).length > 0
@@ -57,8 +61,14 @@ exports.main = async (event, context) => {
         if (!bank) {
             return { code: 404, msg: '题库不存在或已下架' }
         }
-        if (['disabled', 'offline'].includes(bank.status)) {
+        if (!isPublished(bank)) {
             return { code: 404, msg: '该题库已下架' }
+        }
+        if (bank.subjectId) {
+            const subjectRes = await db.collection('subjects').doc(bank.subjectId).get().catch(() => ({ data: null }))
+            if (subjectRes.data && !isPublished(subjectRes.data)) {
+                return { code: 404, msg: '该模块已下架' }
+            }
         }
         if (bank.isLocked) {
             const userRes = await db.collection('users').where({ _openid: OPENID }).limit(1).get()

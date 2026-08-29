@@ -194,6 +194,35 @@ Page({
     this.setData({ form: { ...this.data.form, correctIndex: Math.max(0, Number(event.detail.value) || 0) } })
   },
 
+  async chooseQuestionImage() {
+    if (this.data.saving) return
+    try {
+      const result = await wx.chooseMedia({ count: 1, mediaType: ['image'], sourceType: ['album'] })
+      const file = (result.tempFiles || [])[0]
+      if (!file || !file.tempFilePath) return
+      this.setData({ saving: true })
+      wx.showLoading({ title: '上传图片中', mask: true })
+      const ext = (file.tempFilePath.split('.').pop() || 'jpg').replace(/[^a-zA-Z0-9]/g, '') || 'jpg'
+      const upload = await wx.cloud.uploadFile({
+        cloudPath: `question-images/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`,
+        filePath: file.tempFilePath
+      })
+      this.setData({ 'form.imageUrl': upload.fileID })
+      wx.showToast({ title: '图片已替换，请保存题目', icon: 'success' })
+    } catch (err) {
+      if (!String(err && err.errMsg || '').includes('cancel')) {
+        wx.showToast({ title: err.message || '替换图片失败', icon: 'none' })
+      }
+    } finally {
+      wx.hideLoading()
+      this.setData({ saving: false })
+    }
+  },
+
+  clearQuestionImage() {
+    this.setData({ 'form.imageUrl': '' })
+  },
+
   async saveQuestion() {
     if (this.data.saving) return
     const course = this.getCurrentCourse()

@@ -76,6 +76,37 @@
   font-size: 27rpx;
 }
 
+.qm-image-preview {
+  display: block;
+  width: 100%;
+  max-height: 360rpx;
+  margin-top: 12rpx;
+  border-radius: var(--radius-sm);
+  background: #f1f5f9;
+}
+
+.qm-image-actions {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 12rpx;
+}
+
+.qm-image-btn {
+  margin: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: #eff6ff;
+  color: var(--primary);
+  font-size: 23rpx;
+}
+
+.qm-image-btn--clear {
+  background: #fef2f2;
+  color: var(--danger);
+}
+
+.qm-image-btn::after { border: 0; }
+
 .qm-course-picker,
 .qm-picker,
 .qm-input,

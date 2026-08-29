@@ -49,7 +49,9 @@ exports.main = async (event) => {
 
   try {
     const user = await getCurrentUser(OPENID)
-    const isAdmin = !!(user && (user.isAdmin === true || user.role === 'admin'))
+    const isAdmin = !!(user && (
+      user.isAdmin === true || user.role === 'admin' || user.role === 'super_admin'
+    ))
     if (!isAdmin) {
       return { code: -1, msg: '无新增题库权限' }
     }

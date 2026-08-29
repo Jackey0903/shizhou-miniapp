@@ -10,6 +10,7 @@ const requiredPages = [
   'pages/miniapp-code/miniapp-code',
   'pages/course-upload/course-upload',
   'pages/question-manager/question-manager',
+  'pages/content-editor/content-editor',
   'pages/audio-upload/audio-upload',
   'pages/material-upload/material-upload',
   'pages/wallpaper-upload/wallpaper-upload'
@@ -46,6 +47,9 @@ const cloudApi = fs.readFileSync(path.join(root, 'utils/cloudApi.js'), 'utf8')
   'saveAdminQuestionBank',
   'listAdminContent',
   'toggleAdminContent',
+  'getAdminContent',
+  'saveAdminContent',
+  'reorderAdminContentByName',
   'listManagedQuestions',
   'saveManagedQuestion',
   'toggleManagedQuestion',

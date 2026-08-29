@@ -12,6 +12,10 @@
           <text class="wallpaper-name">{{item.name}}</text>
         </view>
         <button class="wallpaper-remove" data-index="{{index}}" bindtap="removeFile">移除</button>
+        <view class="wallpaper-order-actions">
+          <button class="wallpaper-order-btn" data-index="{{index}}" data-direction="-1" bindtap="moveFile" disabled="{{index === 0}}">上移</button>
+          <button class="wallpaper-order-btn" data-index="{{index}}" data-direction="1" bindtap="moveFile" disabled="{{index === files.length - 1}}">下移</button>
+        </view>
       </view>
     </view>
 
@@ -19,14 +23,24 @@
   </view>
 
   <view class="wallpaper-manage">
-    <text class="manage-title">平台壁纸管理</text>
+    <view class="manage-head">
+      <text class="manage-title">平台壁纸管理（最多显示500条）</text>
+      <button class="manage-sort" bindtap="sortByName">按名称排序</button>
+    </view>
+    <view class="manage-search">
+      <input class="manage-search-input" placeholder="按壁纸标题搜索" value="{{keyword}}" bindinput="onKeywordInput" bindconfirm="searchList"/>
+      <button class="manage-search-btn" bindtap="searchList">搜索</button>
+    </view>
     <view class="manage-item" wx:for="{{list}}" wx:key="_id">
       <image class="manage-image" src="{{item.fileId || item.imageUrl}}" mode="aspectFill"/>
       <view class="manage-main">
         <text class="manage-name">{{item.title}}</text>
-        <text class="manage-meta">{{item.enabled ? '已上线' : '已下线'}}</text>
+        <text class="manage-meta">顺序 {{item.sort}} · {{item.enabled ? '已上线' : '已下线'}}</text>
       </view>
-      <button class="manage-toggle" data-id="{{item._id}}" data-enabled="{{item.enabled}}" bindtap="toggle">{{item.enabled ? '下线' : '上线'}}</button>
+      <view class="manage-actions">
+        <button class="manage-edit" data-id="{{item._id}}" bindtap="edit">编辑</button>
+        <button class="manage-toggle" data-id="{{item._id}}" data-enabled="{{item.enabled}}" bindtap="toggle">{{item.enabled ? '下线' : '上线'}}</button>
+      </view>
     </view>
   </view>
 </view>

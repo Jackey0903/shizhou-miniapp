@@ -5,6 +5,10 @@ const db = cloud.database()
 
 const RESOURCE_FIELDS = ['fileId', 'fileUrl', 'linkUrl', 'imageUrl', 'audioUrl', 'url']
 
+function isPublished(item = {}) {
+  return item.enabled !== false && !['disabled', 'offline'].includes(item.status)
+}
+
 function hideResource(material) {
   const safe = { ...material, owned: false }
   RESOURCE_FIELDS.forEach((field) => {
@@ -16,7 +20,8 @@ function hideResource(material) {
 async function readAll(collectionName, where, maxItems = 2000) {
   const list = []
   while (list.length < maxItems) {
-    const query = db.collection(collectionName).where(where)
+    let query = db.collection(collectionName)
+    if (where && Object.keys(where).length) query = query.where(where)
     const res = await query.skip(list.length).limit(Math.min(100, maxItems - list.length)).get()
     const page = res.data || []
     list.push(...page)
@@ -29,16 +34,17 @@ exports.main = async () => {
   const { OPENID } = cloud.getWXContext()
   try {
     const [materials, redemptions] = await Promise.all([
-      readAll('materials', { enabled: true }),
+      readAll('materials', {}),
       OPENID
         ? readAll('material_redemptions', { _openid: OPENID }).catch(() => [])
         : Promise.resolve([])
     ])
-    materials.sort((a, b) => Number(a.sort || 0) - Number(b.sort || 0))
+    const publishedMaterials = materials.filter(isPublished)
+    publishedMaterials.sort((a, b) => Number(a.sort || 0) - Number(b.sort || 0))
     const ownedIds = new Set(redemptions.map((item) => item.materialId))
     return {
       code: 0,
-      data: materials.map((material) => (
+      data: publishedMaterials.map((material) => (
         ownedIds.has(material._id)
           ? { ...material, owned: true }
           : hideResource(material)

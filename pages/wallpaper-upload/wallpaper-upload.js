@@ -15,7 +15,8 @@ Page({
     files: [],
     uploading: false,
     progressText: '',
-    list: []
+    list: [],
+    keyword: ''
   },
 
   async onShow() {
@@ -46,6 +47,18 @@ Page({
     this.setData({ files: this.data.files.filter((_, itemIndex) => itemIndex !== index) })
   },
 
+  moveFile(e) {
+    const index = Number(e.currentTarget.dataset.index)
+    const direction = Number(e.currentTarget.dataset.direction)
+    const targetIndex = index + direction
+    if (index < 0 || targetIndex < 0 || targetIndex >= this.data.files.length) return
+    const files = this.data.files.slice()
+    const current = files[index]
+    files[index] = files[targetIndex]
+    files[targetIndex] = current
+    this.setData({ files })
+  },
+
   async submit() {
     if (this.data.uploading) return
     if (!this.data.files.length) {
@@ -56,6 +69,7 @@ Page({
     try {
       await cloudApi.assertAdmin()
       const wallpapers = []
+      const baseSort = Date.now()
       for (let index = 0; index < this.data.files.length; index += 1) {
         const file = this.data.files[index]
         this.setData({ progressText: `正在上传 ${index + 1}/${this.data.files.length}` })
@@ -68,7 +82,7 @@ Page({
           title: file.title.trim() || `平台壁纸${index + 1}`,
           fileId: uploadRes.fileID,
           imageUrl: '',
-          sort: Date.now() + index
+          sort: baseSort + index
         })
       }
       const res = await cloudApi.uploadWallpapers(wallpapers)
@@ -87,7 +101,7 @@ Page({
 
   async loadList() {
     try {
-      this.setData({ list: await cloudApi.listAdminContent('wallpapers', '', 100) })
+      this.setData({ list: await cloudApi.listAdminContent('wallpapers', this.data.keyword, 500) })
     } catch (err) {
       this.setData({ list: [] })
     }
@@ -101,6 +115,38 @@ Page({
       wx.showToast({ title: enabled ? '已下线' : '已上线', icon: 'success' })
     } catch (err) {
       wx.showToast({ title: err.message || '操作失败', icon: 'none' })
+    }
+  },
+
+  onKeywordInput(e) {
+    this.setData({ keyword: e.detail.value || '' })
+  },
+
+  async searchList() {
+    await this.loadList()
+  },
+
+  edit(e) {
+    const id = e.currentTarget.dataset.id
+    if (id) wx.navigateTo({ url: `/pages/content-editor/content-editor?target=wallpapers&id=${encodeURIComponent(id)}` })
+  },
+
+  async sortByName() {
+    const confirmed = await new Promise((resolve) => {
+      wx.showModal({
+        title: '按名称排序',
+        content: '会按壁纸标题升序重新排列，单张壁纸也可在“编辑”中设置展示顺序。',
+        success: (res) => resolve(res.confirm === true),
+        fail: () => resolve(false)
+      })
+    })
+    if (!confirmed) return
+    try {
+      await cloudApi.reorderAdminContentByName('wallpapers')
+      await this.loadList()
+      wx.showToast({ title: '已按名称排序', icon: 'success' })
+    } catch (err) {
+      wx.showToast({ title: err.message || '排序失败', icon: 'none' })
     }
   }
 })

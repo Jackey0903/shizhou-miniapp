@@ -36,6 +36,7 @@
     "pages/audio-upload/audio-upload",
     "pages/material-upload/material-upload",
     "pages/wallpaper-upload/wallpaper-upload",
+    "pages/content-editor/content-editor",
     "pages/reminder-config/reminder-config",
     "pages/message-config/message-config",
     "pages/ad-config/ad-config",

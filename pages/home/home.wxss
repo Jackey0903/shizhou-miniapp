@@ -102,6 +102,33 @@
   gap: 14rpx;
 }
 
+.home-course-empty {
+  min-height: 200rpx;
+  padding: 34rpx 28rpx;
+  border: 2rpx dashed #CBD5E1;
+  border-radius: var(--radius-lg);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 12rpx;
+  text-align: center;
+  background: #F8FAFC;
+}
+
+.home-course-empty-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.home-course-empty-desc {
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
 .category-card {
   position: relative;
   min-height: 260rpx;

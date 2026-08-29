@@ -6,6 +6,10 @@ const automator = require('miniprogram-automator')
 const root = path.resolve(__dirname, '..')
 const outputDir = path.join(root, 'tmp', 'qa-devtools-pages')
 const wsEndpoint = process.env.MINIPROGRAM_WS_ENDPOINT || 'ws://127.0.0.1:9420'
+const launchDevtools = process.env.MINIPROGRAM_AUTOMATOR_LAUNCH === '1'
+const automationPort = Number(process.env.MINIPROGRAM_AUTOMATOR_PORT || 9420)
+const devtoolsCli = process.env.WECHAT_DEVTOOLS_CLI
+  || '/Applications/wechatwebdevtools.app/Contents/MacOS/cli'
 
 const pagePaths = [
   'pages/home/home',
@@ -39,6 +43,7 @@ const pagePaths = [
   'pages/user-access-admin/user-access-admin',
   'pages/miniapp-code/miniapp-code',
   'pages/question-upload/question-upload',
+  'pages/question-manager/question-manager',
   'pages/course-upload/course-upload',
   'pages/audio-upload/audio-upload',
   'pages/material-upload/material-upload',
@@ -52,6 +57,11 @@ const pagePaths = [
   'pages/punch-quote-config/punch-quote-config',
   'pages/wallpaper-editor/wallpaper-editor'
 ]
+
+const courseFixtureRequiredPages = new Set([
+  'pages/study-plan/study-plan',
+  'pages/question/question'
+])
 
 function encodeQuery(query = {}) {
   const entries = Object.entries(query).filter(([, value]) => value !== undefined && value !== '')
@@ -98,7 +108,15 @@ async function main() {
   fs.rmSync(outputDir, { recursive: true, force: true })
   fs.mkdirSync(outputDir, { recursive: true })
 
-  const miniProgram = await automator.connect({ wsEndpoint })
+  const miniProgram = launchDevtools
+    ? await automator.launch({
+      cliPath: devtoolsCli,
+      projectPath: root,
+      port: automationPort,
+      trustProject: true,
+      timeout: 60000
+    })
+    : await automator.connect({ wsEndpoint })
   const runtimeLogs = []
   let activePage = ''
   miniProgram.on('console', (entry) => {
@@ -151,6 +169,16 @@ async function main() {
       const logStart = runtimeLogs.length
       const url = `/${expectedPath}${encodeQuery(queries[expectedPath])}`
       let result = { expectedPath, url, status: 'passed' }
+      if (courseFixtureRequiredPages.has(expectedPath) && !course._id) {
+        result = {
+          ...result,
+          status: 'skipped_no_fixture',
+          reason: '当前云环境没有已上线题库，无法构造有效题库路径'
+        }
+        results.push(result)
+        console.log(`[${index + 1}/${pagePaths.length}] ${expectedPath}: ${result.status} - ${result.reason}`)
+        continue
+      }
       try {
         let page = await withTimeout('打开页面', miniProgram.reLaunch(url))
         await withTimeout('等待页面首屏', page.waitFor(1200))
@@ -221,7 +249,8 @@ async function main() {
     console.log(JSON.stringify({ counts, report: path.join(outputDir, 'report.json') }, null, 2))
     if (counts.failed) process.exitCode = 1
   } finally {
-    miniProgram.disconnect()
+    if (launchDevtools) await miniProgram.close()
+    else miniProgram.disconnect()
   }
 }
 

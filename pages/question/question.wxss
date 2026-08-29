@@ -311,13 +311,18 @@
   font-size: 28rpx;
   color: var(--text-primary);
   flex: 1;
+  min-width: 0;
   line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .option-mark {
   font-size: 36rpx;
   color: var(--secondary);
   font-weight: 700;
+  flex-shrink: 0;
 }
 
 .wrong-mark {

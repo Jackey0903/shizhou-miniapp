@@ -13,7 +13,8 @@ Page({
     files: [],
     uploading: false,
     progressText: '',
-    list: []
+    list: [],
+    keyword: ''
   },
 
   async onShow() {
@@ -21,7 +22,7 @@ Page({
       await cloudApi.assertAdmin()
       const [tree, list] = await Promise.all([
         cloudApi.getAdminCourseTree(),
-        cloudApi.listAdminContent('audios', '', 100)
+        cloudApi.listAdminContent('audios', this.data.keyword, 500)
       ])
       const categories = tree.filter((item) => item.enabled !== false).map((item) => item.name)
       this.setData({
@@ -43,6 +44,18 @@ Page({
         this.setData({ files: res.tempFiles || [] })
       }
     })
+  },
+
+  moveFile(e) {
+    const index = Number(e.currentTarget.dataset.index)
+    const direction = Number(e.currentTarget.dataset.direction)
+    const targetIndex = index + direction
+    if (index < 0 || targetIndex < 0 || targetIndex >= this.data.files.length) return
+    const files = this.data.files.slice()
+    const current = files[index]
+    files[index] = files[targetIndex]
+    files[targetIndex] = current
+    this.setData({ files })
   },
 
   onCategoryChange(e) {
@@ -71,6 +84,7 @@ Page({
       const category = this.data.categories[this.data.categoryIndex]
       const type = this.data.types[this.data.typeIndex]
       const uploaded = []
+      const baseSort = Date.now()
       for (const [index, file] of this.data.files.entries()) {
         this.setData({ progressText: `正在上传 ${index + 1}/${this.data.files.length}` })
         const ext = (file.path || file.name || '').split('.').pop() || 'mp3'
@@ -84,7 +98,7 @@ Page({
           category,
           type,
           duration: this.data.duration,
-          sort: Date.now() + index
+          sort: baseSort + index
         })
       }
 
@@ -92,7 +106,7 @@ Page({
       if (res.result && res.result.code === 0) {
         wx.showToast({ title: `已上传${res.result.count}个音频`, icon: 'success' })
         this.setData({ files: [], duration: '', progressText: '' })
-        this.setData({ list: await cloudApi.listAdminContent('audios', '', 100) })
+        await this.loadList()
       } else {
         throw new Error((res.result && res.result.msg) || '上传失败')
       }
@@ -108,10 +122,47 @@ Page({
     const { id, enabled } = e.currentTarget.dataset
     try {
       await cloudApi.toggleAdminContent('audios', id, !enabled)
-      this.setData({ list: await cloudApi.listAdminContent('audios', '', 100) })
+      await this.loadList()
       wx.showToast({ title: enabled ? '已下线' : '已上线', icon: 'success' })
     } catch (err) {
       wx.showToast({ title: err.message || '操作失败', icon: 'none' })
+    }
+  },
+
+  onKeywordInput(e) {
+    this.setData({ keyword: e.detail.value || '' })
+  },
+
+  async searchList() {
+    await this.loadList()
+  },
+
+  async loadList() {
+    const list = await cloudApi.listAdminContent('audios', this.data.keyword, 500)
+    this.setData({ list })
+  },
+
+  edit(e) {
+    const id = e.currentTarget.dataset.id
+    if (id) wx.navigateTo({ url: `/pages/content-editor/content-editor?target=audios&id=${encodeURIComponent(id)}` })
+  },
+
+  async sortByName() {
+    const confirmed = await new Promise((resolve) => {
+      wx.showModal({
+        title: '按名称排序',
+        content: '会按音频标题升序重新排列，之后上传的内容也可通过编辑“展示顺序”调整。',
+        success: (res) => resolve(res.confirm === true),
+        fail: () => resolve(false)
+      })
+    })
+    if (!confirmed) return
+    try {
+      await cloudApi.reorderAdminContentByName('audios')
+      await this.loadList()
+      wx.showToast({ title: '已按名称排序', icon: 'success' })
+    } catch (err) {
+      wx.showToast({ title: err.message || '排序失败', icon: 'none' })
     }
   }
 })

@@ -93,7 +93,9 @@ async function submitQuestion(openid, payload) {
 async function getDashboard(openid) {
   await ensureCollection()
   const user = await getCurrentUser(openid)
-  const isAdmin = !!(user && (user.isAdmin === true || user.role === 'admin'))
+  const isAdmin = !!(user && (
+    user.isAdmin === true || user.role === 'admin' || user.role === 'super_admin'
+  ))
 
   const tasks = [
     db.collection('mutual_questions')
@@ -130,7 +132,9 @@ async function getDashboard(openid) {
 
 async function reviewQuestion(openid, payload) {
   const user = await getCurrentUser(openid)
-  const isAdmin = !!(user && (user.isAdmin === true || user.role === 'admin'))
+  const isAdmin = !!(user && (
+    user.isAdmin === true || user.role === 'admin' || user.role === 'super_admin'
+  ))
   if (!isAdmin) {
     throw new Error('无审核权限')
   }

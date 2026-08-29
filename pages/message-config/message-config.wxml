@@ -2,7 +2,7 @@
   <view class="card cfg-form">
     <text class="cfg-title">发布站内群发消息</text>
     <input class="cfg-input" placeholder="消息标题" value="{{title}}" data-field="title" bindinput="onInput"/>
-    <textarea class="cfg-textarea" placeholder="消息内容" value="{{content}}" data-field="content" bindinput="onInput"/>
+    <textarea class="cfg-textarea" placeholder="消息内容（最多1000字）" value="{{content}}" data-field="content" bindinput="onInput" maxlength="1000"/>
     <picker range="{{scopeOptions}}" range-key="label" value="{{scopeIndex}}" bindchange="onScopeChange">
       <view class="cfg-input cfg-picker">接收范围：{{scopeOptions[scopeIndex].label}}</view>
     </picker>

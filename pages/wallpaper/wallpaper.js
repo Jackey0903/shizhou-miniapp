@@ -392,6 +392,7 @@ Page({
     wx.setStorageSync('checkinWallpaperPreference', {
       imageUrl: item.imageUrl,
       fileId: item.fileId || '',
+      source: item.source === 'mine' ? 'mine' : 'platform',
       updatedAt: Date.now()
     })
     wx.showToast({ title: '已设为打卡背景', icon: 'success' })

@@ -59,7 +59,7 @@ exports.main = async (event = {}) => {
     try {
       const list = []
       while (list.length < 2000) {
-        const res = await db.collection('audios').where({ enabled: true })
+        const res = await db.collection('audios')
           .skip(list.length).limit(Math.min(100, 2000 - list.length)).get()
         const page = res.data || []
         list.push(...page)
@@ -67,6 +67,7 @@ exports.main = async (event = {}) => {
       }
       const category = String(event.category || '')
       const data = list
+        .filter((item) => item.enabled !== false && !['disabled', 'offline'].includes(item.status))
         .filter((item) => !category || item.category === category)
         .sort((a, b) => Number(a.sort || 0) - Number(b.sort || 0))
       return { code: 0, data }
@@ -82,7 +83,7 @@ exports.main = async (event = {}) => {
   try {
     const userRes = await db.collection('users').where({ _openid: OPENID }).limit(1).get()
     const user = (userRes.data || [])[0]
-    if (!user || (!user.isAdmin && user.role !== 'admin')) {
+    if (!user || (!user.isAdmin && user.role !== 'admin' && user.role !== 'super_admin')) {
       return { code: -1, msg: '仅管理员可上传音频' }
     }
 

@@ -13,7 +13,7 @@
     <button class="btn btn-primary btn-full" bindtap="goPlan">继续填写学习计划</button>
   </view>
 
-  <view class="plan-list" wx:if="{{!hasAccess}}">
+  <view class="plan-list">
     <view class="plan-card card {{sel===index?'selected':''}}" wx:for="{{plans}}" wx:key="code" bindtap="select" data-i="{{index}}">
       <view class="plan-head">
         <text class="plan-tag">{{item.tag || item.title}}</text>
@@ -24,5 +24,5 @@
     </view>
   </view>
 
-  <button class="btn btn-primary btn-full pay-btn" bindtap="buyPlan" wx:if="{{!hasAccess}}">立即开通督学</button>
+  <button class="btn btn-primary btn-full pay-btn" bindtap="buyPlan">{{hasAccess ? '续费/升级督学' : '立即开通督学'}}</button>
 </view>

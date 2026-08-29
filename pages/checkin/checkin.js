@@ -15,7 +15,8 @@ function formatDateKey(date) {
 
 async function resolvePreferredWallpaper() {
   const pref = wx.getStorageSync('checkinWallpaperPreference')
-  if (!pref) return ''
+  // 平台壁纸的旧选择不能覆盖管理员更新的打卡海报；只有用户自己上传的壁纸可长期覆盖。
+  if (!pref || pref.source !== 'mine') return ''
   if (pref.fileId && pref.fileId.startsWith('cloud://')) {
     try {
       const res = await wx.cloud.getTempFileURL({ fileList: [pref.fileId] })
@@ -235,7 +236,7 @@ Page({
     const src = this.data.currentWallpaper
     if (!src) throw new Error('图片地址缺失')
     const pref = wx.getStorageSync('checkinWallpaperPreference')
-    if (pref && pref.fileId && pref.fileId.startsWith('cloud://')) {
+    if (this.data.usingCustomWallpaper && pref && pref.fileId && pref.fileId.startsWith('cloud://')) {
       const res = await wx.cloud.downloadFile({ fileID: pref.fileId })
       return res.tempFilePath
     }

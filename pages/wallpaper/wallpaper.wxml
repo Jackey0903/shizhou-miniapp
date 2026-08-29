@@ -11,6 +11,7 @@
     <view class="wp-item" wx:for="{{wallpapers}}" wx:key="_id">
       <image class="wp-img" src="{{item.imageUrl}}" mode="aspectFill" bindtap="preview" data-src="{{item.imageUrl}}"/>
       <view class="wp-source" wx:if="{{item.source === 'mine'}}">我的上传</view>
+      <text class="wp-item-title">{{item.title || (item.source === 'mine' ? '我的壁纸' : '平台壁纸')}}</text>
       <view class="wp-actions">
         <button class="wp-btn wp-btn-share" bindtap="shareImage" data-item="{{item}}">分享朋友圈</button>
         <text class="wp-btn" bindtap="save" data-item="{{item}}">保存</text>

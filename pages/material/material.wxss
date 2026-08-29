@@ -48,6 +48,14 @@
   color: var(--text-secondary);
 }
 
+.mat-coin-help {
+  display: block;
+  margin-top: 8rpx;
+  color: var(--primary);
+  font-size: 20rpx;
+  font-weight: 700;
+}
+
 .mat-tabs {
   display: flex;
   gap: 16rpx;

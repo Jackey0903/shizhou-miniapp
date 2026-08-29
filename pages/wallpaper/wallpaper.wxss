@@ -47,7 +47,6 @@
 }
 
 .wp-item {
-  aspect-ratio: 9 / 15.5;
   position: relative;
   overflow: hidden;
   border-radius: 26rpx;
@@ -58,8 +57,22 @@
 
 .wp-img {
   width: 100%;
-  height: 100%;
+  aspect-ratio: 9 / 15.5;
+  display: block;
   object-fit: cover;
+}
+
+.wp-item-title {
+  display: block;
+  padding: 14rpx 16rpx 8rpx;
+  overflow: hidden;
+  background: #fff;
+  color: var(--text-primary);
+  font-size: 24rpx;
+  font-weight: 700;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .wp-source {
@@ -76,39 +89,34 @@
 }
 
 .wp-actions {
-  position: absolute;
-  left: 12rpx;
-  right: 12rpx;
-  bottom: 12rpx;
-  background: rgba(15, 23, 42, 0.58);
-  backdrop-filter: blur(12rpx);
+  position: static;
+  background: #fff;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 10rpx;
-  padding: 10rpx;
-  border-radius: 18rpx;
+  padding: 8rpx 12rpx 14rpx;
   z-index: 2;
 }
 
 .wp-btn {
-  flex: 1;
+  flex: 1 1 calc(50% - 6rpx);
   min-width: 0;
   height: 54rpx;
   line-height: 54rpx;
   text-align: center;
   font-size: 22rpx;
-  color: #fff;
+  color: var(--text-secondary);
   font-weight: 600;
-  border-radius: 14rpx;
-  background: rgba(255, 255, 255, 0.14);
+  border-radius: 10rpx;
+  background: #f1f5f9;
 }
 
 .wp-btn-share {
   margin: 0;
   padding: 0;
   border: 0;
-  background: rgba(37, 99, 235, 0.92);
+  background: var(--primary);
   color: #fff;
   font-size: 22rpx;
   font-weight: 600;
@@ -121,7 +129,7 @@
 }
 
 .wp-btn-primary {
-  background: rgba(22, 163, 74, 0.92);
+  background: #16a34a;
 }
 
 .empty {

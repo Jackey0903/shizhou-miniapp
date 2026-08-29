@@ -91,6 +91,13 @@ function createMemoryDb(initial) {
           if (index < 0) throw new Error('document not found')
           records(collectionName).splice(index, 1)
           return { stats: { removed: 1 } }
+        },
+        async set({ data }) {
+          const index = records(collectionName).findIndex((entry) => entry._id === id)
+          const next = { _id: id, ...clone(data) }
+          if (index < 0) records(collectionName).push(next)
+          else records(collectionName)[index] = next
+          return { stats: { updated: index < 0 ? 0 : 1 } }
         }
       }
     }
@@ -130,9 +137,21 @@ async function main() {
   const database = createMemoryDb({
     users: [
       { _id: 'admin-1', _openid: 'openid-admin', nickName: '运营管理员', isAdmin: true, role: 'admin' },
+      { _id: 'super-admin-1', _openid: 'openid-super-admin', nickName: '最高管理员', role: 'super_admin' },
       { _id: 'user-1', _openid: 'openid-user', nickName: '普通用户', role: 'user' }
     ],
-    question_banks: [{ _id: 'bank-1', name: '判断推理', totalCount: 2, status: 'enabled' }],
+    subjects: [{ _id: 'subject-1', name: '常识判断', enabled: true, status: 'enabled' }],
+    question_banks: [{ _id: 'bank-1', subjectId: 'subject-1', name: '判断推理', totalCount: 2, enabled: true, status: 'enabled' }],
+    audios: [
+      { _id: 'audio-a', title: 'B. 第二条', category: '常识', type: '晨听', fileId: 'cloud://test/audio-a', enabled: true, sort: 20 },
+      { _id: 'audio-b', title: 'A. 第一条', category: '常识', type: '晨听', fileId: 'cloud://test/audio-b', enabled: true, sort: 10 }
+    ],
+    materials: [
+      { _id: 'material-a', name: '旧资料', type: 'document', fileId: 'cloud://test/material-a', enabled: true, sort: 10 }
+    ],
+    wallpapers: [
+      { _id: 'wallpaper-a', title: '旧壁纸', fileId: 'cloud://test/wallpaper-a', enabled: true, sort: 10 }
+    ],
     questions: [
       {
         _id: 'question-0', bankId: 'bank-1', courseId: 'bank-1', type: 'choice', sort: 0,
@@ -152,10 +171,27 @@ async function main() {
   })
   const operations = loadFunction('adminOperations', database, () => currentOpenid)
   const getQuestions = loadFunction('getQuestions', database, () => currentOpenid)
+  const uploadQuestions = loadFunction('uploadQuestions', database, () => currentOpenid)
 
   currentOpenid = 'openid-user'
   const forbidden = await operations.main({ action: 'listManagedQuestions', payload: { courseId: 'bank-1' } })
   assert.equal(forbidden.code, 403, 'ordinary users must not access question management')
+
+  currentOpenid = 'openid-admin'
+  currentOpenid = 'openid-super-admin'
+  const superAdminImport = await uploadQuestions.main({
+    questions: [{
+      subjectName: '常识判断',
+      bankName: '最高管理员导入题库',
+      type: 'fill',
+      sort: 1,
+      content: '最高管理员能否导题？',
+      answer: '可以',
+      explanation: '最高管理员与管理员拥有同等内容上传权限。'
+    }]
+  })
+  assert.equal(superAdminImport.code, 0, 'highest administrators must be allowed to upload questions')
+  assert(database.state.question_banks.some((item) => item.name === '最高管理员导入题库'))
 
   currentOpenid = 'openid-admin'
   const listed = await operations.main({
@@ -217,6 +253,11 @@ async function main() {
   assert.equal(publicQuestions.code, 0)
   assert.deepEqual(publicQuestions.data.map((item) => item._id), ['question-1'], 'offline questions must not reach learners')
 
+  database.state.subjects[0].enabled = false
+  const hiddenByModule = await getQuestions.main({ courseId: 'bank-1', skip: 0, limit: 20 })
+  assert.equal(hiddenByModule.code, 404, 'taking a module offline must also hide all of its question banks')
+  database.state.subjects[0].enabled = true
+
   const deleted = await operations.main({
     action: 'deleteManagedQuestion',
     payload: { id: 'question-1', courseId: 'bank-1' }
@@ -229,6 +270,43 @@ async function main() {
     database.state.admin_audit_logs.map((item) => item.action),
     ['update_question', 'toggle_question', 'delete_question'],
     'all write operations must be auditable'
+  )
+
+  const audioBefore = await operations.main({ action: 'listContent', payload: { target: 'audios', limit: 20 } })
+  assert.deepEqual(audioBefore.data.map((item) => item._id), ['audio-b', 'audio-a'], 'content lists must follow the persisted ascending order')
+
+  const savedAudio = await operations.main({
+    action: 'saveContent',
+    payload: {
+      target: 'audios', id: 'audio-a', title: 'A. 已替换音频', category: '言语', type: '技巧', duration: '05:00',
+      fileId: 'cloud://test/audio-replaced', fileUrl: '', sort: 5
+    }
+  })
+  assert.equal(savedAudio.code, 0)
+  assert.deepEqual(database.state.audios.find((item) => item._id === 'audio-a'), {
+    _id: 'audio-a', title: 'A. 已替换音频', category: '言语', type: '技巧', duration: '05:00',
+    fileId: 'cloud://test/audio-replaced', fileUrl: '', enabled: true, sort: 5,
+    updatedAt: new Date('2026-08-27T00:00:00.000Z')
+  })
+
+  const savedMaterial = await operations.main({
+    action: 'saveContent',
+    payload: {
+      target: 'materials', id: 'material-a', name: '资料已编辑', description: '替换后的资料', type: 'document',
+      fileId: 'cloud://test/material-replaced', fileUrl: '', linkUrl: '', coverFileId: '', coverUrl: '', imageUrl: '', sort: 30
+    }
+  })
+  assert.equal(savedMaterial.code, 0)
+  const material = database.state.materials.find((item) => item._id === 'material-a')
+  assert.equal(material.accessType, 'coin', 'editing must preserve the fixed coin redemption rule')
+  assert.equal(material.coinCost, 10, 'editing must not permit a material price override')
+
+  const reordered = await operations.main({ action: 'reorderContentByName', payload: { target: 'audios' } })
+  assert.equal(reordered.code, 0)
+  assert.deepEqual(
+    database.state.audios.slice().sort((left, right) => left.sort - right.sort).map((item) => item.title),
+    ['A. 第一条', 'A. 已替换音频'],
+    'name sorting must write a durable public display order'
   )
 
   console.log('question management regression checks passed')

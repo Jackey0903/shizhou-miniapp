@@ -4,7 +4,16 @@
     <text class="cl-subtitle">{{subtitle}}</text>
   </view>
 
-  <view class="cl-category-grid" wx:if="{{showCategories}}">
+  <view class="cl-empty" wx:if="{{loading}}">
+    <text>题库加载中...</text>
+  </view>
+
+  <view class="cl-empty" wx:elif="{{showCategories && !categoryCards.length}}">
+    <text class="cl-empty-title">暂无已上线题库</text>
+    <text class="cl-empty-desc">{{loadError || '管理员上传并上线题库后会在这里显示'}}</text>
+  </view>
+
+  <view class="cl-category-grid" wx:elif="{{showCategories}}">
     <view
       class="cl-category-card"
       wx:for="{{categoryCards}}"
@@ -48,6 +57,11 @@
         <text class="cl-category-dot" style="background: {{category.color.accent}};"></text>
       </view>
     </view>
+  </view>
+
+  <view class="cl-empty" wx:elif="{{!courses.length}}">
+    <text class="cl-empty-title">该模块暂无已上线题库</text>
+    <text class="cl-empty-desc">{{loadError || '请稍后再试'}}</text>
   </view>
 
   <view class="cl-grid" wx:else>

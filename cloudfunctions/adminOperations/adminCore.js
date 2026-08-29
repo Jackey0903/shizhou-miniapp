@@ -48,10 +48,9 @@ function normalizeColor(value) {
 function isEnabled(item, target) {
   const config = CONTENT_TARGETS[target]
   if (!config) return false
-  if (config.enabledField === 'status') {
-    return !['disabled', 'offline'].includes(item.status)
-  }
-  return item.enabled !== false
+  // 早期内容有的只写了 enabled，有的只写了 status。两个字段只要任一
+  // 明确表示下线，就不能再暴露到前台，避免后台显示“已下线”而用户端仍可见。
+  return item.enabled !== false && !['disabled', 'offline'].includes(item.status)
 }
 
 function escapeRegExp(value) {

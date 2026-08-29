@@ -23,6 +23,35 @@
   color: var(--text-secondary);
 }
 
+.cl-empty {
+  min-height: 260rpx;
+  padding: 40rpx 30rpx;
+  border: 2rpx dashed #CBD5E1;
+  border-radius: var(--radius-lg);
+  box-sizing: border-box;
+  background: #F8FAFC;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  color: var(--text-secondary);
+  font-size: 26rpx;
+  text-align: center;
+}
+
+.cl-empty-title {
+  color: var(--text-primary);
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.cl-empty-desc {
+  color: var(--text-secondary);
+  font-size: 24rpx;
+  line-height: 1.6;
+}
+
 .cl-category-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -178,7 +178,11 @@ Page({
             wx.showToast({ title: result.data && result.data.alreadyOwned ? '已领取' : '领取成功', icon: 'success' })
             await this.openMaterial(grantedMaterial)
           } else {
-            wx.showToast({ title: result.msg || `${actionText}失败`, icon: 'none' })
+            if (Number(result.code) === 2) {
+              this.showCoinShareGuide()
+            } else {
+              wx.showToast({ title: result.msg || `${actionText}失败`, icon: 'none' })
+            }
           }
         } catch (err) {
           wx.showToast({ title: `${actionText}失败`, icon: 'none' })
@@ -187,6 +191,21 @@ Page({
         }
       }
     })
+  },
+
+  showCoinShareGuide() {
+    wx.showModal({
+      title: '舟币不足',
+      content: '领取本资料需要10舟币。可前往舟币中心转发分享图片获取舟币后再领取。',
+      confirmText: '转发获取舟币',
+      success: (res) => {
+        if (res.confirm) wx.navigateTo({ url: '/pages/coin-log/coin-log' })
+      }
+    })
+  },
+
+  goCoinLog() {
+    wx.navigateTo({ url: '/pages/coin-log/coin-log' })
   },
 
   async openMaterial(item) {

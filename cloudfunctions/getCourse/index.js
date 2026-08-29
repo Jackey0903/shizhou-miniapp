@@ -6,6 +6,10 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 
+function isPublished(item = {}) {
+    return item.enabled !== false && !['disabled', 'offline'].includes(item.status)
+}
+
 exports.main = async (event, context) => {
     const { courseId } = event || {}
     
@@ -19,7 +23,7 @@ exports.main = async (event, context) => {
             const bankRes = await db.collection('question_banks').doc(courseId).get()
             if (bankRes.data) {
                 const bank = bankRes.data
-                if (['disabled', 'offline'].includes(bank.status)) {
+                if (!isPublished(bank)) {
                     return { code: 404, msg: '该题库已下架' }
                 }
                 let subject = {}
@@ -28,6 +32,9 @@ exports.main = async (event, context) => {
                         const subjectRes = await db.collection('subjects').doc(bank.subjectId).get()
                         subject = subjectRes.data || {}
                     } catch (e) {}
+                }
+                if (subject._id && !isPublished(subject)) {
+                    return { code: 404, msg: '该模块已下架' }
                 }
                 return {
                     code: 0,
@@ -44,7 +51,7 @@ exports.main = async (event, context) => {
 
         // 降级到 courses 集合
         const courseRes = await db.collection('courses').doc(courseId).get()
-        if (!courseRes.data || ['disabled', 'offline'].includes(courseRes.data.status)) {
+        if (!courseRes.data || !isPublished(courseRes.data)) {
             return { code: 404, msg: '该题库不存在或已下架' }
         }
         return { code: 0, data: courseRes.data }

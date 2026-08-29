@@ -132,7 +132,11 @@
 
 .file-remove,
 .cover-button,
-.manage-toggle {
+.manage-toggle,
+.file-order-btn,
+.manage-sort,
+.manage-edit,
+.manage-search-btn {
   margin: 0;
   border: 0;
   border-radius: var(--radius-sm);
@@ -145,6 +149,19 @@
   color: var(--danger);
 }
 
+.file-order-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.file-order-btn {
+  padding: 0 12rpx;
+  background: #f1f5f9;
+  color: var(--text-secondary);
+  font-size: 20rpx;
+}
+
 .cover-button {
   width: 100%;
   margin-top: 16rpx;
@@ -154,7 +171,11 @@
 
 .file-remove::after,
 .cover-button::after,
-.manage-toggle::after {
+.manage-toggle::after,
+.file-order-btn::after,
+.manage-sort::after,
+.manage-edit::after,
+.manage-search-btn::after {
   border: 0;
 }
 
@@ -175,6 +196,47 @@
   margin: 0 4rpx 14rpx;
   font-size: 27rpx;
   font-weight: 800;
+}
+
+.manage-head,
+.manage-search,
+.manage-actions {
+  display: flex;
+  align-items: center;
+}
+
+.manage-head {
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.manage-sort,
+.manage-edit {
+  background: #f1f5f9;
+  color: var(--text-secondary);
+}
+
+.manage-search {
+  gap: 12rpx;
+  margin-bottom: 14rpx;
+}
+
+.manage-search-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 72rpx;
+  padding: 0 18rpx;
+  box-sizing: border-box;
+  border: 2rpx solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  font-size: 24rpx;
+}
+
+.manage-search-btn {
+  min-width: 88rpx;
+  background: var(--primary);
+  color: #fff;
 }
 
 .manage-loading {

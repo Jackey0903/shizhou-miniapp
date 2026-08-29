@@ -267,16 +267,23 @@ test('highest administrator can page through every user without leaking openid',
   users.forEach((user) => assert.equal(Object.hasOwn(user, '_openid'), false))
 })
 
-test('ordinary administrators cannot list, search or change administrator roles', async () => {
+test('ordinary administrators can search and grant access but cannot manage roles or enumerate users', async () => {
   const harness = createCloudHarness()
-  const results = await Promise.all([
+  const [listUsers, searchUsers, listAdministrators, setAdministrator, transferSuperAdmin, grantAccess] = await Promise.all([
     harness.call('openid-operator', 'listUsers'),
     harness.call('openid-operator', 'searchUsers', { keyword: '测试' }),
     harness.call('openid-operator', 'listAdministrators'),
     harness.call('openid-operator', 'setAdministrator', { userId: 'student-new', enabled: true }),
-    harness.call('openid-operator', 'transferSuperAdmin', { userId: 'student-new' })
+    harness.call('openid-operator', 'transferSuperAdmin', { userId: 'student-new' }),
+    harness.call('openid-operator', 'grantAccess', {
+      userId: 'student-new', planCode: 'supervision_month', reason: '运营赠送测试'
+    })
   ])
-  results.forEach((result) => assert.equal(result.code, 403))
+  ;[listUsers, listAdministrators, setAdministrator, transferSuperAdmin].forEach((result) => assert.equal(result.code, 403))
+  assert.equal(searchUsers.code, 0)
+  assert.deepEqual(searchUsers.data.map((item) => item._id), ['student-new'])
+  assert.equal(grantAccess.code, 0)
+  assert.equal(grantAccess.data.isVip, true)
 })
 
 test('highest administrator can search users and list only administrators', async () => {

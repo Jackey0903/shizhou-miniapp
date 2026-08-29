@@ -229,8 +229,9 @@ async function listContent(payload) {
       return [item.title, item.name, item.category, item.type]
         .some((value) => String(value || '').toLowerCase().includes(keyword))
     })
-    .sort((left, right) => integer(right.sort, 0) - integer(left.sort, 0))
-    .slice(0, integer(payload.limit, 100, 1, 300))
+    .sort((left, right) => integer(left.sort, 999999999) - integer(right.sort, 999999999)
+      || contentLabel(left).localeCompare(contentLabel(right), 'zh-CN', { numeric: true }))
+    .slice(0, integer(payload.limit, 300, 1, 500))
   return { code: 0, data: items }
 }
 
@@ -246,6 +247,134 @@ async function toggleContent(payload, admin) {
   await db.collection(target).doc(id).update({ data: update })
   await audit(admin, 'toggle_content', { target, id, enabled })
   return { code: 0, msg: enabled ? '已上线' : '已下线' }
+}
+
+function contentString(payload, current, field, maxLength = 200) {
+  const value = payload[field] === undefined ? current[field] : payload[field]
+  return text(value, maxLength)
+}
+
+function validResourceUrl(value, allowCloud = true) {
+  if (!value) return true
+  return /^(https:\/\/|cloud:\/\/)/i.test(value) && (allowCloud || /^https:\/\//i.test(value))
+}
+
+function contentLabel(item = {}) {
+  return text(item.title || item.name, 200)
+}
+
+function normalizeEditableContent(target, payload, current) {
+  const sort = integer(
+    payload.sort === undefined ? current.sort : payload.sort,
+    integer(current.sort, Date.now(), 0),
+    0
+  )
+
+  if (target === 'audios') {
+    const title = contentString(payload, current, 'title', 200)
+    const category = contentString(payload, current, 'category', 50)
+    const type = contentString(payload, current, 'type', 50) || '音频'
+    const duration = contentString(payload, current, 'duration', 50)
+    const fileId = contentString(payload, current, 'fileId', 1000)
+    const fileUrl = contentString(payload, current, 'fileUrl', 2000)
+    if (!title || !category) throw new Error('请填写音频标题和所属模块')
+    if (!fileId && !fileUrl) throw new Error('请先上传或替换音频文件')
+    if (!validResourceUrl(fileId) || !validResourceUrl(fileUrl, false)) throw new Error('音频文件地址无效')
+    return { title, category, type, duration, fileId, fileUrl, sort }
+  }
+
+  if (target === 'materials') {
+    const name = contentString(payload, current, 'name', 200)
+    const description = contentString(payload, current, 'description', 2000)
+    const type = contentString(payload, current, 'type', 20)
+    const fileId = contentString(payload, current, 'fileId', 1000)
+    const fileUrl = contentString(payload, current, 'fileUrl', 2000)
+    const linkUrl = contentString(payload, current, 'linkUrl', 2000)
+    const coverFileId = contentString(payload, current, 'coverFileId', 1000)
+    const coverUrl = contentString(payload, current, 'coverUrl', 2000)
+    const imageUrl = contentString(payload, current, 'imageUrl', 2000)
+    if (!name) throw new Error('请填写资料名称')
+    if (!['document', 'audio', 'image'].includes(type)) throw new Error('资料类型无效')
+    if (!fileId && !fileUrl && !linkUrl) throw new Error('请先上传或替换资料文件')
+    if (!validResourceUrl(fileId) || !validResourceUrl(coverFileId)
+      || !validResourceUrl(fileUrl, false) || !validResourceUrl(linkUrl, false)
+      || !validResourceUrl(coverUrl, false) || !validResourceUrl(imageUrl, false)) {
+      throw new Error('资料地址必须使用 cloud:// 或 HTTPS')
+    }
+    return {
+      name,
+      description,
+      type,
+      category: type,
+      accessType: 'coin',
+      coinCost: 10,
+      fileId,
+      fileUrl,
+      linkUrl,
+      coverFileId,
+      coverUrl,
+      imageUrl,
+      sort
+    }
+  }
+
+  if (target === 'wallpapers') {
+    const title = contentString(payload, current, 'title', 200)
+    const fileId = contentString(payload, current, 'fileId', 1000)
+    const imageUrl = contentString(payload, current, 'imageUrl', 2000)
+    const type = contentString(payload, current, 'type', 50) || 'default'
+    if (!title) throw new Error('请填写壁纸标题')
+    if (!fileId && !imageUrl) throw new Error('请先上传或替换壁纸图片')
+    if (!validResourceUrl(fileId) || !validResourceUrl(imageUrl, false)) throw new Error('壁纸地址无效')
+    return { title, type, fileId, imageUrl, sort }
+  }
+
+  throw new Error('不支持的内容类型')
+}
+
+async function getContent(payload) {
+  const target = text(payload.target, 50)
+  const id = text(payload.id, 100)
+  if (!CONTENT_TARGETS[target] || !id) return { code: -1, msg: '内容参数无效' }
+  const result = await db.collection(target).doc(id).get().catch(() => ({ data: null }))
+  if (!result.data) return { code: 404, msg: '内容不存在或已删除' }
+  return { code: 0, data: { ...result.data, enabled: isEnabled(result.data, target) } }
+}
+
+async function saveContent(payload, admin) {
+  const target = text(payload.target, 50)
+  const id = text(payload.id, 100)
+  if (!CONTENT_TARGETS[target] || !id) return { code: -1, msg: '内容参数无效' }
+  const result = await db.collection(target).doc(id).get().catch(() => ({ data: null }))
+  const current = result.data
+  if (!current) return { code: 404, msg: '内容不存在或已删除' }
+  const data = normalizeEditableContent(target, payload, current)
+  await db.collection(target).doc(id).update({
+    data: { ...data, updatedAt: db.serverDate() }
+  })
+  await audit(admin, 'update_content', { target, id, title: contentLabel(data), sort: data.sort })
+  return { code: 0, msg: '内容已保存', data: { ...current, ...data, enabled: isEnabled(current, target) } }
+}
+
+async function reorderContentByName(payload, admin) {
+  const target = text(payload.target, 50)
+  const direction = text(payload.direction || 'asc', 10).toLowerCase()
+  if (!CONTENT_TARGETS[target]) return { code: -1, msg: '不支持的内容类型' }
+  if (!['asc', 'desc'].includes(direction)) return { code: -1, msg: '排序方向无效' }
+  const items = (await readAll(target, 5000)).sort((left, right) => {
+    const comparison = contentLabel(left).localeCompare(contentLabel(right), 'zh-CN', { numeric: true })
+    return direction === 'asc' ? comparison : -comparison
+  })
+  // Batch writes keep a full name sort usable for libraries with hundreds of records.
+  const batchSize = 20
+  for (let offset = 0; offset < items.length; offset += batchSize) {
+    const batch = items.slice(offset, offset + batchSize)
+    await Promise.all(batch.map((item, index) => db.collection(target).doc(item._id).update({
+      data: { sort: (offset + index + 1) * 10, updatedAt: db.serverDate() }
+    })))
+  }
+  await audit(admin, 'reorder_content_by_name', { target, direction, count: items.length })
+  return { code: 0, msg: `已按名称${direction === 'asc' ? '升序' : '降序'}排序`, data: { count: items.length } }
 }
 
 function isQuestionEnabled(question = {}) {
@@ -499,7 +628,6 @@ async function listUsers(payload, admin) {
 }
 
 async function searchUsers(payload, admin) {
-  if (!isSuperAdminUser(admin)) return { code: 403, msg: '仅最高管理员可搜索用户' }
   const keyword = text(payload.keyword, 80).toLowerCase()
   if (!keyword) return { code: -1, msg: '请输入手机号或昵称' }
   const users = await readAll('users', 5000)
@@ -758,6 +886,9 @@ exports.main = async (event = {}) => {
     if (action === 'saveBank') return await saveBank(payload, admin)
     if (action === 'listContent') return await listContent(payload)
     if (action === 'toggleContent') return await toggleContent(payload, admin)
+    if (action === 'getContent') return await getContent(payload)
+    if (action === 'saveContent') return await saveContent(payload, admin)
+    if (action === 'reorderContentByName') return await reorderContentByName(payload, admin)
     if (action === 'listManagedQuestions') return await listManagedQuestions(payload)
     if (action === 'saveManagedQuestion') return await saveManagedQuestion(payload, admin)
     if (action === 'toggleManagedQuestion') return await toggleManagedQuestion(payload, admin)

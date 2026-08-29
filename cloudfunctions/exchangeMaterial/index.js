@@ -5,6 +5,10 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 const MATERIAL_COST = 10
 
+function isPublished(item = {}) {
+  return item.enabled !== false && !['disabled', 'offline'].includes(item.status)
+}
+
 function stableId(prefix, openid, materialId) {
   const hash = crypto.createHash('sha256').update(`${openid}:${materialId}`).digest('hex')
   return `${prefix}_${hash.slice(0, 32)}`
@@ -28,7 +32,7 @@ exports.main = async (event = {}) => {
     ])
     const material = materialRes.data
     const user = userRes.data[0]
-    if (!material || material.enabled === false) return { code: -1, msg: '资料不存在或已下架' }
+    if (!material || !isPublished(material)) return { code: -1, msg: '资料不存在或已下架' }
     if (!user) return { code: -1, msg: '请先登录' }
     if (legacyRedemptionRes.data.length) {
       return {

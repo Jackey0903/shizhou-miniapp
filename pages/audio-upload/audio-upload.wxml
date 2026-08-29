@@ -25,20 +25,35 @@
     <button class="btn btn-secondary btn-full" bindtap="chooseFiles">选择音频文件</button>
 
     <view class="file-list" wx:if="{{files.length > 0}}">
-      <view class="file-item" wx:for="{{files}}" wx:key="name">{{item.name}}</view>
+      <view class="file-item" wx:for="{{files}}" wx:key="path">
+        <text class="file-index">{{index + 1}}.</text>
+        <text class="file-item-name">{{item.name}}</text>
+        <button class="file-order-btn" data-index="{{index}}" data-direction="-1" bindtap="moveFile" disabled="{{index === 0}}">上移</button>
+        <button class="file-order-btn" data-index="{{index}}" data-direction="1" bindtap="moveFile" disabled="{{index === files.length - 1}}">下移</button>
+      </view>
     </view>
 
     <button class="btn btn-primary btn-full" bindtap="submit" loading="{{uploading}}">{{progressText || '开始批量上传'}}</button>
   </view>
 
   <view class="audio-manage">
-    <text class="manage-title">最近音频</text>
+    <view class="manage-head">
+      <text class="manage-title">全部音频（最多显示500条）</text>
+      <button class="manage-sort" bindtap="sortByName">按名称排序</button>
+    </view>
+    <view class="manage-search">
+      <input class="manage-search-input" placeholder="按标题或模块搜索" value="{{keyword}}" bindinput="onKeywordInput" bindconfirm="searchList"/>
+      <button class="manage-search-btn" bindtap="searchList">搜索</button>
+    </view>
     <view class="manage-item" wx:for="{{list}}" wx:key="_id">
       <view class="manage-main">
         <text class="manage-name">{{item.title}}</text>
-        <text class="manage-meta">{{item.category}} · {{item.type}} · {{item.enabled ? '已上线' : '已下线'}}</text>
+        <text class="manage-meta">顺序 {{item.sort}} · {{item.category}} · {{item.type}} · {{item.enabled ? '已上线' : '已下线'}}</text>
       </view>
-      <button class="manage-toggle" data-id="{{item._id}}" data-enabled="{{item.enabled}}" bindtap="toggle">{{item.enabled ? '下线' : '上线'}}</button>
+      <view class="manage-actions">
+        <button class="manage-edit" data-id="{{item._id}}" bindtap="edit">编辑</button>
+        <button class="manage-toggle" data-id="{{item._id}}" data-enabled="{{item.enabled}}" bindtap="toggle">{{item.enabled ? '下线' : '上线'}}</button>
+      </view>
     </view>
   </view>
 </view>
