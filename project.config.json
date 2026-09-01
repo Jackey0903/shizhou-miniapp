@@ -109,6 +109,34 @@
       {
         "type": "folder",
         "value": "先发第一批"
+      },
+      {
+        "type": "folder",
+        "value": ".claude"
+      },
+      {
+        "type": "folder",
+        "value": "output"
+      },
+      {
+        "type": "folder",
+        "value": ".playwright-mcp"
+      },
+      {
+        "type": "folder",
+        "value": "minitest"
+      },
+      {
+        "type": "folder",
+        "value": ".git"
+      },
+      {
+        "type": "file",
+        "value": "README.md"
+      },
+      {
+        "type": "file",
+        "value": ".gitignore"
       }
     ],
     "include": []
