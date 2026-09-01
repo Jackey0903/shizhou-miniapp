@@ -1,4 +1,5 @@
 const cloudApi = require('../../utils/cloudApi')
+const { toggledBoolean } = require('../../utils/dataset')
 
 function normalizeImage(file, index) {
   const path = file.tempFilePath || file.path || ''
@@ -16,7 +17,10 @@ Page({
     uploading: false,
     progressText: '',
     list: [],
-    keyword: ''
+    keyword: '',
+    listTotal: 0,
+    listTruncated: false,
+    orderingByName: false
   },
 
   async onShow() {
@@ -100,17 +104,22 @@ Page({
   },
 
   async loadList() {
-    try {
-      this.setData({ list: await cloudApi.listAdminContent('wallpapers', this.data.keyword, 500) })
-    } catch (err) {
-      this.setData({ list: [] })
-    }
+    // 小程序新版本可能先于云函数上线，旧响应没有 total/ordering 字段，这里必须兜底。
+    const detail = (await cloudApi.listAdminContentDetail('wallpapers', this.data.keyword, 500)) || {}
+    const items = Array.isArray(detail.items) ? detail.items : []
+    const ordering = detail.ordering || {}
+    this.setData({
+      list: items,
+      listTotal: Number(detail.total) || items.length,
+      listTruncated: detail.truncated === true,
+      orderingByName: ordering.mode === 'name'
+    })
   },
 
   async toggle(e) {
     const { id, enabled } = e.currentTarget.dataset
     try {
-      await cloudApi.toggleAdminContent('wallpapers', id, !enabled)
+      await cloudApi.toggleAdminContent('wallpapers', id, toggledBoolean(enabled))
       await this.loadList()
       wx.showToast({ title: enabled ? '已下线' : '已上线', icon: 'success' })
     } catch (err) {
@@ -131,20 +140,27 @@ Page({
     if (id) wx.navigateTo({ url: `/pages/content-editor/content-editor?target=wallpapers&id=${encodeURIComponent(id)}` })
   },
 
-  async sortByName() {
+  async toggleOrdering() {
+    const backToManual = this.data.orderingByName
     const confirmed = await new Promise((resolve) => {
       wx.showModal({
-        title: '按名称排序',
-        content: '会按壁纸标题升序重新排列，单张壁纸也可在“编辑”中设置展示顺序。',
+        title: backToManual ? '改回手动顺序' : '按名称排序',
+        content: backToManual
+          ? '之后按每条壁纸的“展示顺序”数字排列，可在编辑页逐条调整。'
+          : '会按壁纸名称升序重新排列，并记住这个规则；之后新上传的壁纸也会自动排到正确位置。',
         success: (res) => resolve(res.confirm === true),
         fail: () => resolve(false)
       })
     })
     if (!confirmed) return
     try {
-      await cloudApi.reorderAdminContentByName('wallpapers')
+      if (backToManual) {
+        await cloudApi.useManualContentOrdering('wallpapers')
+      } else {
+        await cloudApi.reorderAdminContentByName('wallpapers')
+      }
       await this.loadList()
-      wx.showToast({ title: '已按名称排序', icon: 'success' })
+      wx.showToast({ title: backToManual ? '已改回手动顺序' : '已按名称排序', icon: 'success' })
     } catch (err) {
       wx.showToast({ title: err.message || '排序失败', icon: 'none' })
     }

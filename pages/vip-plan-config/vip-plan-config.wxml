@@ -1,7 +1,7 @@
 <view class="cfg-page">
   <view class="card cfg-form">
     <text class="cfg-title">正式套餐管理</text>
-    <text class="cfg-sub">金额、有效期和微信道具ID已锁定，避免修改后导致支付失败。</text>
+    <text class="cfg-sub">金额、有效期和微信道具ID已锁定，避免修改后导致支付失败。下方列表会标出每个套餐在前台是否真的能买到；显示“前台不显示”时按提示点“修正并上线”。</text>
 
     <picker range="{{templates}}" range-key="name" value="{{templateIndex}}" bindchange="onTemplateChange">
       <view class="cfg-picker">选择套餐：{{templates[templateIndex].name}}</view>
@@ -23,9 +23,13 @@
         <text class="cfg-item-title">{{item.tag}} · {{item.name}}</text>
         <text class="cfg-item-content">¥{{(item.price || 0) / 100}} · VIP {{item.days || 0}}天 · 督学 {{item.supervisionDays || 0}}天</text>
         <text class="cfg-item-content">权益：{{item.benefitText}}</text>
-        <text class="cfg-item-meta">{{item.enabled ? '已上线' : '已下线'}}</text>
+        <text class="cfg-item-meta">{{item.enabled ? '已上线' : '已下线'}} · {{item.frontendVisible ? '前台可购买' : '前台不显示'}}</text>
+        <text class="cfg-item-problem" wx:if="{{!item.frontendVisible && item.frontendProblem}}">原因：{{item.frontendProblem}}</text>
       </view>
-      <button class="cfg-toggle" size="mini" bindtap="toggle" data-id="{{item._id}}" data-enabled="{{item.enabled}}">{{item.enabled ? '下线' : '上线'}}</button>
+      <view class="cfg-item-actions">
+        <button class="cfg-toggle" size="mini" bindtap="toggle" data-id="{{item._id}}" data-enabled="{{item.enabled}}" wx:if="{{!item.missing}}">{{item.enabled ? '下线' : '上线'}}</button>
+        <button class="cfg-toggle cfg-toggle--fix" size="mini" bindtap="repairPlan" data-code="{{item.code}}" wx:if="{{!item.frontendVisible}}">修正并上线</button>
+      </view>
     </view>
   </view>
 </view>

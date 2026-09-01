@@ -26,6 +26,11 @@
     </view>
   </view>
 
+  <view class="checkin-bg-source" wx:if="{{usingCustomWallpaper}}">
+    <text class="checkin-bg-source-text">当前使用的是你自己设置的壁纸，官方海报已被覆盖。</text>
+    <button class="checkin-bg-source-btn" bindtap="restoreOfficialBackground">恢复官方海报</button>
+  </view>
+
   <view class="checkin-share-tip">
     <button class="checkin-share-btn" bindtap="shareFullImage" loading="{{sharing}}" disabled="{{sharing}}">分享图片（+10舟币）</button>
     <text class="checkin-share-title">完整图片分享</text>

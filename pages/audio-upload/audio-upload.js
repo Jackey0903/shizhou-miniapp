@@ -1,4 +1,5 @@
 const cloudApi = require('../../utils/cloudApi')
+const { toggledBoolean } = require('../../utils/dataset')
 
 const CATEGORIES = ['常识', '数量', '言语', '逻辑', '资料', '申论', '综应', '面试']
 const TYPES = ['晨听', '单词', '技巧', '素材']
@@ -14,21 +15,23 @@ Page({
     uploading: false,
     progressText: '',
     list: [],
-    keyword: ''
+    keyword: '',
+    listTotal: 0,
+    listTruncated: false,
+    orderingByName: false
   },
 
   async onShow() {
     try {
       await cloudApi.assertAdmin()
-      const [tree, list] = await Promise.all([
+      const [tree] = await Promise.all([
         cloudApi.getAdminCourseTree(),
-        cloudApi.listAdminContent('audios', this.data.keyword, 500)
+        this.loadList()
       ])
       const categories = tree.filter((item) => item.enabled !== false).map((item) => item.name)
       this.setData({
         categories: categories.length ? categories : CATEGORIES,
-        categoryIndex: 0,
-        list
+        categoryIndex: 0
       })
     } catch (err) {
       wx.showToast({ title: err.message || '加载失败', icon: 'none' })
@@ -121,7 +124,7 @@ Page({
   async toggle(e) {
     const { id, enabled } = e.currentTarget.dataset
     try {
-      await cloudApi.toggleAdminContent('audios', id, !enabled)
+      await cloudApi.toggleAdminContent('audios', id, toggledBoolean(enabled))
       await this.loadList()
       wx.showToast({ title: enabled ? '已下线' : '已上线', icon: 'success' })
     } catch (err) {
@@ -138,8 +141,16 @@ Page({
   },
 
   async loadList() {
-    const list = await cloudApi.listAdminContent('audios', this.data.keyword, 500)
-    this.setData({ list })
+    // 小程序新版本可能先于云函数上线，旧响应没有 total/ordering 字段，这里必须兜底。
+    const detail = (await cloudApi.listAdminContentDetail('audios', this.data.keyword, 500)) || {}
+    const items = Array.isArray(detail.items) ? detail.items : []
+    const ordering = detail.ordering || {}
+    this.setData({
+      list: items,
+      listTotal: Number(detail.total) || items.length,
+      listTruncated: detail.truncated === true,
+      orderingByName: ordering.mode === 'name'
+    })
   },
 
   edit(e) {
@@ -147,20 +158,27 @@ Page({
     if (id) wx.navigateTo({ url: `/pages/content-editor/content-editor?target=audios&id=${encodeURIComponent(id)}` })
   },
 
-  async sortByName() {
+  async toggleOrdering() {
+    const backToManual = this.data.orderingByName
     const confirmed = await new Promise((resolve) => {
       wx.showModal({
-        title: '按名称排序',
-        content: '会按音频标题升序重新排列，之后上传的内容也可通过编辑“展示顺序”调整。',
+        title: backToManual ? '改回手动顺序' : '按名称排序',
+        content: backToManual
+          ? '之后按每条音频的“展示顺序”数字排列，可在编辑页逐条调整。'
+          : '会按音频名称升序重新排列，并记住这个规则；之后新上传的音频也会自动排到正确位置。',
         success: (res) => resolve(res.confirm === true),
         fail: () => resolve(false)
       })
     })
     if (!confirmed) return
     try {
-      await cloudApi.reorderAdminContentByName('audios')
+      if (backToManual) {
+        await cloudApi.useManualContentOrdering('audios')
+      } else {
+        await cloudApi.reorderAdminContentByName('audios')
+      }
       await this.loadList()
-      wx.showToast({ title: '已按名称排序', icon: 'success' })
+      wx.showToast({ title: backToManual ? '已改回手动顺序' : '已按名称排序', icon: 'success' })
     } catch (err) {
       wx.showToast({ title: err.message || '排序失败', icon: 'none' })
     }

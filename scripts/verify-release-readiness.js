@@ -183,6 +183,7 @@ function main() {
   run(process.execPath, ['scripts/regression-question-management.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-question-manager-page.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-content-publication.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-customer-issues-round2.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-admin-uploads.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-audio-lifecycle.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-plan-separation.js'], { stdio: 'pipe' })

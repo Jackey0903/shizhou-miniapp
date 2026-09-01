@@ -27,3 +27,11 @@
 .manage-meta { margin-top: 5rpx; color: var(--text-secondary); font-size: 21rpx; }
 .manage-toggle { min-width: 92rpx; margin: 0; padding: 0 14rpx; border: 0; border-radius: var(--radius-sm); background: #eff6ff; color: var(--primary); font-size: 22rpx; }
 .manage-toggle::after { border: 0; }
+
+.manage-order-hint {
+  display: block;
+  margin: 8rpx 0 16rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: #64748B;
+}

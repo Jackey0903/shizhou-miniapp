@@ -24,9 +24,10 @@
 
   <view class="wallpaper-manage">
     <view class="manage-head">
-      <text class="manage-title">平台壁纸管理（最多显示500条）</text>
-      <button class="manage-sort" bindtap="sortByName">按名称排序</button>
+      <text class="manage-title">平台壁纸管理（共{{listTotal}}条{{listTruncated ? '，已显示前' + list.length + '条，请用搜索定位' : ''}}）</text>
+      <button class="manage-sort" bindtap="toggleOrdering">{{orderingByName ? '改回手动顺序' : '按名称排序'}}</button>
     </view>
+    <text class="manage-order-hint">{{orderingByName ? '当前：按名称自动排序，之后新上传的壁纸会自动排到正确位置。' : '当前：手动顺序，按每条内容的“展示顺序”数字排列。'}}</text>
     <view class="manage-search">
       <input class="manage-search-input" placeholder="按壁纸标题搜索" value="{{keyword}}" bindinput="onKeywordInput" bindconfirm="searchList"/>
       <button class="manage-search-btn" bindtap="searchList">搜索</button>

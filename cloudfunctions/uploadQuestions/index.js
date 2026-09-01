@@ -57,6 +57,8 @@ async function ensureSubject(subjectName) {
         data: {
             name,
             color: '',
+            enabled: true,
+            status: 'enabled',
             sort: Date.now(),
             createdAt: db.serverDate(),
             updatedAt: db.serverDate()
@@ -107,6 +109,8 @@ async function ensureBank(subjectName, bankName) {
             name,
             displayName: name,
             color: subject.color || '',
+            enabled: true,
+            status: 'enabled',
             sort: Date.now(),
             totalCount: 0,
             createdAt: db.serverDate(),

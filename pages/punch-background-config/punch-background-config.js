@@ -1,4 +1,5 @@
 const cloudApi = require('../../utils/cloudApi')
+const { toggledBoolean } = require('../../utils/dataset')
 
 Page({
   data: {
@@ -87,7 +88,7 @@ Page({
 
   async toggle(e) {
     const { id, enabled } = e.currentTarget.dataset
-    const res = await cloudApi.toggleAdminConfig('punch_backgrounds', id, !enabled)
+    const res = await cloudApi.toggleAdminConfig('punch_backgrounds', id, toggledBoolean(enabled))
     if (res.result && res.result.code === 0) {
       await this.loadList()
     }

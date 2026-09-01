@@ -1,4 +1,5 @@
 const cloudApi = require('../../utils/cloudApi')
+const { toggledBoolean } = require('../../utils/dataset')
 
 const SCOPE_OPTIONS = [
   { key: 'all', label: '全部用户' },
@@ -73,7 +74,7 @@ Page({
   async toggle(e) {
     try {
       const { id, enabled } = e.currentTarget.dataset
-      const res = await cloudApi.toggleAdminConfig('messages', id, !enabled)
+      const res = await cloudApi.toggleAdminConfig('messages', id, toggledBoolean(enabled))
       if (res.result && res.result.code === 0) await this.loadList()
     } catch (err) {
       wx.showToast({ title: err.message || '操作失败', icon: 'none' })

@@ -30,6 +30,37 @@ async function readAll(collectionName, where, maxItems = 2000) {
   return list
 }
 
+// 与管理后台共用同一套排序模式：管理员选过“按名称排序”后，
+// 新上传的内容在用户端也会自动落到正确位置。
+async function readContentOrdering(target) {
+  try {
+    const res = await db.collection('content_orderings').doc(target).get()
+    const data = (res && res.data) || {}
+    return {
+      mode: data.mode === 'name' ? 'name' : 'manual',
+      direction: data.direction === 'desc' ? 'desc' : 'asc'
+    }
+  } catch (err) {
+    return { mode: 'manual', direction: 'asc' }
+  }
+}
+
+function contentOrderComparator(ordering, labelOf) {
+  if (ordering.mode === 'name') {
+    const factor = ordering.direction === 'desc' ? -1 : 1
+    return (left, right) => factor * String(labelOf(left) || '')
+      .localeCompare(String(labelOf(right) || ''), 'zh-CN', { numeric: true })
+  }
+  return (left, right) => {
+    const leftSort = Number(left.sort)
+    const rightSort = Number(right.sort)
+    const a = Number.isFinite(leftSort) ? leftSort : Number.MAX_SAFE_INTEGER
+    const b = Number.isFinite(rightSort) ? rightSort : Number.MAX_SAFE_INTEGER
+    return a - b || String(labelOf(left) || '')
+      .localeCompare(String(labelOf(right) || ''), 'zh-CN', { numeric: true })
+  }
+}
+
 exports.main = async () => {
   const { OPENID } = cloud.getWXContext()
   try {
@@ -39,8 +70,9 @@ exports.main = async () => {
         ? readAll('material_redemptions', { _openid: OPENID }).catch(() => [])
         : Promise.resolve([])
     ])
+    const ordering = await readContentOrdering('materials')
     const publishedMaterials = materials.filter(isPublished)
-    publishedMaterials.sort((a, b) => Number(a.sort || 0) - Number(b.sort || 0))
+    publishedMaterials.sort(contentOrderComparator(ordering, (item) => item.name || item.title))
     const ownedIds = new Set(redemptions.map((item) => item.materialId))
     return {
       code: 0,

@@ -1,4 +1,5 @@
 const cloudApi = require('../../utils/cloudApi')
+const { toggledBoolean } = require('../../utils/dataset')
 
 const PLAN_TEMPLATES = [
   {
@@ -58,15 +59,87 @@ Page({
 
   async loadList() {
     try {
-      const res = await cloudApi.listAdminConfigs('vip_plans')
-      const list = ((res.result && res.result.data) || []).map((item) => ({
-        ...item,
-        benefitText: Array.isArray(item.benefits) && item.benefits.length ? item.benefits.join(' / ') : '未设置'
-      }))
-      this.setData({ list })
-      this.syncBenefits(this.data.templateIndex, list)
+      const [res, diagnostics] = await Promise.all([
+        cloudApi.listAdminConfigs('vip_plans'),
+        cloudApi.getVipPlanDiagnostics().catch(() => [])
+      ])
+      const diagnosticMap = {}
+      ;(diagnostics || []).forEach((item) => { diagnosticMap[item.code] = item })
+      const list = ((res.result && res.result.data) || []).map((item) => {
+        const diagnostic = diagnosticMap[item.code] || null
+        return {
+          ...item,
+          benefitText: Array.isArray(item.benefits) && item.benefits.length ? item.benefits.join(' / ') : '未设置',
+          frontendVisible: diagnostic ? diagnostic.visible : true,
+          frontendProblem: diagnostic ? diagnostic.problem : ''
+        }
+      })
+      // 后台有、前台没有的套餐（例如还没保存过）也要显示出来，否则客户无从下手。
+      const missing = (diagnostics || [])
+        .filter((item) => !item.exists)
+        .map((item) => {
+          const template = PLAN_TEMPLATES.find((plan) => plan.code === item.code) || {}
+          return {
+            _id: `missing:${item.code}`,
+            code: item.code,
+            tag: template.tag || item.code,
+            name: template.name || item.code,
+            price: item.expectedPrice,
+            days: template.days || 0,
+            supervisionDays: template.supervisionDays || 0,
+            enabled: false,
+            missing: true,
+            benefitText: '未设置',
+            frontendVisible: false,
+            frontendProblem: item.problem
+          }
+        })
+      const merged = list.concat(missing)
+      this.setData({ list: merged })
+      this.syncBenefits(this.data.templateIndex, merged)
     } catch (err) {
       wx.showToast({ title: err.message || '加载失败', icon: 'none' })
+    }
+  },
+
+  /**
+   * 一键把某个套餐重写为锁定的正式配置并上线，用于修复金额/道具ID对不上导致前台不显示。
+   */
+  async repairPlan(e) {
+    const code = e.currentTarget.dataset.code
+    const template = PLAN_TEMPLATES.find((item) => item.code === code)
+    if (!template) return
+    const confirmed = await new Promise((resolve) => {
+      wx.showModal({
+        title: '修正并上线',
+        content: `会把「${template.name}」的金额、有效期和微信道具ID重写为正式发布配置，并立即上线。权益文案保持不变。`,
+        success: (res) => resolve(res.confirm === true),
+        fail: () => resolve(false)
+      })
+    })
+    if (!confirmed) return
+
+    const current = this.data.list.find((item) => item.code === code && !item.missing)
+    this.setData({ loading: true })
+    try {
+      const res = await cloudApi.saveAdminConfig('vip_plans', {
+        id: current ? current._id : '',
+        ...template,
+        benefits: (current && Array.isArray(current.benefits) && current.benefits.length)
+          ? current.benefits
+          : template.benefits,
+        enabled: true,
+        sort: PLAN_TEMPLATES.findIndex((item) => item.code === code) + 1
+      })
+      if (!res.result || res.result.code !== 0) {
+        throw new Error((res.result && res.result.msg) || '修正失败')
+      }
+      await this.loadList()
+      wx.showToast({ title: '已修正并上线', icon: 'success' })
+    } catch (err) {
+      wx.showToast({ title: err.message || '修正失败', icon: 'none' })
+    } finally {
+      this.setData({ loading: false })
     }
   },
 
@@ -116,7 +189,7 @@ Page({
   async toggle(e) {
     try {
       const { id, enabled } = e.currentTarget.dataset
-      const res = await cloudApi.toggleAdminConfig('vip_plans', id, !enabled)
+      const res = await cloudApi.toggleAdminConfig('vip_plans', id, toggledBoolean(enabled))
       if (!res.result || res.result.code !== 0) {
         throw new Error((res.result && res.result.msg) || '操作失败')
       }

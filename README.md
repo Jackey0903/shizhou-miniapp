@@ -7,7 +7,7 @@
 | 项目 | 状态 |
 | --- | --- |
 | 线上小程序版本 | 以微信公众平台“版本管理”为准 |
-| 最新开发版本 | `1.0.33`（内容发布与运营管理修复候选版） |
+| 最新开发版本 | `1.0.34`（上下线生效、内容排序与套餐可见性修复候选版） |
 | 默认分支 | `main` |
 | 云开发环境 | `cloud-2ge02vrucaf8a6ab` |
 | 小程序 AppID | `wxca6ebd21699eca53` |
@@ -39,6 +39,8 @@
 `1.0.32` 新增管理员题目管理：普通管理员与最高管理员均可按题库查看、搜索和编辑题目，可安全上下线题目，并在二次确认后永久删除。下线题目立即对普通用户隐藏，删除不会删除历史答题记录；每项写操作都会保留管理员审计记录。
 
 `1.0.33` 统一题库、资料、音频和壁纸的上线状态判断，兼容新旧题库集合并修复已上线旧模块无法显示的问题；资料、音频、壁纸支持单条编辑、替换文件、手动序号和按名称重排，后台资料可搜索并显示至 500 条。同步修复打卡背景临时链接过期、默认背景更新不生效、普通管理员不能检索并赠送用户权限、督学续费套餐隐藏、资料舟币不足缺少分享引导、消息字数限制及题目长答案窄屏溢出。
+
+`1.0.34` 修复 `1.0.33` 只改判定、未改写入导致的“点上线没反应”：上下线和新建模块/题库改为同时写 `enabled` 与 `status`，自动修复历史脏数据；排序值不再被钳到 1e9，后台可切换“按名称自动排序”并被记住（之后补传的内容自动落到正确位置，用户端顺序与后台一致）；后台列表显示真实总条数和截断提示；打卡海报改为“最后保存的立即生效”，并下线没有 `activeDate` 的历史背景、新增“恢复官方海报”入口；套餐配置页显示每个套餐在前台是否真的能买到及原因，并提供一键修正；长答案不再溢出题目卡片。详细记录见 [1.0.34 客户反馈修复记录](docs/release-1.0.34-customer-issues.md)。
 
 ## 主要功能
 
@@ -73,7 +75,7 @@
 - 单题录入和 CSV 题库批量导入
 - 按题库查看、搜索、编辑、上下线和永久删除题目
 - 模块与题库新增、编辑、排序、安全上下线
-- 资料、音频和壁纸批量上传、单条编辑替换、排序、搜索及上下线
+- 资料、音频和壁纸批量上传、单条编辑替换、手动排序或按名称自动排序、搜索及上下线
 - 固定正式会员套餐、广告位、站内群发、提醒和帮助内容配置
 - 打卡背景和打卡文案配置
 - 指定用户检索、一键赠送 VIP/督学权限和审计记录
@@ -172,7 +174,7 @@ npx @cloudbase/cli fn deploy adminOperations -e cloud-2ge02vrucaf8a6ab --force
 | 支付与权益 | `vip_plans`、`orders`、`coin_logs` |
 | 资料与内容 | `materials`、`audios`、`wallpapers`、`user_wallpapers` |
 | 消息与督学 | `messages`、`user_messages`、`supervision_profiles` |
-| 运营配置 | `ad_slots`、`punch_backgrounds`、`punch_quotes`、`notification_settings`、`mini_program_codes` |
+| 运营配置 | `ad_slots`、`punch_backgrounds`、`punch_quotes`、`notification_settings`、`mini_program_codes`、`content_orderings` |
 
 生产数据库集合使用 `ADMINONLY`。小程序页面不直接读写生产数据库，统一通过云函数校验当前微信 `OPENID`、管理员身份和字段白名单。云存储保持公开读取、创建者写入，不得将生产写权限放宽为所有用户可写。
 
@@ -280,6 +282,7 @@ node scripts/verify-release-readiness.js
 ```bash
 node scripts/regression-login-payment.js
 node scripts/regression-vip-reconcile.js
+node scripts/regression-customer-issues-round2.js
 node scripts/regression-question-csv-import.js
 node scripts/regression-question-upload-cloud.js
 node scripts/regression-admin-uploads.js
@@ -336,6 +339,7 @@ node scripts/regression-security-critical.js
 - [1.0.28 上线前真实验收报告](docs/release-1.0.28-real-qa.md)
 - [1.0.29 素材兼容修复与验收记录](docs/release-1.0.29-assets-verification.md)
 - [1.0.30 登录审核合规修复记录](docs/release-1.0.30-login-review-fix.md)
+- [1.0.34 客户反馈修复记录](docs/release-1.0.34-customer-issues.md)
 - [虚拟支付部署检查](docs/virtual-payment-deploy.md)
 - [虚拟支付现网配置](docs/虚拟支付现网配置.md)
 - [客户题库交付与导入](docs/客户题库交付与导入.md)

@@ -14,3 +14,23 @@
 .plan-price, .plan-meta { display: block; }
 .plan-price { color: var(--primary); font-size: 34rpx; font-weight: 800; }
 .plan-meta { margin-top: 5rpx; color: var(--text-secondary); font-size: 22rpx; }
+
+.cfg-item-problem {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: #DC2626;
+}
+
+.cfg-item-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  flex-shrink: 0;
+}
+
+.cfg-toggle--fix {
+  background: #2563EB;
+  color: #FFFFFF;
+}

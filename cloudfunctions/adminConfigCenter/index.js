@@ -112,9 +112,32 @@ async function ensureCollection(name) {
   return true
 }
 
+// 早期保存的背景没有 activeDate 字段，用 where({activeDate}) 查不到它们，
+// 于是旧背景一直是 enabled 状态，和新背景一起被按天轮播出来——表现就是
+// “背景改了没反应，还会弹出前面更正的海报”。这里统一按归一化后的日期比对。
+function punchSlot(item = {}) {
+  const value = String(item.activeDate || '').trim()
+  return value || 'default'
+}
+
+async function readAllPunchBackgrounds() {
+  const list = []
+  while (list.length < 1000) {
+    const res = await db.collection('punch_backgrounds')
+      .skip(list.length).limit(Math.min(100, 1000 - list.length)).get()
+    const page = res.data || []
+    list.push(...page)
+    if (page.length < 100) break
+  }
+  return list
+}
+
 async function disableDuplicatePunchBackgrounds(activeDate, keepId) {
-  const result = await db.collection('punch_backgrounds').where({ activeDate }).get()
-  const duplicates = (result.data || []).filter((item) => item._id !== keepId && item.enabled !== false)
+  const slot = String(activeDate || '').trim() || 'default'
+  const all = await readAllPunchBackgrounds()
+  const duplicates = all.filter((item) => (
+    punchSlot(item) === slot && item._id !== keepId && item.enabled !== false
+  ))
   for (const item of duplicates) {
     await db.collection('punch_backgrounds').doc(item._id).update({
       data: { enabled: false, updatedAt: db.serverDate() }
@@ -190,9 +213,10 @@ exports.main = async (event) => {
         targetId = ((existed.data || [])[0] || {})._id || ''
       }
       if (target === 'punch_backgrounds' && !targetId) {
-        const activeDate = String(data.activeDate || 'default')
-        const existed = await db.collection(target).where({ activeDate }).get()
-        const candidates = (existed.data || []).sort((left, right) => Number(right.sort || 0) - Number(left.sort || 0))
+        const slot = String(data.activeDate || '').trim() || 'default'
+        const candidates = (await readAllPunchBackgrounds())
+          .filter((item) => punchSlot(item) === slot)
+          .sort((left, right) => Number(right.sort || 0) - Number(left.sort || 0))
         targetId = (candidates[0] || {})._id || ''
       }
       data.updatedAt = db.serverDate()

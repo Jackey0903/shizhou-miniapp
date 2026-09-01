@@ -126,11 +126,19 @@ Page({
     this._checkTodayStatusAndAutoCheckin()
   },
 
+  onShow() {
+    // 管理员换了打卡海报后，返回本页要能立刻看到新背景，而不是等冷启动。
+    if (!this._punchConfigLoadedAt) return
+    if (Date.now() - this._punchConfigLoadedAt < 30000) return
+    this._loadPunchConfig()
+  },
+
   onUnload() {
     clearInterval(this._timer)
   },
 
   async _loadPunchConfig() {
+    this._punchConfigLoadedAt = Date.now()
     try {
       const config = await cloudApi.getPunchConfig(this.data.currentDate)
       const background = config.background || {}
@@ -151,6 +159,14 @@ Page({
         usingCustomWallpaper: !!preferredWallpaper
       })
     }
+  },
+
+  // 用户把自己的壁纸设为打卡背景后，官方海报就一直被覆盖，
+  // 之前没有任何入口可以撤销，表现为“管理员换了海报也不生效”。
+  async restoreOfficialBackground() {
+    wx.removeStorageSync('checkinWallpaperPreference')
+    await this._loadPunchConfig()
+    wx.showToast({ title: '已恢复官方海报', icon: 'success' })
   },
 
   _updateTime() {

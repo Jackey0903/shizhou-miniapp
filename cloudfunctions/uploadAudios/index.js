@@ -53,6 +53,37 @@ function normalizeAudio(item, index) {
   }
 }
 
+// 与管理后台共用同一套排序模式：管理员选过“按名称排序”后，
+// 新上传的内容在用户端也会自动落到正确位置。
+async function readContentOrdering(target) {
+  try {
+    const res = await db.collection('content_orderings').doc(target).get()
+    const data = (res && res.data) || {}
+    return {
+      mode: data.mode === 'name' ? 'name' : 'manual',
+      direction: data.direction === 'desc' ? 'desc' : 'asc'
+    }
+  } catch (err) {
+    return { mode: 'manual', direction: 'asc' }
+  }
+}
+
+function contentOrderComparator(ordering, labelOf) {
+  if (ordering.mode === 'name') {
+    const factor = ordering.direction === 'desc' ? -1 : 1
+    return (left, right) => factor * String(labelOf(left) || '')
+      .localeCompare(String(labelOf(right) || ''), 'zh-CN', { numeric: true })
+  }
+  return (left, right) => {
+    const leftSort = Number(left.sort)
+    const rightSort = Number(right.sort)
+    const a = Number.isFinite(leftSort) ? leftSort : Number.MAX_SAFE_INTEGER
+    const b = Number.isFinite(rightSort) ? rightSort : Number.MAX_SAFE_INTEGER
+    return a - b || String(labelOf(left) || '')
+      .localeCompare(String(labelOf(right) || ''), 'zh-CN', { numeric: true })
+  }
+}
+
 exports.main = async (event = {}) => {
   const { OPENID } = cloud.getWXContext()
   if (event.action === 'list') {
@@ -66,10 +97,11 @@ exports.main = async (event = {}) => {
         if (page.length < 100) break
       }
       const category = String(event.category || '')
+      const ordering = await readContentOrdering('audios')
       const data = list
         .filter((item) => item.enabled !== false && !['disabled', 'offline'].includes(item.status))
         .filter((item) => !category || item.category === category)
-        .sort((a, b) => Number(a.sort || 0) - Number(b.sort || 0))
+        .sort(contentOrderComparator(ordering, (item) => item.title || item.name))
       return { code: 0, data }
     } catch (err) {
       return { code: -1, msg: err.message || '音频加载失败' }

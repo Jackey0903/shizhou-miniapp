@@ -7,6 +7,8 @@ const {
   integer,
   normalizeColor,
   isEnabled,
+  sortValue,
+  publicationFields,
   addDaysFromCurrent,
   publicUser,
   publicAdminUser,
@@ -144,8 +146,8 @@ async function saveSubject(payload, admin) {
     name,
     description: text(payload.description, 300),
     color: normalizeColor(payload.color),
-    sort: integer(payload.sort, Date.now(), 0),
-    status: payload.enabled === false ? 'disabled' : 'enabled',
+    sort: sortValue(payload.sort, Date.now()),
+    ...publicationFields(payload.enabled !== false),
     updatedAt: db.serverDate()
   }
   if (id && !id.startsWith('legacy:')) {
@@ -194,8 +196,8 @@ async function saveBank(payload, admin) {
     series: text(payload.series || '基础题库', 100),
     description: text(payload.description, 500),
     isLocked: !!payload.isLocked,
-    sort: integer(payload.sort, Date.now(), 0),
-    status: payload.enabled === false ? 'disabled' : 'enabled',
+    sort: sortValue(payload.sort, Date.now()),
+    ...publicationFields(payload.enabled !== false),
     updatedAt: db.serverDate()
   }
   if (id) {
@@ -217,22 +219,64 @@ async function saveBank(payload, admin) {
   return { code: 0, msg: '题库已新增', id: result._id }
 }
 
+const ORDERING_COLLECTION = 'content_orderings'
+const DEFAULT_ORDERING = Object.freeze({ mode: 'manual', direction: 'asc' })
+
+// 内容排序模式需要持久化：管理员选过“按名称排序”后，之后新上传的内容
+// 也要自动落到正确位置，而不是永远排在末尾、逼着客户重新上传一遍。
+async function readOrdering(target) {
+  await ensureCollection(ORDERING_COLLECTION)
+  const res = await db.collection(ORDERING_COLLECTION).doc(target).get().catch(() => ({ data: null }))
+  const data = res.data || {}
+  return {
+    mode: data.mode === 'name' ? 'name' : DEFAULT_ORDERING.mode,
+    direction: data.direction === 'desc' ? 'desc' : DEFAULT_ORDERING.direction
+  }
+}
+
+async function writeOrdering(target, mode, direction) {
+  await ensureCollection(ORDERING_COLLECTION)
+  const data = {
+    target,
+    mode: mode === 'name' ? 'name' : 'manual',
+    direction: direction === 'desc' ? 'desc' : 'asc',
+    updatedAt: db.serverDate()
+  }
+  await db.collection(ORDERING_COLLECTION).doc(target).set({ data })
+  return { mode: data.mode, direction: data.direction }
+}
+
+function compareContent(ordering) {
+  if (ordering.mode === 'name') {
+    const factor = ordering.direction === 'desc' ? -1 : 1
+    return (left, right) => factor * contentLabel(left).localeCompare(contentLabel(right), 'zh-CN', { numeric: true })
+  }
+  return (left, right) => sortValue(left.sort, Number.MAX_SAFE_INTEGER) - sortValue(right.sort, Number.MAX_SAFE_INTEGER)
+    || contentLabel(left).localeCompare(contentLabel(right), 'zh-CN', { numeric: true })
+}
+
 async function listContent(payload) {
   const target = text(payload.target, 50)
   if (!CONTENT_TARGETS[target]) return { code: -1, msg: '不支持的内容类型' }
   await ensureCollection(target)
   const keyword = text(payload.keyword, 80).toLowerCase()
-  const items = (await readAll(target))
+  const ordering = await readOrdering(target)
+  const matched = (await readAll(target, 5000))
     .map((item) => ({ ...item, enabled: isEnabled(item, target) }))
     .filter((item) => {
       if (!keyword) return true
       return [item.title, item.name, item.category, item.type]
         .some((value) => String(value || '').toLowerCase().includes(keyword))
     })
-    .sort((left, right) => integer(left.sort, 999999999) - integer(right.sort, 999999999)
-      || contentLabel(left).localeCompare(contentLabel(right), 'zh-CN', { numeric: true }))
-    .slice(0, integer(payload.limit, 300, 1, 500))
-  return { code: 0, data: items }
+    .sort(compareContent(ordering))
+  const limit = integer(payload.limit, 300, 1, 2000)
+  return {
+    code: 0,
+    data: matched.slice(0, limit),
+    total: matched.length,
+    truncated: matched.length > limit,
+    ordering
+  }
 }
 
 async function toggleContent(payload, admin) {
@@ -241,9 +285,9 @@ async function toggleContent(payload, admin) {
   const enabled = !!payload.enabled
   const config = CONTENT_TARGETS[target]
   if (!config || !id) return { code: -1, msg: '内容参数无效' }
-  const update = config.enabledField === 'status'
-    ? { status: enabled ? 'enabled' : 'disabled', updatedAt: db.serverDate() }
-    : { enabled, updatedAt: db.serverDate() }
+  // 必须同时写 enabled 和 status：isEnabled 要求两个字段都不表示下线，
+  // 只写其中一个会让残留的旧字段一直把内容挡在前台之外。
+  const update = { ...publicationFields(enabled), updatedAt: db.serverDate() }
   await db.collection(target).doc(id).update({ data: update })
   await audit(admin, 'toggle_content', { target, id, enabled })
   return { code: 0, msg: enabled ? '已上线' : '已下线' }
@@ -264,10 +308,10 @@ function contentLabel(item = {}) {
 }
 
 function normalizeEditableContent(target, payload, current) {
-  const sort = integer(
+  // 顺序值常用 Date.now() 生成，必须走 sortValue，否则会被钳成 1e9 导致顺序丢失。
+  const sort = sortValue(
     payload.sort === undefined ? current.sort : payload.sort,
-    integer(current.sort, Date.now(), 0),
-    0
+    sortValue(current.sort, Date.now())
   )
 
   if (target === 'audios') {
@@ -359,8 +403,17 @@ async function saveContent(payload, admin) {
 async function reorderContentByName(payload, admin) {
   const target = text(payload.target, 50)
   const direction = text(payload.direction || 'asc', 10).toLowerCase()
+  const mode = text(payload.mode || 'name', 10).toLowerCase()
   if (!CONTENT_TARGETS[target]) return { code: -1, msg: '不支持的内容类型' }
   if (!['asc', 'desc'].includes(direction)) return { code: -1, msg: '排序方向无效' }
+  if (!['name', 'manual'].includes(mode)) return { code: -1, msg: '排序模式无效' }
+
+  if (mode === 'manual') {
+    const ordering = await writeOrdering(target, 'manual', direction)
+    await audit(admin, 'set_content_ordering', { target, mode: 'manual' })
+    return { code: 0, msg: '已改回手动顺序', data: { ordering } }
+  }
+
   const items = (await readAll(target, 5000)).sort((left, right) => {
     const comparison = contentLabel(left).localeCompare(contentLabel(right), 'zh-CN', { numeric: true })
     return direction === 'asc' ? comparison : -comparison
@@ -373,8 +426,13 @@ async function reorderContentByName(payload, admin) {
       data: { sort: (offset + index + 1) * 10, updatedAt: db.serverDate() }
     })))
   }
+  const ordering = await writeOrdering(target, 'name', direction)
   await audit(admin, 'reorder_content_by_name', { target, direction, count: items.length })
-  return { code: 0, msg: `已按名称${direction === 'asc' ? '升序' : '降序'}排序`, data: { count: items.length } }
+  return {
+    code: 0,
+    msg: `已按名称${direction === 'asc' ? '升序' : '降序'}排序，之后上传的内容会自动排到正确位置`,
+    data: { count: items.length, ordering }
+  }
 }
 
 function isQuestionEnabled(question = {}) {
@@ -889,6 +947,11 @@ exports.main = async (event = {}) => {
     if (action === 'getContent') return await getContent(payload)
     if (action === 'saveContent') return await saveContent(payload, admin)
     if (action === 'reorderContentByName') return await reorderContentByName(payload, admin)
+    if (action === 'getContentOrdering') {
+      const orderingTarget = text(payload.target, 50)
+      if (!CONTENT_TARGETS[orderingTarget]) return { code: -1, msg: '不支持的内容类型' }
+      return { code: 0, data: await readOrdering(orderingTarget) }
+    }
     if (action === 'listManagedQuestions') return await listManagedQuestions(payload)
     if (action === 'saveManagedQuestion') return await saveManagedQuestion(payload, admin)
     if (action === 'toggleManagedQuestion') return await toggleManagedQuestion(payload, admin)

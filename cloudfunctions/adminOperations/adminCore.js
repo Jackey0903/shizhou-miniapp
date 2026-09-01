@@ -39,6 +39,27 @@ function integer(value, fallback = 0, min = -1000000000, max = 1000000000) {
   return Math.min(max, Math.max(min, number))
 }
 
+// 展示顺序普遍用 Date.now() 生成（约 1.7e12），远超 integer() 的 1e9 上限。
+// 用 integer() 处理会把所有新内容钳到同一个 1e9，导致后台列表顺序错乱、
+// 新上传的内容永远排在最后甚至被列表条数截断。排序值必须用完整安全整数区间。
+const MAX_SORT = Number.MAX_SAFE_INTEGER
+
+function sortValue(value, fallback = 0) {
+  const number = Number(value)
+  if (!Number.isFinite(number)) return sortValue(fallback, 0)
+  const rounded = Math.round(number)
+  return Math.min(MAX_SORT, Math.max(0, rounded))
+}
+
+// 早期数据有的只写 enabled，有的只写 status。上下线必须同时写两个字段，
+// 否则残留的 enabled:false / status:'disabled' 会让"点上线没反应"。
+function publicationFields(enabled) {
+  return {
+    enabled: !!enabled,
+    status: enabled ? 'enabled' : 'disabled'
+  }
+}
+
 function normalizeColor(value) {
   const color = text(value, 20)
   if (!color) return ''
@@ -109,8 +130,11 @@ function normalizeBinaryResponse(response) {
 module.exports = {
   PLAN_GRANTS,
   CONTENT_TARGETS,
+  MAX_SORT,
   text,
   integer,
+  sortValue,
+  publicationFields,
   normalizeColor,
   isEnabled,
   escapeRegExp,

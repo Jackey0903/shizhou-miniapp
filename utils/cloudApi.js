@@ -455,15 +455,34 @@ async function getPunchConfig(dateStr = '') {
     const quotes = (quoteRes.result && quoteRes.result.code === 0 ? quoteRes.result.data : []) || []
     const dayIndex = Math.max(0, Math.floor(new Date(targetDate).getTime() / 86400000))
 
+    const pickDefaults = (list, fallbackKey) => list.filter((item) => (
+        !item.activeDate || item.activeDate === 'default' || item.activeDate === fallbackKey
+    ))
+    // 励志文案保留“多条按天轮播”的运营玩法。
     const chooseDaily = (list, fallbackKey) => {
         const exact = list.filter((item) => item.activeDate === targetDate)
         if (exact.length) return exact[0]
-        const defaults = list.filter((item) => !item.activeDate || item.activeDate === 'default' || item.activeDate === fallbackKey)
+        const defaults = pickDefaults(list, fallbackKey)
         if (!defaults.length) return null
         return defaults[dayIndex % defaults.length]
     }
+    // 打卡背景必须“最后保存的那张立即生效”。历史上这里也按天轮播，
+    // 只要库里还留着一张旧的启用背景，管理员换图后隔天又会冒出旧海报。
+    const chooseLatest = (list, fallbackKey) => {
+        const exact = list.filter((item) => item.activeDate === targetDate)
+        const candidates = exact.length ? exact : pickDefaults(list, fallbackKey)
+        if (!candidates.length) return null
+        return candidates.slice().sort((left, right) => {
+            const leftSort = Number(left.sort || 0)
+            const rightSort = Number(right.sort || 0)
+            if (leftSort !== rightSort) return rightSort - leftSort
+            const leftTime = new Date(left.updatedAt || left.createdAt || 0).getTime() || 0
+            const rightTime = new Date(right.updatedAt || right.createdAt || 0).getTime() || 0
+            return rightTime - leftTime
+        })[0]
+    }
 
-    let background = chooseDaily(backgrounds, 'default')
+    let background = chooseLatest(backgrounds, 'default')
     // 后台保存的是 cloud:// 文件 ID；临时链接会过期，因此每次都换取新链接。
     if (background && background.fileId && background.fileId.startsWith('cloud://')) {
       try {
@@ -663,6 +682,20 @@ async function getVipPlans() {
     return res.result.data || []
 }
 
+/**
+ * 管理员诊断：后台配置的套餐为什么没有出现在前台购买页。
+ */
+async function getVipPlanDiagnostics() {
+    const res = await wx.cloud.callFunction({
+        name: 'createVipOrder',
+        data: { action: 'planDiagnostics' }
+    })
+    if (!res.result || res.result.code !== 0) {
+        throw new Error((res.result && res.result.msg) || '套餐诊断失败')
+    }
+    return res.result.data || []
+}
+
 async function getMyOrders(limit = 50) {
     return wx.cloud.callFunction({
         name: 'createVipOrder',
@@ -750,7 +783,28 @@ async function saveAdminContent(target, payload) {
 }
 
 async function reorderAdminContentByName(target, direction = 'asc') {
-    return callAdminOperation('reorderContentByName', { target, direction })
+    return callAdminOperation('reorderContentByName', { target, direction, mode: 'name' })
+}
+
+/**
+ * 改回手动顺序：之后按每条内容的“展示顺序”数字排列。
+ */
+async function useManualContentOrdering(target) {
+    return callAdminOperation('reorderContentByName', { target, mode: 'manual' })
+}
+
+/**
+ * 读取列表时同时拿到总条数和当前排序模式，供后台页面提示客户。
+ */
+async function listAdminContentDetail(target, keyword = '', limit = 500) {
+    const result = (await callAdminOperation('listContent', { target, keyword, limit })) || {}
+    const items = Array.isArray(result.data) ? result.data : []
+    return {
+        items,
+        total: Number(result.total || items.length),
+        truncated: result.truncated === true,
+        ordering: result.ordering || { mode: 'manual', direction: 'asc' }
+    }
 }
 
 async function listManagedQuestions(courseId, keyword = '', page = 1, pageSize = 20) {
@@ -831,10 +885,11 @@ module.exports = {
     getSupervisionData, saveSupervisionData,
     getSupervisionMatches, joinSupervisionMatch, leaveSupervisionMatch,
     getReminderConfig, getStudyReminders, saveStudyReminder, removeStudyReminder, dispatchStudyReminders,
-    getCoinLogs, getVipPlans, getMyOrders,
+    getCoinLogs, getVipPlans, getVipPlanDiagnostics, getMyOrders,
     assertAdmin, listAdminConfigs, saveAdminConfig, toggleAdminConfig, getHelpConfig,
     callAdminOperation, getAdminCourseTree, saveAdminSubject, saveAdminQuestionBank,
-    listAdminContent, toggleAdminContent, getAdminContent, saveAdminContent, reorderAdminContentByName,
+    listAdminContent, listAdminContentDetail, toggleAdminContent, getAdminContent, saveAdminContent,
+    reorderAdminContentByName, useManualContentOrdering,
     listManagedQuestions, saveManagedQuestion, toggleManagedQuestion, deleteManagedQuestion,
     searchAdminUsers, getAdminUsers, grantAdminUserAccess, getAdminGrantLogs,
     getAdminIdentity, getAdministrators, setAdministrator, transferSuperAdministrator,

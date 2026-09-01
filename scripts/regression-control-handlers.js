@@ -162,6 +162,9 @@ function createCloudApiMock() {
     get(_target, property) {
       if (property === 'getQuestionCount') return async () => 0
       if (property === 'getMutualHelpDashboard') return async () => ({ approved: [], mine: [], pending: [] })
+      if (property === 'listAdminContentDetail') {
+        return async () => ({ items: [], total: 0, truncated: false, ordering: { mode: 'manual', direction: 'asc' } })
+      }
       if (listMethods.has(property)) return async () => []
       if (objectMethods.has(property)) return async () => null
       if (property === 'assertAdmin') return async () => true

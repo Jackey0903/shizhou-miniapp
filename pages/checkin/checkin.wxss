@@ -258,3 +258,38 @@
   color: #ffffff;
   background: #2563eb;
 }
+
+.checkin-bg-source {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin: 20rpx 24rpx 0;
+  padding: 20rpx 24rpx;
+  border-radius: 16rpx;
+  background: #F1F5F9;
+}
+
+.checkin-bg-source-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: #475569;
+}
+
+.checkin-bg-source-btn {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0 24rpx;
+  height: 60rpx;
+  line-height: 60rpx;
+  font-size: 22rpx;
+  border-radius: 999rpx;
+  background: #FFFFFF;
+  color: #2563EB;
+  border: 2rpx solid #BFDBFE;
+}
+
+.checkin-bg-source-btn::after {
+  border: none;
+}

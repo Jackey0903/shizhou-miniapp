@@ -106,7 +106,9 @@
 .q-content {
   padding: 40rpx 36rpx 32rpx;
   border-bottom: 1rpx solid var(--border);
-  overflow: visible;
+  overflow: hidden;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .q-text {
@@ -116,6 +118,7 @@
   line-height: 1.78;
   display: block;
   min-height: 0;
+  max-width: 100%;
   white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: anywhere;
@@ -183,6 +186,9 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .q-answer-hint {
@@ -193,10 +199,19 @@
 
 .q-answer-reveal {
   width: 100%;
+  /* flex 子项默认 min-width:auto，长答案会把自己撑出卡片（.q-card 是 overflow:visible，
+     溢出的文字会直接画到卡片外面）。这里显式收紧宽度并兜底裁剪。 */
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .q-fill-result {
   padding: 36rpx;
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .q-fill-status {
@@ -235,6 +250,10 @@
   color: var(--text-primary);
   line-height: 1.7;
   margin-bottom: 20rpx;
+  max-width: 100%;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .q-answer-label {
@@ -250,6 +269,7 @@
   color: var(--secondary);
   line-height: 1.6;
   display: block;
+  max-width: 100%;
   white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: anywhere;
@@ -261,6 +281,7 @@
   margin-top: 16rpx;
   line-height: 1.7;
   display: block;
+  max-width: 100%;
   white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: anywhere;
@@ -270,11 +291,17 @@
   padding: 24rpx 36rpx;
   border-top: 1rpx solid var(--border);
   background: var(--bg-page);
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 /* ===== 选择题选项 ===== */
 .choice-options {
   padding: 24rpx 24rpx 32rpx;
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .choice-option {

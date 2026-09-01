@@ -1,4 +1,5 @@
 const cloudApi = require('../../utils/cloudApi')
+const { toggledBoolean } = require('../../utils/dataset')
 
 const TYPES = [
   { key: 'document', label: '文档' },
@@ -31,7 +32,10 @@ Page({
     progressText: '',
     list: [],
     listLoading: false,
-    keyword: ''
+    keyword: '',
+    listTotal: 0,
+    listTruncated: false,
+    orderingByName: false
   },
 
   async onShow() {
@@ -214,21 +218,22 @@ Page({
   },
 
   async loadList() {
-    this.setData({ listLoading: true })
-    try {
-      const list = await cloudApi.listAdminContent('materials', this.data.keyword, 500)
-      this.setData({ list })
-    } catch (err) {
-      this.setData({ list: [] })
-    } finally {
-      this.setData({ listLoading: false })
-    }
+    // 小程序新版本可能先于云函数上线，旧响应没有 total/ordering 字段，这里必须兜底。
+    const detail = (await cloudApi.listAdminContentDetail('materials', this.data.keyword, 500)) || {}
+    const items = Array.isArray(detail.items) ? detail.items : []
+    const ordering = detail.ordering || {}
+    this.setData({
+      list: items,
+      listTotal: Number(detail.total) || items.length,
+      listTruncated: detail.truncated === true,
+      orderingByName: ordering.mode === 'name'
+    })
   },
 
   async toggle(e) {
     const { id, enabled } = e.currentTarget.dataset
     try {
-      await cloudApi.toggleAdminContent('materials', id, !enabled)
+      await cloudApi.toggleAdminContent('materials', id, toggledBoolean(enabled))
       await this.loadList()
       wx.showToast({ title: enabled ? '已下线' : '已上线', icon: 'success' })
     } catch (err) {
@@ -249,20 +254,27 @@ Page({
     if (id) wx.navigateTo({ url: `/pages/content-editor/content-editor?target=materials&id=${encodeURIComponent(id)}` })
   },
 
-  async sortByName() {
+  async toggleOrdering() {
+    const backToManual = this.data.orderingByName
     const confirmed = await new Promise((resolve) => {
       wx.showModal({
-        title: '按名称排序',
-        content: '会按资料名称升序重新排列，单条资料也可在“编辑”中设置展示顺序。',
+        title: backToManual ? '改回手动顺序' : '按名称排序',
+        content: backToManual
+          ? '之后按每条资料的“展示顺序”数字排列，可在编辑页逐条调整。'
+          : '会按资料名称升序重新排列，并记住这个规则；之后新上传的资料也会自动排到正确位置。',
         success: (res) => resolve(res.confirm === true),
         fail: () => resolve(false)
       })
     })
     if (!confirmed) return
     try {
-      await cloudApi.reorderAdminContentByName('materials')
+      if (backToManual) {
+        await cloudApi.useManualContentOrdering('materials')
+      } else {
+        await cloudApi.reorderAdminContentByName('materials')
+      }
       await this.loadList()
-      wx.showToast({ title: '已按名称排序', icon: 'success' })
+      wx.showToast({ title: backToManual ? '已改回手动顺序' : '已按名称排序', icon: 'success' })
     } catch (err) {
       wx.showToast({ title: err.message || '排序失败', icon: 'none' })
     }

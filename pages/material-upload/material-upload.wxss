@@ -278,3 +278,11 @@
   background: #eff6ff;
   color: var(--primary);
 }
+
+.manage-order-hint {
+  display: block;
+  margin: 8rpx 0 16rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: #64748B;
+}

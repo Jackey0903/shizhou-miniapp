@@ -303,6 +303,67 @@ function isValidPlan(plan = {}) {
     && (days > 0 || supervisionDays > 0)
 }
 
+// 后台把套餐配好了、前台却看不到，几乎都是因为 isValidPlan 静默过滤掉了它。
+// 这里把过滤原因显式返回给管理员，避免只能靠猜。
+function describePlanProblem(plan) {
+  const code = String((plan && plan.code) || '').trim()
+  const published = PUBLISHED_PLAN_CONFIG[code]
+  if (!published) return '套餐 code 不在系统内置的四个正式套餐里'
+  if (!plan) return '数据库里还没有这个套餐，请在本页保存一次'
+  if (plan.enabled !== true) return '套餐处于下线状态，点“上线”后前台才会显示'
+
+  const productId = getVirtualProductId(plan)
+  if (!productId) return '缺少微信虚拟支付道具ID，请点“修正并上线”重写'
+  if (!/^[A-Za-z0-9_-]{1,20}$/.test(productId)) return `道具ID格式无效：${productId}`
+  if (productId !== published.productId) {
+    return `道具ID与正式发布配置不一致（当前 ${productId}，应为 ${published.productId}）`
+  }
+
+  const price = Number(plan.price)
+  if (!Number.isInteger(price) || price <= 0) return '价格必须是正整数（单位：分）'
+  if (price !== published.price) {
+    return `价格与正式发布配置不一致（当前 ${price / 100} 元，应为 ${published.price / 100} 元）`
+  }
+
+  const days = Number(plan.days || 0)
+  const supervisionDays = Number(plan.supervisionDays || 0)
+  if (!Number.isInteger(days) || days < 0 || days > 3650) return 'VIP 天数无效'
+  if (!Number.isInteger(supervisionDays) || supervisionDays < 0 || supervisionDays > 3650) return '督学天数无效'
+  if (days === 0 && supervisionDays === 0) return '套餐至少要配置一项有效权益'
+  return ''
+}
+
+async function diagnosePlans(wxContext) {
+  const openid = wxContext.OPENID
+  if (!openid) return { code: 401, msg: '请先登录' }
+  const user = await getCurrentUser(openid)
+  const isAdmin = !!(user && (user.isAdmin === true || user.role === 'admin' || user.role === 'super_admin'))
+  if (!isAdmin) return { code: 403, msg: '仅管理员可查看套餐诊断' }
+
+  let stored = []
+  try {
+    const res = await db.collection('vip_plans').get()
+    stored = res.data || []
+  } catch (err) {
+    stored = []
+  }
+
+  const data = Object.keys(PUBLISHED_PLAN_CONFIG).map((code) => {
+    const plan = stored.find((item) => String(item.code || '').trim() === code) || null
+    const problem = describePlanProblem(plan ? { ...plan, code } : null)
+    return {
+      code,
+      exists: !!plan,
+      enabled: !!(plan && plan.enabled === true),
+      visible: !!plan && plan.enabled === true && isValidPlan({ ...plan, code }),
+      problem,
+      expectedPrice: PUBLISHED_PLAN_CONFIG[code].price,
+      expectedProductId: PUBLISHED_PLAN_CONFIG[code].productId
+    }
+  })
+  return { code: 0, data }
+}
+
 function toClientOrder(order) {
   return {
     orderId: order._id,
@@ -976,6 +1037,7 @@ exports.main = async (event) => {
       return { code: -1, msg: err.message || '套餐加载失败' }
     }
   }
+  if (action === 'planDiagnostics') return diagnosePlans(wxContext)
   if (action === 'list') return listMyOrders(event, wxContext)
   if (action === 'paymentClientError') return recordClientPaymentError(event, wxContext)
   if (action === 'sync') return syncVirtualOrder(event, wxContext)
