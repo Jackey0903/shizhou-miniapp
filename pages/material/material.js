@@ -234,7 +234,7 @@ Page({
     try {
       const res = item.fileId && item.fileId.startsWith('cloud://')
         ? await wx.cloud.downloadFile({ fileID: item.fileId })
-        : await wx.downloadFile({ url })
+        : await wxPromise(wx.downloadFile, { url })
       await wx.openDocument({ filePath: res.tempFilePath, showMenu: true })
       wx.showToast({ title: '可点右上角菜单保存/转发', icon: 'none' })
     } catch (err) {

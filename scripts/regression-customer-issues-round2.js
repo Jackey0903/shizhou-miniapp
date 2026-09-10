@@ -458,3 +458,21 @@ main().catch((err) => {
   console.error(err.stack || err)
   process.exit(1)
 })
+
+// ---- wx.downloadFile 返回 DownloadTask 而非 Promise；直接 await 得到 undefined.tempFilePath ----
+// 包内背景不走该分支所以历史验收未暴露；客户上传云端打卡背景后海报生成必然失败。
+{
+  const fs = require('fs')
+  const path = require('path')
+  const root = path.resolve(__dirname, '..')
+  const walk = (dir, out = []) => { for (const n of fs.readdirSync(dir)) { const f = path.join(dir, n); fs.statSync(f).isDirectory() ? walk(f, out) : (f.endsWith('.js') && out.push(f)) } return out }
+  const offenders = [...walk(path.join(root, 'pages')), ...walk(path.join(root, 'utils'))]
+    .filter((f) => /await\s+wx\.downloadFile\s*\(/.test(fs.readFileSync(f, 'utf8')))
+    .map((f) => path.relative(root, f))
+  assert.deepStrictEqual(offenders, [], 'wx.downloadFile 不能直接 await（返回的是 DownloadTask）：' + offenders.join(', '))
+  const sharing = fs.readFileSync(path.join(root, 'utils/imageSharing.js'), 'utf8')
+  assert.ok(/async function downloadFile\(/.test(sharing) && /downloadFile,/.test(sharing), 'imageSharing 必须导出 promise 化的 downloadFile')
+  const checkin = fs.readFileSync(path.join(root, 'pages/checkin/checkin.js'), 'utf8')
+  assert.ok(/imageSharing\.downloadFile\(/.test(checkin) && /return DEFAULT_BG/.test(checkin), '打卡背景下载必须走封装且失败时回退默认背景')
+  console.log('ok: wx.downloadFile 全部经由 promise 封装，打卡背景有兜底')
+}

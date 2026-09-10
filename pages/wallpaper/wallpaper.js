@@ -150,8 +150,8 @@ Page({
       return res.tempFilePath
     }
     if (item.imageUrl.startsWith('/')) return item.imageUrl
-    const res = await wx.downloadFile({ url: item.imageUrl })
-    return res.tempFilePath
+    // wx.downloadFile 返回 DownloadTask 不是 Promise，必须走封装
+    return imageSharing.downloadFile(item.imageUrl)
   },
 
   async drawShareImage(imagePath) {

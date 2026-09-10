@@ -257,8 +257,13 @@ Page({
       return res.tempFilePath
     }
     if (src.startsWith('/')) return src
-    const res = await wx.downloadFile({ url: src })
-    return res.tempFilePath
+    try {
+      return await imageSharing.downloadFile(src)
+    } catch (err) {
+      // 临时链接过期 / 网络异常时不让海报功能整体失效，回退到包内默认背景
+      console.warn('[checkin] 背景下载失败，回退默认背景', err && (err.errMsg || err.message))
+      return DEFAULT_BG
+    }
   },
 
   async buildShareImageFile() {

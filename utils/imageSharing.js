@@ -71,6 +71,17 @@ async function getAlbumAuthorization(wxApi) {
   }
 }
 
+/**
+ * wx.downloadFile 返回 DownloadTask，不是 Promise；直接 await 会拿到 Task 对象，
+ * res.tempFilePath 为 undefined。所有下载统一走这里。
+ */
+async function downloadFile(url, options = {}) {
+  const wxApi = options.wxApi || wx
+  const res = await callApi(wxApi.downloadFile, wxApi, { url })
+  if (!res || !res.tempFilePath) throw new Error((res && res.errMsg) || '图片下载失败')
+  return res.tempFilePath
+}
+
 async function getImageInfoWithPackageFallback(filePath, options = {}) {
   const wxApi = options.wxApi || wx
   try {
@@ -184,6 +195,7 @@ async function shareImageWithFallback(filePath, options = {}) {
 }
 
 module.exports = {
+  downloadFile,
   getAlbumAuthorization,
   getErrorMessage,
   getImageInfoWithPackageFallback,
