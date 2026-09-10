@@ -175,6 +175,31 @@ node scripts/regression-customer-issues-round2.js
 
 course-upload / question-manager 两页在改为 `<view>` 后以 `createSelectorQuery` 数值量测验证（见上表）；此时 IDE 截图能力在一次编译缓存清理后失效，自动化协议本身正常。
 
+## 六、上线前全系统检查（09-10）
+
+| 层 | 方法 | 结果 |
+| --- | --- | --- |
+| 云函数 | 32 次真实调用（含需登录/墓碑函数），检查返回码与数据形状 | 全部干净返回，无崩溃；线上代码与仓库一致 |
+| 数据库 | totalCount 与实际题数、孤儿题库、模块遮蔽、题干/答案为空、选择题选项、资源缺失、背景唯一、最高管理员唯一 | 0 项异常 |
+| 页面 | `e2e-devtools-pages`：44 页真实加载，捕获 console/exception | 43 通过 + 1 预期门禁跳转，0 运行时错误 |
+| 页面 | `content-editor`（原 e2e 未覆盖）壁纸/资料/音频三种真实 id | 3/3 |
+| 交互 | `e2e-devtools-interactions` 13 项控件操作 | 13/13 |
+| 云调用 | `e2e-cloud-readonly` 模拟器内 38 项只读调用 | 38/38 |
+| 图片 | `e2e-devtools-images` 8 项素材解码与海报/分享图生成 | 8/8（修复前 7/8） |
+| 静态 | 24 回归脚本、15 单测、285 个 JS 语法、JSON、发布检查 | 全部通过 |
+
+### 全系统检查捕获的线上缺陷：云端背景下海报生成必然失败
+
+`wx.downloadFile` 返回的是 `DownloadTask`，不是 Promise。`await wx.downloadFile({ url })` 拿到的是 Task 对象，`res.tempFilePath` 为 `undefined`，随后 `getImageInfo` 报 `parameter.src should be String instead of Undefined`。包内背景（`/assets/...`）不走这条分支，所以历史验收都通过；**客户在后台上传云端打卡背景后，"分享图片（+10 舟币）"每次都失败**——这与反馈 #8 直接相关。
+
+修复：`utils/imageSharing.downloadFile()` 统一封装；打卡、壁纸、资料三处改用；打卡背景下载失败时回退包内默认背景，海报功能不再整体失效。回归断言禁止 `await wx.downloadFile(` 再次出现。
+
+### 已知但未在本轮处理
+
+- 音频 13/94、壁纸 33/60、资料 124/139 在线，其余为管理员手动下线，未动。
+- 「常识判断」161 题在 4 个题库中各存一份，疑似重复导入。
+- 资料页文档打开路径（`openDocument`）为机械替换为文件内已有的 `wxPromise` 用法，无法在模拟器无头验证。
+
 ## 四、发布清单
 
 ### 1. 必须重新部署的云函数
@@ -234,4 +259,4 @@ done
 
 ### 4. 提交审核
 
-前端有改动，需要上传新版本（版本号递增到 `1.0.35`）并提交审核。交易类小程序订单中心路径仍为 `pages/order-center/order-center`。
+前端有改动，需要上传新版本（版本号递增到 `1.0.36`）并提交审核。交易类小程序订单中心路径仍为 `pages/order-center/order-center`。
