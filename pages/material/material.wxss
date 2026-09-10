@@ -108,8 +108,18 @@
 }
 
 .mat-info { flex: 1; min-width: 0; }
-.mat-name { display: block; font-size: 30rpx; font-weight: 700; }
-.mat-desc { display: block; margin-top: 8rpx; font-size: 24rpx; line-height: 1.6; color: var(--text-secondary); }
+.mat-name { display: block; font-size: 30rpx; font-weight: 700;
+  max-width: 100%;
+  word-wrap: break-word;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+.mat-desc { display: block; margin-top: 8rpx; font-size: 24rpx; line-height: 1.6; color: var(--text-secondary);
+  max-width: 100%;
+  word-wrap: break-word;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
 .mat-meta-row { display: flex; justify-content: space-between; gap: 12rpx; margin-top: 10rpx; }
 .mat-meta, .mat-cost { font-size: 22rpx; color: var(--text-muted); }
 .mat-cost { color: #ea580c; font-weight: 700; }

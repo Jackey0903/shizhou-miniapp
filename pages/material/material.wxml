@@ -27,7 +27,7 @@
         <text class="mat-name">{{item.name}}</text>
         <text class="mat-desc">{{item.description}}</text>
         <view class="mat-meta-row">
-          <text class="mat-meta">{{item.category || (item.type === 'document' ? '文档' : item.type === 'audio' ? '音频' : '图片')}}</text>
+          <text class="mat-meta">{{item.type === 'document' ? '文档' : item.type === 'audio' ? '音频' : item.type === 'image' ? '图片' : (item.category || '资料')}}</text>
           <text class="mat-cost">{{item.accessLabel}}</text>
         </view>
       </view>

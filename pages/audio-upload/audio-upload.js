@@ -1,5 +1,5 @@
 const cloudApi = require('../../utils/cloudApi')
-const { toggledBoolean } = require('../../utils/dataset')
+const { nextEnabled } = require('../../utils/dataset')
 
 const CATEGORIES = ['常识', '数量', '言语', '逻辑', '资料', '申论', '综应', '面试']
 const TYPES = ['晨听', '单词', '技巧', '素材']
@@ -123,10 +123,11 @@ Page({
 
   async toggle(e) {
     const { id, enabled } = e.currentTarget.dataset
+    const willEnable = nextEnabled(this.data.list, id, enabled)
     try {
-      await cloudApi.toggleAdminContent('audios', id, toggledBoolean(enabled))
+      await cloudApi.toggleAdminContent('audios', id, willEnable)
       await this.loadList()
-      wx.showToast({ title: enabled ? '已下线' : '已上线', icon: 'success' })
+      wx.showToast({ title: willEnable ? '已上线' : '已下线', icon: 'success' })
     } catch (err) {
       wx.showToast({ title: err.message || '操作失败', icon: 'none' })
     }

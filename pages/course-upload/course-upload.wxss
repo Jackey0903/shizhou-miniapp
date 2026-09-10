@@ -40,6 +40,49 @@
   gap: 12rpx;
 }
 
+/* 微信 button 默认 display:block + width:100%，放进 flex 行里会把旁边的文字挤成一列一个字。
+   文本容器必须可收缩、按钮容器不可收缩、按钮本身按内容宽。 */
+.cu-toolbar-text,
+.cu-subject-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.cu-toolbar-actions,
+.cu-inline-actions {
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.cu-action,
+.cu-mini,
+.cu-add-bank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  white-space: nowrap;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.op-hover {
+  opacity: 0.7;
+}
+
+/* 微信 button 基础样式带 width:100%，在 flex 里 width:auto 压不住，直接给定宽度 */
+.cu-action {
+  width: 200rpx;
+  padding: 0 12rpx;
+}
+
+.cu-mini {
+  width: 112rpx;
+  min-width: 0;
+  padding: 0 8rpx;
+  text-align: center;
+}
+
 .cu-action,
 .cu-mini,
 .cu-add-bank {
@@ -171,6 +214,15 @@
 .cu-bank-name {
   font-size: 28rpx;
   font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cu-meta {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cu-meta {
@@ -220,4 +272,8 @@
   margin: 16rpx 24rpx;
   background: #f8fafc;
   color: var(--primary);
+}
+
+.is-disabled {
+  opacity: 0.45;
 }

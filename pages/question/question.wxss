@@ -57,11 +57,18 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex: 1;
+  min-width: 0;
+  padding: 0 16rpx;
 }
 
 .q-title {
   font-size: 30rpx;
   font-weight: 700;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .q-progress {
@@ -72,6 +79,7 @@
 .q-header-icons {
   display: flex;
   gap: 20rpx;
+  flex-shrink: 0;
 }
 
 .q-icon {
@@ -120,7 +128,8 @@
   min-height: 0;
   max-width: 100%;
   white-space: pre-wrap;
-  word-break: break-word;
+  word-wrap: break-word;
+  word-break: break-all;
   overflow-wrap: anywhere;
   user-select: text;
 }
@@ -157,11 +166,17 @@
 
 .q-fill-btn {
   flex: 1;
+  min-width: 0;
   height: 84rpx;
   line-height: 84rpx;
+  /* 微信 button 默认左右 padding 约 56rpx，"不会写，查看答案"8 个字在半宽按钮里会被截成"…查看答" */
+  padding: 0 12rpx;
   border-radius: 999rpx;
   font-size: 28rpx;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .q-fill-btn-primary {
@@ -252,7 +267,8 @@
   margin-bottom: 20rpx;
   max-width: 100%;
   white-space: pre-wrap;
-  word-break: break-word;
+  word-wrap: break-word;
+  word-break: break-all;
   overflow-wrap: anywhere;
 }
 
@@ -271,7 +287,8 @@
   display: block;
   max-width: 100%;
   white-space: pre-wrap;
-  word-break: break-word;
+  word-wrap: break-word;
+  word-break: break-all;
   overflow-wrap: anywhere;
 }
 
@@ -283,7 +300,8 @@
   display: block;
   max-width: 100%;
   white-space: pre-wrap;
-  word-break: break-word;
+  word-wrap: break-word;
+  word-break: break-all;
   overflow-wrap: anywhere;
 }
 
@@ -341,7 +359,8 @@
   min-width: 0;
   line-height: 1.6;
   white-space: pre-wrap;
-  word-break: break-word;
+  word-wrap: break-word;
+  word-break: break-all;
   overflow-wrap: anywhere;
 }
 

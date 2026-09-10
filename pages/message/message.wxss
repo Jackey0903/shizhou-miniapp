@@ -2,11 +2,21 @@
 .msg-item { display: flex; gap: 24rpx; padding: 28rpx; background: #fff; border-radius: var(--radius-lg); margin-bottom: 16rpx; box-shadow: 0 8rpx 28rpx rgba(15, 23, 42, 0.04); }
 .msg-item--unread { border: 2rpx solid #bfdbfe; background: #f8fbff; }
 .msg-avatar { width: 80rpx; height: 80rpx; border-radius: 50%; background: var(--primary-light); display: flex; align-items: center; justify-content: center; font-size: 40rpx; flex-shrink: 0; }
-.msg-content { flex: 1; min-width: 0; }
+.msg-content { flex: 1; min-width: 0;
+  max-width: 100%;
+  word-wrap: break-word;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
 .msg-row { display: flex; justify-content: space-between; align-items: center; gap: 16rpx; }
 .msg-title-wrap { display: flex; align-items: center; min-width: 0; gap: 10rpx; }
 .msg-dot { width: 14rpx; height: 14rpx; border-radius: 50%; background: #ef4444; flex-shrink: 0; }
-.msg-title { font-size: 28rpx; font-weight: 700; color: #0f172a; }
+.msg-title { font-size: 28rpx; font-weight: 700; color: #0f172a;
+  max-width: 100%;
+  word-wrap: break-word;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
 .msg-text { display: block; margin-top: 10rpx; font-size: 26rpx; color: var(--text-secondary); line-height: 1.7; white-space: pre-line; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
 .msg-time { font-size: 22rpx; color: var(--text-muted); }
 .msg-tip { display: inline-block; margin-top: 12rpx; font-size: 22rpx; color: #2563eb; }

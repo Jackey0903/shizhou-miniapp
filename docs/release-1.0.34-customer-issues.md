@@ -107,6 +107,74 @@ node scripts/regression-customer-issues-round2.js
 
 `verify-release-readiness.js` 在干净检出上仍会失败，原因是环境而非代码：它要求每个云函数的 `node_modules` 已安装，且存在 `tmp/upload-<版本>.json` 打包体积报告，这两者都在 `.gitignore` 中。需要先安装云函数依赖并在开发者工具里出一次上传包。
 
+## 五、09-10 复查：问题 #1 的最终根因与二次修复
+
+### 审计日志给出的证据
+
+`admin_audit_logs` 显示 09-10 07:00–07:24 管理员「微信用户」共触发 38 次 `toggle_content`，其中 34 次 `enabled=false`、4 次 `enabled=true`。关键片段：
+
+```text
+07:00:34  subjects:93544355  enabled=false
+07:00:58  subjects:93544355  enabled=false
+07:01:11  subjects:93544355  enabled=false
+07:01:51  subjects:93544355  enabled=true
+07:01:05  question_banks:148caf50  enabled=false
+07:01:25  question_banks:148caf50  enabled=false
+```
+
+同一条内容被连续多次发出"下线"——这是**按钮显示"上线"、实际发出"下线"**的典型表现。客户越点越糟，最终 22 个题库 / 11 个模块被点成下线，用户端只剩「常识判断」。这与客户最初反馈的"点上线但是没反应"完全吻合。
+
+根因：旧前端 `!e.currentTarget.dataset.enabled` 在 dataset 值为字符串 `"false"` 时得到 `false`。`1.0.34` 已加 `toggledBoolean()` 解析字符串，但 **1.0.34 未发布**，客户手里仍是坏按钮。
+
+### 二次修复（本次）
+
+- `utils/dataset.js` 新增 `nextEnabled(list, id, datasetValue)`：目标状态改为**按 id 从页面数据里取当前项的 `enabled`（云函数 `isEnabled` 算出的真布尔）再取反**，找不到才退回 dataset。彻底不依赖 dataset 类型。9 个后台开关全部改用；成功提示也改用目标状态。
+- 单元验证覆盖扁平列表、模块树、dataset 字符串/布尔/错误值 7 种情形。
+- 生产数据已恢复到 09-01 状态：9 个有题库的模块 + 23 个题库上线，`getCourses` 返回 23 / 3022 题。4 个空模块（判断推理、常识、时事政治、法律法规）保持下线。
+
+### 长答案出界的真机兼容性根因
+
+`1.0.33`/`1.0.34` 的换行规则只写了 `word-break: break-word` + `overflow-wrap: anywhere`，全项目**没有一处 `word-wrap` 兜底**：
+
+- `overflow-wrap: anywhere` 在 iOS 15.4 以下 WKWebView 和部分安卓 WebView 不生效；
+- `word-break: break-word` 是非标准值，Safari 在 flex 子项里表现不一致。
+
+所以开发者工具里看着正常，客户真机上长答案照样出界。本次给 6 处规则补上 `word-wrap: break-word` + `word-break: break-all`（全引擎可断，中英混排/URL 都能断），保留 `anywhere` 给新引擎。题目页头部超长题库名补省略号，图标区 `flex-shrink: 0`。回归断言同步收紧为必须带兜底。
+
+### 其他视觉修正
+
+- 壁纸卡片「用于打卡」按钮原为灰绿字配绿底、几乎不可读，补 `color: #fff`。
+
+### 后台"模块与题库"页排版崩坏（真实渲染发现）
+
+用开发者工具自动化在 iPhone 12/13 模拟器真实渲染后台页，发现客户点上下线的那一页整体是坏的：标题、模块名、"0个题库·排序1·已下线"被挤成一列一个字，编辑/上线按钮撑满整行并压在文字上；「题目管理」页每条题目的"上线/下线"按钮被挤出屏幕右侧。
+
+用 `createSelectorQuery` 量到的真实值：`.cu-mini` 声明 `width: 112rpx` 且同批的 flex 规则均已生效，但 `<button>` 宿主用宽仍为 184px（两个按钮正好平分 374px，比容器还宽）。微信 `<button>` 宿主在 flex 行内对作者 `width` 的处理不可依赖。
+
+改动：这些只用 `bindtap` 的小操作按钮（course-upload 7 个、question-manager 2 个）改为 `<view>`，宽度完全受控；文本容器加 `flex:1; min-width:0`，按钮容器 `flex-shrink:0`；三个上传页的 `.manage-actions button` 同步给定宽。
+
+修复后量测（同一模拟器）：
+
+| 元素 | 修复前 | 修复后 |
+| --- | ---: | ---: |
+| `.cu-mini`（编辑/上线） | 184px | 58px |
+| `.cu-action`（新增模块/题库） | 184px | 104px |
+| `.cu-inline-actions` | 374px | 122px |
+| `.cu-toolbar-text`（页标题） | 0px | 138px |
+| `.cu-subject-text`（模块名+元信息） | 0px | 199px |
+| `.qm-action`（题目管理 上线/下线） | 溢出屏幕 | 58px |
+
+### 其它真实渲染发现并修正
+
+- 题目页"不会写，查看答案"按钮文字被截成"…查看答"：微信 button 默认左右 padding 约 56rpx，8 个字放不进半宽按钮。收窄 padding 并加省略号兜底。
+- 资料卡片类型标签显示英文 `document`：`category` 字段存的是 type 原值，改为先按 type 映射中文。
+
+### 真实渲染验收（开发者工具自动化，iPhone 12/13 模拟器，SDK 3.17.2）
+
+已截图核对：首页（9 模块卡片，含长名称）、题库列表、题目页真实题、题目页最坏情况（超长中文/英文/URL 的填空答案与选择题选项、超长题库名头部）、壁纸页（标题 + 用于打卡按钮）、资料页（0 舟币 → 转发获取）、磨耳朵、打卡海报（单一背景）、VIP、督学开通、我的、消息、复习本、后台工作台、音频/资料/壁纸上传列表、用户与管理员、正式套餐管理（4 个套餐"前台可购买"）、打卡背景管理、站内群发（最多 1000 字）、CSV 导入。
+
+course-upload / question-manager 两页在改为 `<view>` 后以 `createSelectorQuery` 数值量测验证（见上表）；此时 IDE 截图能力在一次编译缓存清理后失效，自动化协议本身正常。
+
 ## 四、发布清单
 
 ### 1. 必须重新部署的云函数
@@ -166,4 +234,4 @@ done
 
 ### 4. 提交审核
 
-前端有改动，需要上传新版本（版本号递增到 `1.0.34`）并提交审核。交易类小程序订单中心路径仍为 `pages/order-center/order-center`。
+前端有改动，需要上传新版本（版本号递增到 `1.0.35`）并提交审核。交易类小程序订单中心路径仍为 `pages/order-center/order-center`。

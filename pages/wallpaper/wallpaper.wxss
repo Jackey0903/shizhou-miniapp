@@ -130,6 +130,7 @@
 
 .wp-btn-primary {
   background: #16a34a;
+  color: #fff;
 }
 
 .empty {

@@ -16,6 +16,10 @@
   color: var(--text-primary);
   display: block;
   margin-bottom: 8rpx;
+  max-width: 100%;
+  word-wrap: break-word;
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .cl-subtitle {
@@ -200,6 +204,10 @@
   color: var(--text-primary);
   margin-bottom: 8rpx;
   display: block;
+  max-width: 100%;
+  word-wrap: break-word;
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .cl-desc {

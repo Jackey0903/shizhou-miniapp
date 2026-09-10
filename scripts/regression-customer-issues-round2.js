@@ -329,7 +329,10 @@ async function testAnswerBlockCannotOverflowCard() {
 
   for (const selector of ['.q-answer-text', '.q-explanation', '.q-fill-user-answer']) {
     const rules = block(selector)
-    assert.ok(/word-break:\s*break-word/.test(rules), `${selector} 必须允许长词换行`)
+    // overflow-wrap:anywhere 在 iOS 15.4 以下 WKWebView 和部分安卓 WebView 不生效，
+    // word-break:break-word 又是非标准值；必须同时带全引擎兜底，否则真机上长答案照样出界。
+    assert.ok(/word-wrap:\s*break-word/.test(rules), `${selector} 必须带 word-wrap:break-word 兜底`)
+    assert.ok(/word-break:\s*break-all/.test(rules), `${selector} 必须允许长词换行（break-all）`)
     assert.ok(/overflow-wrap:\s*anywhere/.test(rules), `${selector} 必须允许任意位置换行`)
     assert.ok(/max-width:\s*100%/.test(rules), `${selector} 必须限制最大宽度`)
   }

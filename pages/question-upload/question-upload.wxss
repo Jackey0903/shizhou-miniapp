@@ -193,6 +193,8 @@
 
 .qu-preview-head text {
   min-width: 0;
+  word-wrap: break-word;
+  word-break: break-all;
   overflow-wrap: anywhere;
 }
 

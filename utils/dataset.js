@@ -20,7 +20,25 @@ function toggledBoolean(value, fallback = false) {
   return !readBoolean(value, fallback)
 }
 
+/**
+ * 优先按 id 从页面数据里找当前项，用它的 enabled（云函数 isEnabled 算出的真布尔）
+ * 决定点击后的目标状态；找不到再退回 dataset。彻底绕开 dataset 布尔/字符串歧义。
+ * list 可以是扁平数组，也可以是带 banks 子数组的模块树。
+ */
+function nextEnabled(list, id, datasetValue, fallback = false) {
+  const target = String(id || '')
+  const stack = Array.isArray(list) ? list.slice() : []
+  while (stack.length) {
+    const item = stack.shift()
+    if (!item || typeof item !== 'object') continue
+    if (String(item._id || item.id || '') === target) return !readBoolean(item.enabled, fallback)
+    if (Array.isArray(item.banks)) stack.push(...item.banks)
+  }
+  return toggledBoolean(datasetValue, fallback)
+}
+
 module.exports = {
   readBoolean,
-  toggledBoolean
+  toggledBoolean,
+  nextEnabled
 }

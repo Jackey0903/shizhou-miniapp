@@ -1,5 +1,5 @@
 const cloudApi = require('../../utils/cloudApi')
-const { toggledBoolean } = require('../../utils/dataset')
+const { nextEnabled } = require('../../utils/dataset')
 
 const POSITION_OPTIONS = [
   {
@@ -105,7 +105,8 @@ Page({
   async toggle(e) {
     try {
       const { id, enabled } = e.currentTarget.dataset
-      const res = await cloudApi.toggleAdminConfig('ad_slots', id, toggledBoolean(enabled))
+    const willEnable = nextEnabled(this.data.list, id, enabled)
+      const res = await cloudApi.toggleAdminConfig('ad_slots', id, willEnable)
       if (res.result && res.result.code === 0) await this.loadList()
     } catch (err) {
       wx.showToast({ title: err.message || '操作失败', icon: 'none' })

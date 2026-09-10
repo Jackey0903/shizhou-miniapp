@@ -123,6 +123,10 @@
   font-size: 30rpx;
   font-weight: 700;
   color: var(--text-primary);
+  max-width: 100%;
+  word-wrap: break-word;
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .coin-item-desc {
@@ -130,6 +134,10 @@
   margin-top: 6rpx;
   font-size: 24rpx;
   color: var(--text-secondary);
+  max-width: 100%;
+  word-wrap: break-word;
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .coin-item-right {

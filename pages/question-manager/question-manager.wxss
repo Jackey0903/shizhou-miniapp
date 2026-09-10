@@ -20,6 +20,11 @@
   padding: 8rpx 4rpx 24rpx;
 }
 
+.qm-heading > view {
+  flex: 1;
+  min-width: 0;
+}
+
 .qm-title,
 .qm-sub,
 .qm-total,
@@ -37,6 +42,10 @@
   font-size: 40rpx;
   font-weight: 800;
   color: var(--text-primary);
+  max-width: 100%;
+  word-wrap: break-word;
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .qm-sub,
@@ -231,12 +240,31 @@
 }
 
 .qm-action {
-  min-width: 76rpx;
+  /* 微信 button 基础样式 width:100%，在 flex 行里会把"编辑"撑满、把"上线/下线"挤出屏幕，必须给定宽 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 112rpx;
+  min-width: 0;
+  flex: none;
   height: 56rpx;
-  padding: 0 12rpx;
+  padding: 0 8rpx;
   line-height: 56rpx;
+  text-align: center;
+  white-space: nowrap;
+  box-sizing: border-box;
   background: #eff6ff;
   color: var(--primary);
+}
+
+.qm-actions {
+  flex-shrink: 0;
+}
+
+.qm-tags {
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .qm-action--warn {
@@ -255,6 +283,10 @@
   font-size: 28rpx;
   line-height: 1.5;
   color: var(--text-primary);
+  max-width: 100%;
+  word-wrap: break-word;
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .qm-answer {
@@ -262,6 +294,10 @@
   padding-right: 18rpx;
   font-size: 23rpx;
   color: var(--text-secondary);
+  max-width: 100%;
+  word-wrap: break-word;
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .qm-delete {
@@ -343,4 +379,8 @@
 
 .qm-textarea--options {
   min-height: 200rpx;
+}
+
+.op-hover {
+  opacity: 0.7;
 }

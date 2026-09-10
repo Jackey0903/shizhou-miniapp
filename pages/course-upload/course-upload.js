@@ -1,5 +1,5 @@
 const cloudApi = require('../../utils/cloudApi')
-const { toggledBoolean } = require('../../utils/dataset')
+const { nextEnabled } = require('../../utils/dataset')
 
 const EMPTY_SUBJECT = {
   id: '',
@@ -196,11 +196,11 @@ Page({
   },
 
   async toggleSubject(e) {
-    await this.toggle('subjects', e.currentTarget.dataset.id, toggledBoolean(e.currentTarget.dataset.enabled))
+    await this.toggle('subjects', e.currentTarget.dataset.id, nextEnabled(this.data.tree, e.currentTarget.dataset.id, e.currentTarget.dataset.enabled))
   },
 
   async toggleBank(e) {
-    await this.toggle('question_banks', e.currentTarget.dataset.id, toggledBoolean(e.currentTarget.dataset.enabled))
+    await this.toggle('question_banks', e.currentTarget.dataset.id, nextEnabled(this.data.tree, e.currentTarget.dataset.id, e.currentTarget.dataset.enabled))
   },
 
   async toggle(target, id, enabled) {

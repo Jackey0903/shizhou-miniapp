@@ -47,8 +47,8 @@
             <text class="qm-sort">序号 {{item.sort}}</text>
           </view>
           <view class="qm-actions">
-            <button class="qm-action" data-id="{{item._id}}" bindtap="openEditor">编辑</button>
-            <button class="qm-action {{item.enabled ? 'qm-action--warn' : 'qm-action--success'}}" data-id="{{item._id}}" data-enabled="{{!item.enabled}}" bindtap="toggleQuestion">{{item.enabled ? '下线' : '上线'}}</button>
+            <view class="qm-action" hover-class="op-hover" data-id="{{item._id}}" bindtap="openEditor">编辑</view>
+            <view class="qm-action {{item.enabled ? 'qm-action--warn' : 'qm-action--success'}}" hover-class="op-hover" data-id="{{item._id}}" data-enabled="{{!item.enabled}}" bindtap="toggleQuestion">{{item.enabled ? '下线' : '上线'}}</view>
           </view>
         </view>
         <text class="qm-content">{{item.contentPreview}}</text>

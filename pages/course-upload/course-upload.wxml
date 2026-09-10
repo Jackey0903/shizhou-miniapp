@@ -9,13 +9,13 @@
 
   <block wx:else>
     <view class="cu-toolbar">
-      <view>
+      <view class="cu-toolbar-text">
         <text class="cu-title">模块与题库</text>
         <text class="cu-sub">下线只隐藏内容，不删除题目和学习记录。</text>
       </view>
       <view class="cu-toolbar-actions">
-        <button class="cu-action cu-action--secondary" bindtap="openSubjectForm">新增模块</button>
-        <button class="cu-action" bindtap="openBankForm" disabled="{{!subjectOptions.length}}">新增题库</button>
+        <view class="cu-action cu-action--secondary" hover-class="op-hover" bindtap="openSubjectForm">新增模块</view>
+        <view class="cu-action {{subjectOptions.length ? '' : 'is-disabled'}}" hover-class="op-hover" bindtap="openBankForm">新增题库</view>
       </view>
     </view>
 
@@ -64,14 +64,14 @@
         <view class="cu-subject-head">
           <view class="cu-subject-main">
             <view class="cu-color" style="background: {{subject.color || '#2563EB'}}"></view>
-            <view>
+            <view class="cu-subject-text">
               <text class="cu-subject-name">{{subject.name}}</text>
               <text class="cu-meta">{{subject.banks.length}}个题库 · 排序{{subject.sort || 0}} · {{subject.enabled ? '已上线' : '已下线'}}</text>
             </view>
           </view>
           <view class="cu-inline-actions" wx:if="{{!subject.virtual}}">
-            <button class="cu-mini" data-id="{{subject._id}}" bindtap="openSubjectForm">编辑</button>
-            <button class="cu-mini {{subject.enabled ? 'cu-mini--danger' : 'cu-mini--success'}}" data-id="{{subject._id}}" data-enabled="{{subject.enabled}}" bindtap="toggleSubject">{{subject.enabled ? '下线' : '上线'}}</button>
+            <view class="cu-mini" hover-class="op-hover" data-id="{{subject._id}}" bindtap="openSubjectForm">编辑</view>
+            <view class="cu-mini {{subject.enabled ? 'cu-mini--danger' : 'cu-mini--success'}}" hover-class="op-hover" data-id="{{subject._id}}" data-enabled="{{subject.enabled}}" bindtap="toggleSubject">{{subject.enabled ? '下线' : '上线'}}</view>
           </view>
         </view>
 
@@ -81,12 +81,12 @@
             <text class="cu-meta">{{bank.totalCount || 0}}题 · {{bank.series || '基础题库'}} · {{bank.isLocked ? 'VIP' : '公开'}} · {{bank.enabled ? '已上线' : '已下线'}}</text>
           </view>
           <view class="cu-inline-actions">
-            <button class="cu-mini" data-id="{{bank._id}}" bindtap="openBankForm">编辑</button>
-            <button class="cu-mini {{bank.enabled ? 'cu-mini--danger' : 'cu-mini--success'}}" data-id="{{bank._id}}" data-enabled="{{bank.enabled}}" bindtap="toggleBank">{{bank.enabled ? '下线' : '上线'}}</button>
+            <view class="cu-mini" hover-class="op-hover" data-id="{{bank._id}}" bindtap="openBankForm">编辑</view>
+            <view class="cu-mini {{bank.enabled ? 'cu-mini--danger' : 'cu-mini--success'}}" hover-class="op-hover" data-id="{{bank._id}}" data-enabled="{{bank.enabled}}" bindtap="toggleBank">{{bank.enabled ? '下线' : '上线'}}</view>
           </view>
         </view>
 
-        <button class="cu-add-bank" data-subjectid="{{subject._id}}" bindtap="openBankForm" wx:if="{{!subject.virtual}}">在此模块新增题库</button>
+        <view class="cu-add-bank" hover-class="op-hover" data-subjectid="{{subject._id}}" bindtap="openBankForm" wx:if="{{!subject.virtual}}">在此模块新增题库</view>
       </view>
     </view>
   </block>
