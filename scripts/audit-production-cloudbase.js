@@ -16,20 +16,24 @@ function parseJson(output) {
 }
 
 function runJson(args) {
-  const result = childProcess.spawnSync(cli, args, {
-    cwd: root,
-    encoding: 'utf8',
-    maxBuffer: 64 * 1024 * 1024,
-    env: { ...process.env, NO_COLOR: '1' }
-  })
-  if (result.error) throw result.error
-  if (result.status !== 0) {
-    const message = String(result.stderr || result.stdout || `命令退出码 ${result.status}`)
+  // All callers are read-only; retry transient CLI/network failures, never failed assertions.
+  let lastError
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const result = childProcess.spawnSync(cli, args, {
+      cwd: root,
+      encoding: 'utf8',
+      timeout: 120000,
+      maxBuffer: 64 * 1024 * 1024,
+      env: { ...process.env, NO_COLOR: '1' }
+    })
+    if (!result.error && result.status === 0) return parseJson(result.stdout)
+    const message = String(result.error || `${result.stderr || ''} ${result.stdout || ''} (exit ${result.status})`)
       .replace(/\s+/g, ' ')
       .slice(0, 1200)
-    throw new Error(message)
+    lastError = new Error(message)
+    if (attempt < 2) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, (attempt + 1) * 1000)
   }
-  return parseJson(result.stdout)
+  throw lastError
 }
 
 function unwrap(value) {
@@ -265,14 +269,22 @@ async function main() {
     const phones = boundUsers.map((item) => String(item.phone))
     const duplicates = phones.filter((phone, index) => phones.indexOf(phone) !== index)
     assert(!duplicates.length, `正式库存在重复手机号：${[...new Set(duplicates)].join('、')}`)
-    const counts = countCollections(['phone_identities'])
-    if (counts.phone_identities < boundUsers.length) {
+    const identities = query('phone_identities', {}, { _id: 1, userId: 1 })
+    const identityUserIds = new Set(identities.map((item) => String(item.userId || '')).filter(Boolean))
+    const missingIdentityUsers = boundUsers.filter((item) => !identityUserIds.has(String(item._id)))
+    if (missingIdentityUsers.length) {
       warnings.push({
         name: '历史手机号锁待补齐',
-        detail: `已绑定 ${boundUsers.length} 个手机号，唯一锁 ${counts.phone_identities} 条；用户下次登录时会自动补齐`
+        detail: `已绑定 ${boundUsers.length} 个手机号，唯一锁覆盖 ${boundUsers.length - missingIdentityUsers.length} 个账号；缺失账号下次登录时会自动补齐`
       })
     }
-    return { boundUsers: boundUsers.length, identityLocks: counts.phone_identities, duplicates: 0 }
+    return {
+      boundUsers: boundUsers.length,
+      identityLocks: identities.length,
+      coveredUsers: boundUsers.length - missingIdentityUsers.length,
+      missingIdentityLocks: missingIdentityUsers.length,
+      duplicates: 0
+    }
   })
 
   check('正式内容数据可用', () => {

@@ -12,6 +12,7 @@ const wsEndpoint = process.env.MINIPROGRAM_WS_ENDPOINT || 'ws://127.0.0.1:9420'
 const expectedPhone = process.env.QA_PHONE || '13950786351'
 const bundledCli = path.join(root, 'tmp', 'cloudbase-cli', 'node_modules', '.bin', 'tcb')
 const cli = process.env.TCB_CLI || (fs.existsSync(bundledCli) ? bundledCli : 'tcb')
+const testFilter = process.env.QA_TEST_FILTER ? new RegExp(process.env.QA_TEST_FILTER) : null
 
 function runDatabase(commands) {
   let lastError = null
@@ -115,6 +116,10 @@ async function main() {
   let currentUser = null
 
   async function test(name, fn) {
+    if (testFilter && !testFilter.test(name)) {
+      results.push({ name, status: 'skipped', reason: 'Not selected by QA_TEST_FILTER' })
+      return
+    }
     const startedAt = Date.now()
     try {
       const detail = await fn()
@@ -308,7 +313,8 @@ async function main() {
       const material = (materialsResult.data || []).find((item) => item && item._id && !item.owned)
       assert(material, '没有未领取资料可用于验收')
       const originalCoins = Number(beforeUserResult.data.coins || 0)
-      assert(originalCoins >= 10, '验收账号舟币不足 10，无法验证资料扣费')
+      const testCoins = Math.max(originalCoins, 10)
+      if (originalCoins < 10) restoreCoins(currentUser._id, testCoins)
 
       const hash = crypto.createHash('sha256')
         .update(`${currentUser._openid}:${material._id}`)
@@ -320,12 +326,12 @@ async function main() {
         const first = await callCloud(miniProgram, 'exchangeMaterial', { materialId: material._id })
         assert.strictEqual(Number(first.code), 0, first.msg || '资料领取失败')
         assert.strictEqual(first.data && first.data.alreadyOwned, false, '首次领取被错误识别为已领取')
-        assert.strictEqual(Number(first.data.remainingCoins), originalCoins - 10)
+        assert.strictEqual(Number(first.data.remainingCoins), testCoins - 10)
 
         const second = await callCloud(miniProgram, 'exchangeMaterial', { materialId: material._id })
         assert.strictEqual(Number(second.code), 0, second.msg || '资料重复打开失败')
         assert.strictEqual(second.data && second.data.alreadyOwned, true, '重复打开未识别已领取')
-        assert.strictEqual(Number(second.data.remainingCoins), originalCoins - 10, '重复打开错误扣币')
+        assert.strictEqual(Number(second.data.remainingCoins), testCoins - 10, '重复打开错误扣币')
       } finally {
         removeDocument('material_redemptions', { _id: redemptionId })
         removeDocument('coin_logs', { _id: logId })
@@ -339,7 +345,7 @@ async function main() {
       assert.strictEqual(Number(afterUser.data.coins), originalCoins, '舟币余额未恢复')
       const restoredMaterial = (afterMaterials.data || []).find((item) => item._id === material._id)
       assert(restoredMaterial && !restoredMaterial.owned, '资料领取状态未恢复')
-      return { cost: 10, duplicateCharge: false, restoredCoins: originalCoins, restored: true }
+      return { cost: 10, duplicateCharge: false, testCoins, restoredCoins: originalCoins, restored: true }
     })
 
     await test('管理员资料、音频、壁纸真实上传与清理', async () => {
@@ -443,6 +449,34 @@ async function main() {
         assert((materials.data || []).some((item) => item._id === documentIds.material), '上传资料未能回读')
         assert((audios.data || []).some((item) => item._id === documentIds.audio), '上传音频未能回读')
         assert((wallpapers.data || []).some((item) => item._id === documentIds.wallpaper), '上传壁纸未能回读')
+
+        const targets = [
+          ['materials', documentIds.material, 'getMaterials', {}, 'name'],
+          ['audios', documentIds.audio, 'uploadAudios', { action: 'list' }, 'title'],
+          ['wallpapers', documentIds.wallpaper, 'uploadWallpapers', { action: 'list' }, 'title']
+        ]
+        for (const [target, id, publicFunction, publicData, label] of targets) {
+          const editedTitle = `QA修改-${marker}`
+          const sort = Date.now() + 7
+          const saved = await callCloud(miniProgram, 'adminOperations', {
+            action: 'saveContent', payload: { target, id, [label]: editedTitle, sort }
+          })
+          assert.strictEqual(saved.code, 0, saved.msg)
+          const found = await callCloud(miniProgram, 'adminOperations', {
+            action: 'listContent', payload: { target, keyword: marker, limit: 500 }
+          })
+          const item = (found.data || []).find((entry) => entry._id === id)
+          assert(item && item[label] === editedTitle && item.sort === sort, `${target} 修改、搜索或排序值未保存`)
+          for (const enabled of [false, true]) {
+            const toggled = await callCloud(miniProgram, 'adminOperations', {
+              action: 'toggleContent', payload: { target, id, enabled }
+            })
+            assert.strictEqual(toggled.code, 0, toggled.msg)
+            const visible = await callCloud(miniProgram, publicFunction, publicData)
+            assert.strictEqual(visible.code, 0, visible.msg)
+            assert.strictEqual(visible.data.some((entry) => entry._id === id), enabled, `${target} 上下线没有同步前台`)
+          }
+        }
       } finally {
         if (documentIds.material) removeDocument('materials', { _id: documentIds.material })
         if (documentIds.audio) removeDocument('audios', { _id: documentIds.audio })
@@ -505,6 +539,32 @@ async function main() {
           limit: 10
         })
         assert((questions.data || []).some((item) => item.content === content), '导入题目未能回读')
+        const imported = questions.data.find((item) => item.content === content)
+        const saved = await callCloud(miniProgram, 'adminOperations', {
+          action: 'saveManagedQuestion',
+          payload: { ...question, id: imported._id, courseId: bank._id, options: ['修改后的选项A', '选项B'], correctIndex: 1 }
+        })
+        assert.strictEqual(saved.code, 0, saved.msg)
+        assert.strictEqual(saved.data.correctIndex, 1)
+        for (const [target, id] of [['subjects', bank.subjectId], ['question_banks', bank._id]]) {
+          assert(id, `${target} 缺少 ID`)
+          for (const enabled of [false, true]) {
+            const toggled = await callCloud(miniProgram, 'adminOperations', {
+              action: 'toggleContent', payload: { target, id, enabled }
+            })
+            assert.strictEqual(toggled.code, 0, toggled.msg)
+            const visible = await callCloud(miniProgram, 'getCourses', {})
+            assert.strictEqual(visible.code, 0, visible.msg)
+            assert.strictEqual(visible.data.some((item) => item._id === bank._id), enabled, `${target} 上下线未同步`)
+          }
+        }
+        const removed = await callCloud(miniProgram, 'adminOperations', {
+          action: 'deleteManagedQuestion', payload: { id: imported._id, courseId: bank._id }
+        })
+        assert.strictEqual(removed.code, 0, removed.msg)
+        const remaining = await callCloud(miniProgram, 'getQuestions', { courseId: bank._id, limit: 10 })
+        assert.strictEqual(remaining.code, 0, remaining.msg)
+        assert.strictEqual(remaining.data.length, 0, '永久删除题目未生效')
       } finally {
         removeDocument('questions', { content })
         removeDocument('question_banks', { name: bankName })
@@ -522,7 +582,11 @@ async function main() {
       environment: 'production',
       account: { phoneSuffix: expectedPhone.slice(-4), role: currentUser.role || '' },
       reversible: true,
-      counts: { passed: results.length - failed.length, failed: failed.length },
+      counts: {
+        passed: results.filter((item) => item.status === 'passed').length,
+        failed: failed.length,
+        skipped: results.filter((item) => item.status === 'skipped').length
+      },
       results
     }
     const reportPath = path.join(outputDir, 'report.json')

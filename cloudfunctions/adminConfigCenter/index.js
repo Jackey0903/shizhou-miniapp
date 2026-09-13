@@ -221,28 +221,37 @@ exports.main = async (event) => {
       }
       data.updatedAt = db.serverDate()
       if (targetId) {
+        const current = target === 'punch_backgrounds'
+          ? (await db.collection(target).doc(targetId).get()).data || {}
+          : {}
         await db.collection(target).doc(targetId).update({ data })
-        if (target === 'punch_backgrounds') {
-          await disableDuplicatePunchBackgrounds(String(data.activeDate || 'default'), targetId)
+        const saved = { ...current, ...data }
+        if (target === 'punch_backgrounds' && saved.enabled === true) {
+          await disableDuplicatePunchBackgrounds(punchSlot(saved), targetId)
         }
         return { code: 0, msg: '更新成功' }
       }
       data.createdAt = db.serverDate()
       const created = await db.collection(target).add({ data })
-      if (target === 'punch_backgrounds') {
-        await disableDuplicatePunchBackgrounds(String(data.activeDate || 'default'), created._id)
+      if (target === 'punch_backgrounds' && data.enabled === true) {
+        await disableDuplicatePunchBackgrounds(punchSlot(data), created._id)
       }
       return { code: 0, msg: '新增成功' }
     }
 
     if (action === 'toggle') {
       if (!payload.id) return { code: -1, msg: '缺少配置ID' }
+      if (typeof payload.enabled !== 'boolean') return { code: -1, msg: '启用状态必须为布尔值' }
       await db.collection(target).doc(payload.id).update({
         data: {
-          enabled: !!payload.enabled,
+          enabled: payload.enabled,
           updatedAt: db.serverDate()
         }
       })
+      if (target === 'punch_backgrounds' && payload.enabled) {
+        const current = await db.collection(target).doc(payload.id).get()
+        await disableDuplicatePunchBackgrounds(punchSlot(current.data), payload.id)
+      }
       return { code: 0, msg: '状态已更新' }
     }
 

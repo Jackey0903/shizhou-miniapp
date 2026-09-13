@@ -304,6 +304,37 @@ async function testPunchConfigPicksNewestBackground() {
   )
 }
 
+async function testPunchBackgroundToggleAndDraftIsolation() {
+  const db = createDb({
+    users: [ADMIN],
+    punch_backgrounds: [
+      { _id: 'old', fileId: 'cloud://t/old', enabled: false, sort: 1 },
+      { _id: 'current', fileId: 'cloud://t/current', activeDate: 'default', enabled: true, sort: 200 },
+      { _id: 'holiday', fileId: 'cloud://t/holiday', activeDate: '2099-01-01', enabled: true, sort: 300 }
+    ]
+  })
+  const config = loadFunction('adminConfigCenter', db, 'openid-admin')
+  const run = (action, payload) => config.main({ action, target: 'punch_backgrounds', payload })
+  const enabledDefaultIds = () => db.state.punch_backgrounds
+    .filter((item) => item.enabled && (!item.activeDate || item.activeDate === 'default'))
+    .map((item) => item._id)
+
+  assert.equal((await run('toggle', { id: 'old', enabled: true })).code, 0)
+  assert.deepEqual(enabledDefaultIds(), ['old'], '重新启用旧背景必须关闭同日期的新背景，不能只让按钮变色')
+  assert.equal(db.state.punch_backgrounds.find((item) => item._id === 'holiday').enabled, true)
+
+  assert.equal((await run('save', { id: 'current', title: '离线草稿', enabled: false })).code, 0)
+  assert.deepEqual(enabledDefaultIds(), ['old'], '保存停用背景不能关闭当前生效背景')
+
+  assert.equal((await run('save', { id: 'holiday', title: '修改节日标题' })).code, 0)
+  assert.deepEqual(enabledDefaultIds(), ['old'], '只修改标题时必须沿用原生效日期，不能误关闭默认背景')
+
+  assert.equal((await run('toggle', { id: 'current', enabled: true })).code, 0)
+  assert.deepEqual(enabledDefaultIds(), ['current'])
+  assert.equal((await run('toggle', { id: 'old', enabled: false })).code, 0)
+  assert.deepEqual(enabledDefaultIds(), ['current'], '停用旧背景不能影响当前背景')
+}
+
 // 用户把自己的壁纸设为打卡背景后，必须有入口撤销，否则官方海报永远被覆盖。
 async function testCheckinCanRestoreOfficialBackground() {
   const js = fs.readFileSync(path.join(root, 'pages/checkin/checkin.js'), 'utf8')
@@ -446,6 +477,7 @@ async function main() {
   await testEditingContentKeepsItsSortValue()
   await testAudioAndWallpaperOrderingFollowsMode()
   await testPunchBackgroundReplacementDisablesLegacyRecords()
+  await testPunchBackgroundToggleAndDraftIsolation()
   await testPunchConfigPicksNewestBackground()
   await testCheckinCanRestoreOfficialBackground()
   await testAnswerBlockCannotOverflowCard()
