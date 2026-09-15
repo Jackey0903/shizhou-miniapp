@@ -44,10 +44,11 @@ Page({
     filteredMaterials: [],
     ownedMap: {},
     userCoins: 0,
+    balanceLoaded: false,
     loading: true
   },
 
-  async onLoad() {
+  async onShow() {
     await this.loadData()
   },
 
@@ -73,7 +74,8 @@ Page({
       this.setData({
         materials: normalizedMaterials,
         ownedMap,
-        userCoins: (user && user.coins) || 0,
+        userCoins: Number(user && user.coins) || 0,
+        balanceLoaded: !!user,
         loading: false
       })
       this.applyFilter()
@@ -152,6 +154,11 @@ Page({
 
     if (!(await auth.requireLogin('领取学习资料前请先登录账号'))) return
 
+    if (this.data.balanceLoaded && this.data.userCoins < MATERIAL_COST) {
+      this.showCoinShareGuide()
+      return
+    }
+
     const actionText = '领取'
     const confirmText = getConfirmText(item)
 
@@ -163,6 +170,7 @@ Page({
         try {
           wx.showLoading({ title: `${actionText}中`, mask: true })
           const redeemRes = await cloudApi.exchangeMaterial(item._id)
+          wx.hideLoading()
           const result = redeemRes.result || {}
           if (result.code === 0) {
             const grantedMaterial = (result.data && result.data.material) || item
@@ -185,9 +193,8 @@ Page({
             }
           }
         } catch (err) {
-          wx.showToast({ title: `${actionText}失败`, icon: 'none' })
-        } finally {
           wx.hideLoading()
+          wx.showToast({ title: `${actionText}失败`, icon: 'none' })
         }
       }
     })
@@ -196,8 +203,8 @@ Page({
   showCoinShareGuide() {
     wx.showModal({
       title: '舟币不足',
-      content: '领取本资料需要10舟币。可前往舟币中心转发分享图片获取舟币后再领取。',
-      confirmText: '转发获取舟币',
+      content: '领取本资料需要10舟币。可前往舟币中心分享获取舟币，完成分享任务每次获得10舟币，每天最多20舟币；返回本页后可继续领取。',
+      confirmText: '去分享',
       success: (res) => {
         if (res.confirm) wx.navigateTo({ url: '/pages/coin-log/coin-log' })
       }

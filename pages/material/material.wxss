@@ -56,6 +56,43 @@
   font-weight: 700;
 }
 
+.mat-balance-notice {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  padding: 20rpx 0;
+  margin-bottom: 20rpx;
+  border-bottom: 1rpx solid #dbe3ed;
+}
+
+.mat-balance-copy {
+  flex: 1 1 280rpx;
+  min-width: 0;
+}
+
+.mat-balance-title, .mat-balance-desc {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.mat-balance-title {
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.mat-balance-desc {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.mat-balance-notice .mat-btn {
+  flex-shrink: 0;
+  margin: 0;
+}
+
 .mat-tabs {
   display: flex;
   gap: 16rpx;

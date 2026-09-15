@@ -11,6 +11,14 @@
     </view>
   </view>
 
+  <view class="mat-balance-notice" wx:if="{{!loading && balanceLoaded && userCoins < 10}}">
+    <view class="mat-balance-copy">
+      <text class="mat-balance-title">舟币不足，首次领取需要10舟币</text>
+      <text class="mat-balance-desc">分享获取舟币后再领取，已领取资料仍可打开</text>
+    </view>
+    <button class="mat-btn" size="mini" bindtap="goCoinLog">去分享</button>
+  </view>
+
   <view class="mat-tabs card">
     <view class="mat-tab {{activeTab === item.key ? 'mat-tab--active' : ''}}" wx:for="{{tabs}}" wx:key="key" data-key="{{item.key}}" bindtap="switchTab">
       {{item.label}}
