@@ -25,7 +25,7 @@ test('manual grant plans match the four production plans', () => {
   assert.deepEqual(PLAN_GRANTS.basic_vip_year, {
     label: '基础VIP包年',
     vipDays: 365,
-    supervisionDays: 0
+    supervisionDays: 30
   })
   assert.equal(PLAN_GRANTS.supervision_trial_day.supervisionDays, 1)
   assert.equal(PLAN_GRANTS.supervision_month.supervisionDays, 30)

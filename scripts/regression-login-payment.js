@@ -322,7 +322,7 @@ async function testCreateVipOrderRequiresPhoneBoundUser() {
     users: [],
     vip_plans: [{
       code: 'basic_vip_year', name: '基础VIP包年', tag: '基础VIP', price: 19800,
-      days: 365, supervisionDays: 0, virtualProductId: 'sz_basic_vip_year',
+      days: 365, supervisionDays: 30, virtualProductId: 'sz_basic_vip_year',
       benefits: [], enabled: true, sort: 1
     }]
   })
@@ -358,7 +358,7 @@ async function testCreateVipOrderSupportsPhoneBoundUser() {
       tag: '基础VIP',
       price: 19800,
       days: 365,
-      supervisionDays: 0,
+      supervisionDays: 30,
       virtualProductId: 'sz_basic_vip_year',
       benefits: [],
       enabled: true,
@@ -408,6 +408,8 @@ async function testCreateVipOrderSupportsPhoneBoundUser() {
     assert.strictEqual(result.code, 0, JSON.stringify(result))
     assert.strictEqual(db.state.users.length, 1, 'payment must preserve the verified user')
     assert.strictEqual(db.state.orders.length, 1, 'payment order should be created')
+    assert.strictEqual(db.state.orders[0].supervisionDays, 30, 'new basic VIP orders must snapshot 30 supervision days')
+    assert.strictEqual(result.data.plan.supervisionDays, 30)
     assert(result.data.payment.signData, 'payment signData should be returned')
     const signData = JSON.parse(result.data.payment.signData)
     assert.strictEqual(signData.goodsPrice, 19800, 'price must come from the server plan')
@@ -423,7 +425,7 @@ async function testPlansOnlyExposePublishedProductMappings() {
     vip_plans: [
       {
         code: 'basic_vip_year', virtualProductId: 'sz_basic_vip_year', name: '有效套餐',
-        price: 19800, days: 365, supervisionDays: 0, enabled: true, sort: 1
+        price: 19800, days: 365, supervisionDays: 30, enabled: true, sort: 1
       },
       {
         code: 'supervision_trial_day', virtualProductId: 'supervision_trial_day', name: '错误道具ID',
@@ -455,7 +457,7 @@ async function testCreateVipOrderNeverFallsBackToBusinessPlanCodeAsProductId() {
     users: [],
     vip_plans: [{
       code: 'basic_vip_year', name: '基础VIP包年', price: 19800,
-      days: 365, supervisionDays: 0, enabled: true, sort: 1
+      days: 365, supervisionDays: 30, enabled: true, sort: 1
     }]
   })
   const fn = loadWithCloudMock('cloudfunctions/createVipOrder/index.js', {
@@ -584,17 +586,21 @@ async function testSyncVirtualOrderRejectsIncompleteWechatResponseWithoutInvalid
   }
 }
 
-async function testPaidOrderGrantsBenefitsAndConfirmsDeliveryOnlyOnce() {
+async function testPaidOrderGrantsBenefitsAndConfirmsDeliveryOnlyOnce(supervisionDays = 30, existingDays = 0) {
+  const startedAt = Date.now()
+  const dayMs = 86400000
+  const existingExpiry = new Date(startedAt + (existingDays || -1) * dayMs)
   const db = createMemoryDb({
     users: [{
       _id: 'user_paid', _openid: 'openid_pay', isVip: false,
-      vipExpireDate: new Date('2026-07-01T00:00:00.000Z')
+      vipExpireDate: new Date('2026-07-01T00:00:00.000Z'),
+      supervisionExpireDate: existingExpiry
     }],
     orders: [{
       _id: 'order_paid', _openid: 'openid_pay', outTradeNo: 'OUT_PAID_123',
       status: 'pending', payChannel: 'wechat_virtual', planCode: 'basic_vip_year',
       planId: 'basic_vip_year', planLabel: '基础VIP包年', price: 19800,
-      days: 365, supervisionDays: 0, benefits: ['免广告学习']
+      days: 365, supervisionDays, benefits: ['免广告学习']
     }],
     coin_logs: []
   })
@@ -652,10 +658,21 @@ async function testPaidOrderGrantsBenefitsAndConfirmsDeliveryOnlyOnce() {
     assert.strictEqual(db.state.coin_logs.length, 1)
     const firstExpiry = new Date(db.state.users[0].vipExpireDate).getTime()
     assert(firstExpiry > new Date('2026-07-06T00:00:00.000Z').getTime())
+    const supervisionExpiry = new Date(db.state.users[0].supervisionExpireDate).getTime()
+    if (supervisionDays === 0) {
+      assert.strictEqual(supervisionExpiry, existingExpiry.getTime(), 'historical orders retain their purchased entitlement snapshot')
+    } else if (existingDays > 0) {
+      assert.strictEqual(supervisionExpiry, existingExpiry.getTime() + supervisionDays * dayMs, 'renewals must retain remaining supervision days')
+    } else {
+      assert(supervisionExpiry >= startedAt + supervisionDays * dayMs)
+      assert(supervisionExpiry <= Date.now() + supervisionDays * dayMs)
+    }
+    assert.strictEqual(new Date(db.state.orders[0].supervisionExpireDate).getTime(), supervisionExpiry)
 
     const second = await fn.main({ action: 'sync', outTradeNo: 'OUT_PAID_123' })
     assert.strictEqual(second.code, 0, JSON.stringify(second))
     assert.strictEqual(new Date(db.state.users[0].vipExpireDate).getTime(), firstExpiry, 'retries must not add benefits twice')
+    assert.strictEqual(new Date(db.state.users[0].supervisionExpireDate).getTime(), supervisionExpiry, 'payment retries must not duplicate supervision benefits')
     assert.strictEqual(db.state.coin_logs.length, 1, 'retries must not duplicate payment logs')
 
     const queryRequest = requests.find((item) => item.url.includes('/xpay/query_order'))
@@ -688,6 +705,8 @@ async function main() {
   await testOrderListIsScopedAndComplete()
   await testSyncVirtualOrderRejectsIncompleteWechatResponseWithoutInvalidDbWrite()
   await testPaidOrderGrantsBenefitsAndConfirmsDeliveryOnlyOnce()
+  await testPaidOrderGrantsBenefitsAndConfirmsDeliveryOnlyOnce(30, 10)
+  await testPaidOrderGrantsBenefitsAndConfirmsDeliveryOnlyOnce(0)
   console.log('login/payment regression checks passed')
 }
 

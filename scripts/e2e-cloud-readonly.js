@@ -148,7 +148,7 @@ async function main() {
       ['舟币流水', 'grantCoinReward', { action: 'list' }],
       ['虚拟支付套餐', 'createVipOrder', { action: 'plans' }, (data) => {
         const expected = {
-          basic_vip_year: { price: 19800, days: 365, supervisionDays: 0 },
+          basic_vip_year: { price: 19800, days: 365, supervisionDays: 30 },
           supervision_trial_day: { price: 800, days: 365, supervisionDays: 1 },
           supervision_month: { price: 19800, days: 365, supervisionDays: 30 },
           premium_vip_year: { price: 98800, days: 365, supervisionDays: 365 }

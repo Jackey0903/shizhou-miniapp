@@ -375,7 +375,7 @@ async function testPlanVisibilityDiagnostics() {
   const db = createDb({
     users: [ADMIN],
     vip_plans: [
-      { _id: 'p1', code: 'basic_vip_year', price: 19800, days: 365, supervisionDays: 0, virtualProductId: 'sz_basic_vip_year', enabled: true },
+      { _id: 'p1', code: 'basic_vip_year', price: 19800, days: 365, supervisionDays: 30, virtualProductId: 'sz_basic_vip_year', enabled: true },
       // 客户最常踩的坑：道具ID漏填 / 价格改过 / 忘了上线
       { _id: 'p2', code: 'supervision_month', price: 19800, days: 365, supervisionDays: 30, virtualProductId: '', enabled: true },
       { _id: 'p3', code: 'premium_vip_year', price: 88800, days: 365, supervisionDays: 365, virtualProductId: 'sz_premium_vip_year', enabled: true },

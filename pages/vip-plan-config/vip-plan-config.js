@@ -8,9 +8,9 @@ const PLAN_TEMPLATES = [
     name: '基础VIP包年',
     price: 19800,
     days: 365,
-    supervisionDays: 0,
+    supervisionDays: 30,
     virtualProductId: 'sz_basic_vip_year',
-    benefits: ['免广告学习', '免费领取学习资料']
+    benefits: ['免广告学习', '督学包月服务（30天）']
   },
   {
     code: 'supervision_trial_day',

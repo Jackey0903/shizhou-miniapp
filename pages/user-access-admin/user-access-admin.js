@@ -1,7 +1,7 @@
 const cloudApi = require('../../utils/cloudApi')
 
 const PLANS = [
-  { code: 'basic_vip_year', label: '基础VIP包年', detail: 'VIP 365天' },
+  { code: 'basic_vip_year', label: '基础VIP包年', detail: 'VIP 365天 + 督学30天' },
   { code: 'supervision_trial_day', label: '督学试用', detail: 'VIP 365天 + 督学1天' },
   { code: 'supervision_month', label: '督学包月', detail: 'VIP 365天 + 督学30天' },
   { code: 'premium_vip_year', label: '高级VIP/督学包年', detail: 'VIP 365天 + 督学365天' }

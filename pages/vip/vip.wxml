@@ -1,6 +1,6 @@
 <view class="vip-page">
   <text class="vip-title">开通会员</text>
-  <text class="vip-sub">基础VIP和高级VIP通过官方小程序虚拟支付开通；高级VIP同时包含1年督学服务。支付成功后自动发放对应权益。</text>
+  <text class="vip-sub">基础VIP包年198元，含1年免广告学习和30天督学；高级VIP包年988元，含1年免广告学习和1年督学。通过官方小程序虚拟支付开通，支付成功后自动发放对应权益。</text>
 
   <view class="plan-list">
     <view class="plan-card {{sel===index?'selected':''}}" wx:for="{{plans}}" wx:key="code" bindtap="select" data-i="{{index}}">

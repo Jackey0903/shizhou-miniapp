@@ -286,6 +286,24 @@ test('ordinary administrators can search and grant access but cannot manage role
   assert.equal(grantAccess.data.isVip, true)
 })
 
+test('both administrator roles grant basic VIP with 30 supervision days and preserve existing access', async () => {
+  for (const openid of ['openid-operator', 'openid-owner']) {
+    const harness = createCloudHarness()
+    const dayMs = 86400000
+    const currentExpiry = new Date(Date.now() + 10 * dayMs)
+    const user = harness.state.users.find((item) => item._id === 'student-new')
+    user.supervisionExpireDate = currentExpiry
+    user.vipExpireDate = currentExpiry
+    const result = await harness.call(openid, 'grantAccess', {
+      userId: user._id, planCode: 'basic_vip_year', reason: '基础VIP含督学包月验收'
+    })
+    assert.equal(result.code, 0)
+    assert.equal(new Date(result.data.supervisionExpireDate).getTime(), currentExpiry.getTime() + 30 * dayMs)
+    assert.equal(new Date(result.data.vipExpireDate).getTime(), currentExpiry.getTime() + 365 * dayMs)
+    assert.equal(harness.state.manual_grants[0].supervisionDays, 30)
+  }
+})
+
 test('highest administrator can search users and list only administrators', async () => {
   const harness = createCloudHarness()
   const byPhone = await harness.call('openid-owner', 'searchUsers', { keyword: '13900000000' })

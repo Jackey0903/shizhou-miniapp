@@ -4,7 +4,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 
 const PUBLISHED_PLANS = Object.freeze({
-  basic_vip_year: { price: 19800, days: 365, supervisionDays: 0, virtualProductId: 'sz_basic_vip_year' },
+  basic_vip_year: { price: 19800, days: 365, supervisionDays: 30, virtualProductId: 'sz_basic_vip_year' },
   supervision_trial_day: { price: 800, days: 365, supervisionDays: 1, virtualProductId: 'sz_supervision_1d' },
   supervision_month: { price: 19800, days: 365, supervisionDays: 30, virtualProductId: 'sz_supervision_mon' },
   premium_vip_year: { price: 98800, days: 365, supervisionDays: 365, virtualProductId: 'sz_premium_vip_year' }

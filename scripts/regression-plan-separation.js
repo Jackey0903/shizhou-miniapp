@@ -6,7 +6,7 @@ const path = require('path')
 const root = path.resolve(__dirname, '..')
 
 const plans = [
-  { code: 'basic_vip_year', name: '基础VIP包年', tag: '基础VIP', price: 19800, days: 365, supervisionDays: 0, benefits: ['免广告学习', '免费领取学习资料'] },
+  { code: 'basic_vip_year', name: '基础VIP包年', tag: '基础VIP', price: 19800, days: 365, supervisionDays: 30, benefits: ['免广告学习', '督学包月服务（30天）', '免费领取学习资料'] },
   { code: 'supervision_trial_day', name: '督学试用1日', tag: '督学试用', price: 800, days: 365, supervisionDays: 1, benefits: ['督学试用1天', '免费领取学习资料'] },
   { code: 'supervision_month', name: '督学包月', tag: '督学包月', price: 19800, days: 365, supervisionDays: 30, benefits: ['督学包月服务', '免费领取学习资料'] },
   { code: 'premium_vip_year', name: '高级VIP包年', tag: '高级VIP', price: 98800, days: 365, supervisionDays: 365, benefits: ['免广告学习', '免费领取学习资料'] }
@@ -53,6 +53,8 @@ async function main() {
     'VIP page must only show basic and premium VIP'
   )
   assert(vip.data.plans.every((plan) => !plan.benefits.includes('免费领取学习资料')), 'VIP page must hide the obsolete free-material benefit')
+  assert.strictEqual(vip.data.plans[0].supervisionDays, 30)
+  assert(vip.data.plans[0].benefits.includes('督学包月服务（30天）'), 'basic VIP must display its monthly supervision benefit')
 
   const supervision = createPageContext(loadPage('pages/supervision-pay/supervision-pay.js'))
   await supervision.loadPlans()

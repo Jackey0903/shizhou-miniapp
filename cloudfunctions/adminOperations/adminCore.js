@@ -2,7 +2,7 @@ const PLAN_GRANTS = Object.freeze({
   basic_vip_year: {
     label: '基础VIP包年',
     vipDays: 365,
-    supervisionDays: 0
+    supervisionDays: 30
   },
   supervision_trial_day: {
     label: '督学试用1日',

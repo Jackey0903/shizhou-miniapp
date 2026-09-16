@@ -148,9 +148,30 @@ async function testPublishedMaterialsAndBackgroundReplacement() {
   assert.deepEqual(publicList.data.map((item) => item._id), ['bg-current'])
 }
 
+async function testBasicVipConfigurationKeepsMonthlySupervision() {
+  const db = createDb({
+    users: [{ _id: 'admin', _openid: 'openid-admin', isAdmin: true }],
+    vip_plans: [{
+      _id: 'basic', code: 'basic_vip_year', price: 19800, days: 365,
+      supervisionDays: 0, virtualProductId: 'sz_basic_vip_year', enabled: true
+    }]
+  })
+  const fn = loadFunction('adminConfigCenter', db, 'openid-admin')
+  const updated = await fn.main({
+    action: 'save', target: 'vip_plans', payload: { id: 'basic', supervisionDays: 30 }
+  })
+  assert.equal(updated.code, 0, JSON.stringify(updated))
+  const outdated = await fn.main({
+    action: 'save', target: 'vip_plans', payload: { id: 'basic', supervisionDays: 0 }
+  })
+  assert.notEqual(outdated.code, 0, 'an older admin client must not reset basic VIP to zero supervision days')
+  assert.equal(db.state.vip_plans[0].supervisionDays, 30)
+}
+
 async function main() {
   await testMergedPublishedCourses()
   await testPublishedMaterialsAndBackgroundReplacement()
+  await testBasicVipConfigurationKeepsMonthlySupervision()
   console.log('content publication and configuration regression checks passed')
 }
 
