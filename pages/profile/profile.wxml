@@ -78,7 +78,7 @@
 
     <navigator class="menu-item" url="/pages/share-gift/share-gift" open-type="switchTab">
       <text class="menu-icon">🎁</text>
-      <text class="menu-title">推荐有礼</text>
+      <text class="menu-title">反馈有礼</text>
       <text class="menu-arrow">›</text>
     </navigator>
 

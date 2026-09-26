@@ -595,10 +595,10 @@ async function saveSupervisionData(data) {
 /**
  * 获取督学匹配列表和当前用户状态
  */
-async function getSupervisionMatches(mode) {
+async function getSupervisionMatches(mode, page = 0) {
     return wx.cloud.callFunction({
         name: 'supervisionMatch',
-        data: { action: 'list', mode }
+        data: { action: 'list', mode, page }
     })
 }
 
@@ -619,6 +619,13 @@ async function leaveSupervisionMatch(mode) {
     return wx.cloud.callFunction({
         name: 'supervisionMatch',
         data: { action: 'leave', mode }
+    })
+}
+
+async function setSupervisionInterest(mode, targetId, withdraw = false) {
+    return wx.cloud.callFunction({
+        name: 'supervisionMatch',
+        data: { action: withdraw ? 'withdrawInterest' : 'interest', mode, targetId }
     })
 }
 
@@ -883,7 +890,7 @@ module.exports = {
     getWallpapers, getMyWallpapers, saveMyWallpaper, uploadWallpapers,
     getMaterials, exchangeMaterial, getPunchConfig, getMessages, markMessageRead, getAdSlot,
     getSupervisionData, saveSupervisionData,
-    getSupervisionMatches, joinSupervisionMatch, leaveSupervisionMatch,
+    getSupervisionMatches, joinSupervisionMatch, leaveSupervisionMatch, setSupervisionInterest,
     getReminderConfig, getStudyReminders, saveStudyReminder, removeStudyReminder, dispatchStudyReminders,
     getCoinLogs, getVipPlans, getVipPlanDiagnostics, getMyOrders,
     assertAdmin, listAdminConfigs, saveAdminConfig, toggleAdminConfig, getHelpConfig,

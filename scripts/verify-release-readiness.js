@@ -188,6 +188,7 @@ function main() {
   run(process.execPath, ['scripts/regression-admin-uploads.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-audio-lifecycle.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-plan-separation.js'], { stdio: 'pipe' })
+  run(process.execPath, ['scripts/regression-supervision-community.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-learning-flow.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-study-plan-save.js'], { stdio: 'pipe' })
   run(process.execPath, ['scripts/regression-review-navigation.js'], { stdio: 'pipe' })
@@ -226,6 +227,7 @@ function main() {
       'admin-material-audio-wallpaper-upload-regression',
       'background-audio-lifecycle-regression',
       'VIP-supervision-plan-separation',
+      'public-preparation-post-and-mutual-match-regression',
       'learning-review-checkin-regression',
       'study-plan-save-feedback-regression',
       'review-ordered-random-navigation-regression',

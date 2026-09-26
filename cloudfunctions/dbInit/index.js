@@ -14,7 +14,7 @@ const COLLECTIONS = [
     'users', 'courses', 'subjects', 'question_banks', 'questions', 'plans',
     'study_records', 'checkins', 'mutual_questions',
     'audios', 'wallpapers', 'user_wallpapers', 'materials', 'material_redemptions', 'coin_logs', 'orders',
-    'supervision', 'supervision_profiles', 'vip_plans', 'punch_backgrounds',
+    'supervision', 'supervision_profiles', 'supervision_match_interests', 'vip_plans', 'punch_backgrounds',
     'punch_quotes', 'ad_slots', 'messages', 'user_messages', 'correction_reports',
     'study_reminders', 'notification_settings', 'reminder_dispatch_logs', 'help_config'
 ]

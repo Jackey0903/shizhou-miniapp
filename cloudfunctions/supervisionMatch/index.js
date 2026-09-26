@@ -1,12 +1,15 @@
 const cloud = require('wx-server-sdk')
+const crypto = require('node:crypto')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 const _ = db.command
 
-async function ensureCollection() {
+const PUBLIC_STATUSES = ['published', 'active', 'pending_payment']
+
+async function ensureCollection(name = 'supervision_profiles') {
     try {
-        await db.createCollection('supervision_profiles')
+        await db.createCollection(name)
     } catch (err) {
         const msg = err && err.message ? err.message : ''
         if (!msg.includes('ResourceExist') && !msg.includes('Table exist') && !msg.includes('existed')) {
@@ -20,13 +23,7 @@ async function getUserBase(openid) {
     return res.data[0] || {}
 }
 
-function hasActiveSupervision(user = {}) {
-    if (!user.supervisionExpireDate) return false
-    const expireTime = new Date(user.supervisionExpireDate).getTime()
-    return Number.isFinite(expireTime) && expireTime > Date.now()
-}
-
-async function upsertProfile(openid, mode, profile, status) {
+async function upsertProfile(openid, mode, profile) {
     await ensureCollection()
     const current = await db.collection('supervision_profiles')
         .where({ _openid: openid, mode })
@@ -37,12 +34,12 @@ async function upsertProfile(openid, mode, profile, status) {
     const payload = {
         _openid: openid,
         mode,
-        status,
-        displayName: profile.displayName || userBase.nickName || '考友',
-        contact: profile.contact || '',
-        examType: profile.examType || '',
+        status: 'published',
+        displayName: String(profile.displayName || userBase.nickName || '考友').trim().slice(0, 24),
+        contact: String(profile.contact || '').trim().slice(0, 100),
+        examType: String(profile.examType || '').trim().slice(0, 30),
         goal: profile.goal || profile.examType || '',
-        city: profile.city || profile.targetCityLabel || profile.targetCity || '',
+        city: String(profile.city || profile.targetCityLabel || profile.targetCity || '').trim().slice(0, 80),
         targetProvince: profile.targetProvince || '',
         targetCity: profile.targetCity || '',
         targetDistrict: profile.targetDistrict || '',
@@ -53,7 +50,7 @@ async function upsertProfile(openid, mode, profile, status) {
         dailyPeriods: Array.isArray(profile.dailyPeriods) ? profile.dailyPeriods : [],
         modules: Array.isArray(profile.modules) ? profile.modules : [],
         candidateType: profile.candidateType || '',
-        slogan: profile.slogan || '',
+        slogan: String(profile.slogan || '').trim().slice(0, 140),
         avatarUrl: userBase.avatarUrl || '',
         updatedAt: db.serverDate()
     }
@@ -87,28 +84,75 @@ async function leaveProfile(openid, mode) {
             updatedAt: db.serverDate()
         }
     })
+    await ensureCollection('supervision_match_interests')
+    for (const field of ['fromOpenid', 'toOpenid']) {
+        while (true) {
+            const res = await db.collection('supervision_match_interests').where({ [field]: openid }).limit(100).get()
+            if (!res.data.length) break
+            await Promise.all(res.data.map((item) => db.collection('supervision_match_interests').doc(item._id).remove()))
+        }
+    }
 }
 
-async function listProfiles(openid, mode) {
-    await ensureCollection()
+function interestId(from, to) {
+    return `match_${crypto.createHash('sha256').update(`${from}:${to}`).digest('hex').slice(0, 40)}`
+}
 
-    const [mineRes, listRes] = await Promise.all([
+async function setInterest(openid, targetId, remove = false) {
+    await ensureCollection()
+    await ensureCollection('supervision_match_interests')
+    const own = await db.collection('supervision_profiles')
+        .where({ _openid: openid, status: _.in(PUBLIC_STATUSES) }).limit(1).get()
+    if (!own.data.length) return { code: -1, msg: '请先发布自己的备考帖子' }
+    const targetRes = await db.collection('supervision_profiles').doc(targetId).get().catch(() => null)
+    const target = targetRes && targetRes.data
+    if (!target || !PUBLIC_STATUSES.includes(target.status) || target._openid === openid) {
+        return { code: -1, msg: '该帖子已不可匹配' }
+    }
+    const ref = db.collection('supervision_match_interests').doc(interestId(openid, target._openid))
+    if (remove) {
+        await ref.remove().catch((err) => {
+            if (!/not found|does not exist/i.test(err.message || '')) throw err
+        })
+    } else {
+        await ref.set({ data: {
+            fromOpenid: openid,
+            toOpenid: target._openid,
+            createdAt: db.serverDate()
+        } })
+    }
+    return { code: 0 }
+}
+
+async function listProfiles(openid, mode, page = 0) {
+    await ensureCollection()
+    await ensureCollection('supervision_match_interests')
+    const pageNumber = Math.max(0, Math.min(500, Math.floor(Number(page) || 0)))
+
+    const [mineRes, anyMineRes, listRes, outgoingRes, incomingRes] = await Promise.all([
         db.collection('supervision_profiles')
-            .where({ _openid: openid, mode, status: 'active' })
+            .where({ _openid: openid, mode, status: _.in(PUBLIC_STATUSES) })
             .limit(1)
             .get(),
         db.collection('supervision_profiles')
-            .where({
-                mode,
-                status: 'active',
-                _openid: _.neq(openid)
-            })
+            .where({ _openid: openid, status: _.in(PUBLIC_STATUSES) })
+            .limit(1)
+            .get(),
+        db.collection('supervision_profiles')
+            .where({ status: _.in(PUBLIC_STATUSES) })
             .orderBy('updatedAt', 'desc')
-            .limit(20)
-            .get()
+            .skip(pageNumber * 20)
+            .limit(21)
+            .get(),
+        db.collection('supervision_match_interests').where({ fromOpenid: openid }).limit(100).get(),
+        db.collection('supervision_match_interests').where({ toOpenid: openid }).limit(100).get()
     ])
 
-    const matches = (listRes.data || []).map((item) => ({
+    const outgoing = new Set(outgoingRes.data.map((item) => item.toOpenid))
+    const incoming = new Set(incomingRes.data.map((item) => item.fromOpenid))
+    const mine = mineRes.data[0] || null
+    const hasPublishedPost = anyMineRes.data.length > 0
+    const matches = (listRes.data || []).slice(0, 20).filter((item) => item._openid !== openid).map((item) => ({
         _id: item._id,
         mode: item.mode,
         displayName: item.displayName || '考友',
@@ -122,13 +166,17 @@ async function listProfiles(openid, mode) {
         modules: Array.isArray(item.modules) ? item.modules : [],
         candidateType: item.candidateType || '',
         slogan: item.slogan || '',
-        avatarUrl: item.avatarUrl || ''
+        interestedByMe: outgoing.has(item._openid),
+        interestedInMe: incoming.has(item._openid),
+        mutual: hasPublishedPost && outgoing.has(item._openid) && incoming.has(item._openid),
+        ...((hasPublishedPost && outgoing.has(item._openid) && incoming.has(item._openid)) ? { contact: item.contact || '' } : {})
     }))
 
     return {
-        mine: mineRes.data[0] || null,
+        mine,
         matches,
-        matchCount: matches.length
+        matchCount: matches.length,
+        hasMore: listRes.data.length > 20
     }
 }
 
@@ -159,7 +207,7 @@ async function savePrivateData(openid, input = {}) {
 
 exports.main = async (event) => {
     const { OPENID } = cloud.getWXContext()
-    const { action = 'list', mode = 'full', profile = {} } = event || {}
+    const { action = 'list', mode = 'full', profile = {}, targetId = '', page = 0 } = event || {}
 
     try {
         if (!OPENID) {
@@ -173,21 +221,23 @@ exports.main = async (event) => {
             return { code: 0, data: await savePrivateData(OPENID, event.data || {}) }
         }
 
+        if (!['full', 'part'].includes(mode)) return { code: -1, msg: '备考类型无效' }
+
+        if (action === 'interest' || action === 'withdrawInterest') {
+            if (!targetId || typeof targetId !== 'string') return { code: -1, msg: '请选择有效帖子' }
+            return setInterest(OPENID, targetId, action === 'withdrawInterest')
+        }
+
         if (action === 'upsert') {
-            if (!profile.contact) {
+            if (!String(profile.contact || '').trim()) {
                 return { code: -1, msg: '请先填写联系方式' }
             }
-            const user = await getUserBase(OPENID)
-            const active = hasActiveSupervision(user)
-            await upsertProfile(OPENID, mode, profile, active ? 'active' : 'pending_payment')
-            if (!active) {
-                return { code: 402, msg: '请先开通督学', data: { pendingPayment: true } }
-            }
+            await upsertProfile(OPENID, mode, profile)
         } else if (action === 'leave') {
             await leaveProfile(OPENID, mode)
         }
 
-        const data = await listProfiles(OPENID, mode)
+        const data = await listProfiles(OPENID, mode, page)
         return { code: 0, data }
     } catch (err) {
         return { code: -1, msg: err.message }

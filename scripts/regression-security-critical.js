@@ -67,7 +67,7 @@ function main() {
   assert(!exchange.includes('isVipActive'), 'VIP status must not bypass the fixed material redemption price')
   assert(oldReward.includes('已停用'), 'legacy reward endpoint must remain disabled')
 
-  assert(supervision.includes('pending_payment'), 'unpaid supervision profiles must not enter the active matching pool')
+  assert(supervision.includes('PUBLIC_STATUSES'), 'published preparation posts must be visible without supervision payment')
   assert(reminder.includes('supervisionExpireDate'), 'study reminders must require active supervision')
   assert(mutualHelp.includes('.map(toClientQuestion)'), 'mutual-help responses must use a public field allowlist')
   assert(mutualHelp.includes('DAILY_SUBMISSION_LIMIT'), 'mutual-help submissions must be rate limited')

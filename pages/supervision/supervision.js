@@ -61,6 +61,15 @@ function buildProfileSummary(profile = {}) {
   return lines
 }
 
+function toPublicCard(profile) {
+  return {
+    ...profile,
+    modeLabel: profile.mode === 'part' ? '在职备考' : '全职备考',
+    modulesText: (profile.modules || []).join(' / '),
+    periodsText: (profile.dailyPeriods || []).join(' / ')
+  }
+}
+
 Page({
   data: {
     tabs: [
@@ -86,6 +95,13 @@ Page({
     joining: false,
     leaving: false,
     currentJoinedProfile: null,
+    publicProfiles: [],
+    feedPage: 0,
+    hasMoreProfiles: false,
+    feedError: false,
+    loadingMore: false,
+    interestTargetId: '',
+    loaded: false,
     remoteMeta: {
       reminders: {},
       topics: {}
@@ -97,7 +113,7 @@ Page({
   },
 
   async onShow() {
-    await this.loadMatchState()
+    if (this.data.loaded) await this.loadMatchState()
   },
 
   async loadData() {
@@ -112,25 +128,68 @@ Page({
           topics: remote && remote.topics ? remote.topics : {}
         }
       }, () => this.syncView())
-      await this.loadMatchState()
     } catch (err) {
       this.syncView()
       wx.showToast({ title: '督学数据加载失败', icon: 'none' })
     } finally {
       wx.hideLoading()
+      await this.loadMatchState()
+      this.setData({ loaded: true })
     }
   },
 
   async loadMatchState() {
     try {
-      const res = await cloudApi.getSupervisionMatches(this.data.activeTab)
+      const res = await cloudApi.getSupervisionMatches(this.data.activeTab, 0)
+      if (!res.result || res.result.code !== 0) throw new Error('匹配广场加载失败')
       const mine = (res.result && res.result.data && res.result.data.mine) || null
       this.setData({
         currentJoinedProfile: mine,
-        joinedText: mine ? '已加入匹配池，下一步进入督学开通。' : '填写信息后加入匹配池，再进入督学开通。'
+        joinedText: mine ? '备考帖子已公开，其他考友可以看到并向你发起匹配。' : '填写资料后可发布公开备考帖子。',
+        publicProfiles: (res.result.data.matches || []).map(toPublicCard),
+        feedPage: 0,
+        hasMoreProfiles: !!res.result.data.hasMore,
+        feedError: false
       })
     } catch (err) {
-      this.setData({ currentJoinedProfile: null, joinedText: '填写信息后加入匹配池，再进入督学开通。' })
+      this.setData({ feedError: true })
+    }
+  },
+
+  async loadMoreProfiles() {
+    if (this.data.loadingMore || !this.data.hasMoreProfiles) return
+    const nextPage = this.data.feedPage + 1
+    this.setData({ loadingMore: true })
+    try {
+      const res = await cloudApi.getSupervisionMatches(this.data.activeTab, nextPage)
+      if (!res.result || res.result.code !== 0) throw new Error('加载失败')
+      this.setData({
+        publicProfiles: [...this.data.publicProfiles, ...(res.result.data.matches || []).map(toPublicCard)],
+        feedPage: nextPage,
+        hasMoreProfiles: !!res.result.data.hasMore,
+        feedError: false
+      })
+    } catch (err) {
+      wx.showToast({ title: '加载失败，请重试', icon: 'none' })
+    } finally {
+      this.setData({ loadingMore: false })
+    }
+  },
+
+  async toggleInterest(e) {
+    const targetId = e.currentTarget.dataset.id
+    const profile = this.data.publicProfiles.find((item) => item._id === targetId)
+    if (!profile || this.data.interestTargetId) return
+    this.setData({ interestTargetId: targetId })
+    try {
+      const res = await cloudApi.setSupervisionInterest(this.data.activeTab, targetId, !!profile.interestedByMe)
+      if (!res.result || res.result.code !== 0) throw new Error((res.result && res.result.msg) || '操作失败')
+      await this.loadMatchState()
+      wx.showToast({ title: profile.interestedByMe ? '已取消匹配意向' : '匹配意向已发送', icon: 'none' })
+    } catch (err) {
+      wx.showToast({ title: err.message || '操作失败', icon: 'none' })
+    } finally {
+      this.setData({ interestTargetId: '' })
     }
   },
 
@@ -253,10 +312,10 @@ Page({
         reminders: this.data.remoteMeta.reminders || {},
         topics: this.data.remoteMeta.topics || {}
       })
-      const success = !!(res && (res.result?.code === undefined || res.result?.code === 0 || !res.errMsg))
+      const success = !!(res && res.result && res.result.code === 0)
       if (success) {
         this.setData({ profiles })
-        if (showToast) wx.showToast({ title: '个人信息已保存', icon: 'success' })
+        if (showToast) wx.showToast({ title: '草稿已保存', icon: 'success' })
         return true
       }
       wx.showToast({ title: '保存失败', icon: 'none' })
@@ -278,6 +337,7 @@ Page({
     const profile = this.data.currentProfile || {}
     this.setData({ joining: true })
     wx.showLoading({ title: '加入中', mask: true })
+    let notice = ''
     try {
       const res = await cloudApi.joinSupervisionMatch(this.data.activeTab, {
         ...profile,
@@ -288,38 +348,44 @@ Page({
       if (res.result && res.result.code === 0) {
         this.setData({
           currentJoinedProfile: (res.result.data && res.result.data.mine) || null,
-          joinedText: '已加入匹配池，正在进入督学开通。'
+          joinedText: '备考帖子已公开，其他考友可以看到并向你发起匹配。'
         })
-        wx.showToast({ title: '已加入匹配池', icon: 'success' })
-        setTimeout(() => {
-          wx.navigateTo({ url: `/pages/supervision-plan/supervision-plan?mode=${this.data.activeTab}` })
-        }, 350)
-      } else if (res.result && res.result.code === 402) {
-        wx.navigateTo({ url: `/pages/supervision-pay/supervision-pay?mode=${this.data.activeTab}` })
+        await this.loadMatchState()
+        notice = '帖子已发布'
       } else {
-        wx.showToast({ title: (res.result && res.result.msg) || '加入失败', icon: 'none' })
+        notice = (res.result && res.result.msg) || '发布失败'
       }
+    } catch (err) {
+      notice = '发布失败，请重试'
     } finally {
       wx.hideLoading()
       this.setData({ joining: false })
     }
+    wx.showToast({ title: notice, icon: notice === '帖子已发布' ? 'success' : 'none' })
+  },
+
+  goSupervisionPay() {
+    wx.navigateTo({ url: `/pages/supervision-pay/supervision-pay?mode=${this.data.activeTab}` })
   },
 
   async leaveMatch() {
     this.setData({ leaving: true })
     wx.showLoading({ title: '退出中', mask: true })
+    let notice = ''
     try {
       const res = await cloudApi.leaveSupervisionMatch(this.data.activeTab)
       if (res.result && res.result.code === 0) {
-        this.setData({
-          currentJoinedProfile: null,
-          joinedText: '已退出匹配池，可重新填写资料后加入。'
-        })
-        wx.showToast({ title: '已退出匹配', icon: 'success' })
+        await this.loadMatchState()
+        notice = '已退出匹配'
+      } else {
+        notice = (res.result && res.result.msg) || '退出失败'
       }
+    } catch (err) {
+      notice = '退出失败，请重试'
     } finally {
       wx.hideLoading()
       this.setData({ leaving: false })
     }
+    wx.showToast({ title: notice, icon: notice === '已退出匹配' ? 'success' : 'none' })
   }
 })

@@ -60,7 +60,7 @@
       },
       {
         "pagePath": "pages/share-gift/share-gift",
-        "text": "分享有礼",
+        "text": "反馈有礼",
         "iconPath": "assets/icons/share.png",
         "selectedIconPath": "assets/icons/share-active.png"
       },

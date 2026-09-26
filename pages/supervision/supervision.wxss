@@ -24,3 +24,15 @@
 .status-box { margin-top: 20rpx; padding: 20rpx 24rpx; border-radius: 24rpx; background: #f8fafc; }
 .status-label { display: block; font-size: 24rpx; color: var(--text-secondary); }
 .status-text { display: block; margin-top: 8rpx; font-size: 26rpx; color: #334155; line-height: 1.7; }
+.community-section { margin-top: 32rpx; }
+.community-section > .section-title, .community-section > .section-sub { padding: 0 8rpx; }
+.community-empty { display: block; margin-top: 20rpx; padding: 32rpx 16rpx; color: var(--text-secondary); font-size: 26rpx; line-height: 1.6; text-align: center; }
+.community-post { margin-top: 18rpx; padding: 28rpx; }
+.community-post-head { display: flex; align-items: center; gap: 16rpx; flex-wrap: wrap; }
+.community-name { font-size: 30rpx; font-weight: 700; color: var(--text-primary); overflow-wrap: anywhere; }
+.community-mode { font-size: 22rpx; color: #1d4ed8; background: #eff6ff; padding: 6rpx 12rpx; border-radius: 4rpx; }
+.community-detail { display: block; margin-top: 10rpx; font-size: 25rpx; line-height: 1.5; color: #475569; overflow-wrap: anywhere; }
+.community-contact { display: block; margin-top: 18rpx; font-size: 26rpx; color: #047857; line-height: 1.6; overflow-wrap: anywhere; }
+.community-hint { display: block; margin-top: 18rpx; font-size: 24rpx; color: var(--text-secondary); line-height: 1.5; }
+.community-action { margin-top: 20rpx; width: 100%; box-sizing: border-box; }
+.community-more { margin-top: 20rpx; width: 100%; box-sizing: border-box; }
